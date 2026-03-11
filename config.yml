@@ -1,0 +1,123 @@
+version: 1
+
+app:
+  name: BuzzerMinds
+  public_base_url: https://quiz.deadpackets.pw
+
+providers:
+  openrouter:
+    api_key_env: OPENROUTER_API_KEY
+    base_url: https://openrouter.ai/api/v1
+    timeout_seconds: 20
+  elevenlabs:
+    api_key_env: ELEVENLABS_API_KEY
+    voice_id: JBFqnCBsd6RMkjVDRZzb
+    model_id: eleven_multilingual_v2
+    output_format: mp3_44100_128
+    timeout_seconds: 20
+
+models:
+  default_preset: best-quality
+  catalog:
+    - id: openai/gpt-5.4
+      label: GPT-5.4
+      roles: [content, grading]
+      experimental: false
+    - id: google/gemini-3.1-pro-preview
+      label: Gemini 3.1 Pro Preview
+      roles: [content, grading]
+      experimental: false
+  presets:
+    - id: best-quality
+      label: Best Quality
+      description: Premium content quality with conservative grading.
+      content_model: openai/gpt-5.4
+      grading_model: google/gemini-3.1-pro-preview
+      visible: true
+    - id: balanced
+      label: Balanced
+      description: Stable default preset for most rooms.
+      content_model: google/gemini-3.1-pro-preview
+      grading_model: google/gemini-3.1-pro-preview
+      visible: true
+
+room:
+  hard_max_players: 16
+  code_length: 6
+  lobby_idle_ttl_minutes: 120
+  finished_room_ttl_minutes: 30
+
+lobby:
+  min_players_to_start: 2
+
+settings:
+  defaults:
+    reveal_mode: progressive
+    end_mode: rounds
+    timer_expiry_mode: finish_round
+    moderation_mode: light
+    narration_enabled: true
+    sound_effects_enabled: true
+    music_enabled: false
+  limits:
+    topic_pool_size:
+      min: 1
+      max: 10
+      default: 3
+    rounds_count:
+      min: 1
+      max: 25
+      default: 10
+    timer_minutes:
+      min: 5
+      max: 60
+      default: 15
+    main_answer_seconds:
+      min: 10
+      max: 30
+      default: 15
+    no_buzz_window_seconds:
+      min: 5
+      max: 15
+      default: 8
+    bonus_answer_seconds:
+      min: 10
+      max: 30
+      default: 15
+
+retrieval:
+  backend: searxng
+  timeout_seconds: 2
+  searxng_url_env: SEARXNG_BASE_URL
+
+persistence:
+  backend: postgres
+  postgres_url_env: DATABASE_URL
+
+telemetry:
+  structured_logs: true
+
+runtime:
+  room_tick_interval_ms: 500
+
+security:
+  # "test" is needed for pytest httpx AsyncClient which uses base_url="http://test"
+  # "backend" is needed for container-to-container SSR calls from the frontend service
+  trusted_hosts: [quiz.deadpackets.pw, localhost, 127.0.0.1, backend, test]
+  allowed_origins: [https://quiz.deadpackets.pw, http://localhost]
+  # Cloudflare terminates TLS at the edge and forwards plain HTTP to the origin.
+  # Setting enforce_https: false prevents the backend from rejecting non-HTTPS requests.
+  enforce_https: false
+  bind_player_actions_to_client_id: true
+  rate_limits:
+    create_room_per_minute: 12
+    join_room_per_minute: 60
+    room_read_per_minute: 1200
+    room_action_per_minute: 180
+    websocket_connect_per_minute: 60
+
+turnstile:
+  enabled: false
+  secret_key_env: TURNSTILE_SECRET_KEY
+  site_key_env: NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  verify_url: https://challenges.cloudflare.com/turnstile/v0/siteverify

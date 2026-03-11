@@ -1,0 +1,35 @@
+use_default_settings:
+  engines:
+    keep_only:
+      - wikipedia
+      - wikidata
+      - duckduckgo
+
+general:
+  debug: false
+  instance_name: BuzzerMinds SearXNG
+
+search:
+  safe_search: 1
+  autocomplete: ""
+  formats:
+    - json
+
+outgoing:
+  request_timeout: 1.8
+  pool_connections: 100
+  pool_maxsize: 20
+  enable_http2: true
+
+server:
+  secret_key: buzzerminds-searxng-secret
+  limiter: false
+  image_proxy: false
+
+engines:
+  - name: wikipedia
+    disabled: false
+  - name: wikidata
+    disabled: false
+  - name: duckduckgo
+    disabled: false

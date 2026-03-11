@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Variation 3: Flat & Retro (Memphis)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #171726;
+    --bg-surface: #1f1f35;
+    --bg-elevated: #29294a;
+    --border: #33335a;
+    --pastel-pink: #f2a0b0;
+    --pastel-blue: #90b8e0;
+    --pastel-yellow: #f0d888;
+    --pastel-green: #90d8b0;
+    --pastel-purple: #b8a0e0;
+    --pastel-orange: #f0b888;
+    --text-bright: #f0edf5;
+    --text-dim: #908ca5;
+    --radius: 14px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-bright);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Memphis decorations ── */
+  .memphis-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .memphis-shape {
+    position: absolute;
+    opacity: 0.08;
+  }
+
+  /* Dots pattern */
+  .dots {
+    width: 250px;
+    height: 250px;
+    top: 5%;
+    left: -3%;
+    background-image: radial-gradient(var(--pastel-pink) 4px, transparent 4px);
+    background-size: 20px 20px;
+    animation: memphis-drift 12s ease-in-out infinite;
+  }
+
+  /* Zigzag line */
+  .zigzag {
+    top: 20%;
+    right: 5%;
+    width: 200px;
+    height: 100px;
+    opacity: 0.12;
+    animation: memphis-rotate 15s ease-in-out infinite;
+  }
+
+  .zigzag svg { width: 100%; height: 100%; }
+
+  /* Cross shape */
+  .cross {
+    bottom: 20%;
+    left: 10%;
+    width: 60px;
+    height: 60px;
+    animation: memphis-drift 10s ease-in-out infinite reverse;
+  }
+
+  .cross::before, .cross::after {
+    content: '';
+    position: absolute;
+    background: var(--pastel-yellow);
+    border-radius: 4px;
+  }
+  .cross::before { width: 60px; height: 12px; top: 24px; left: 0; }
+  .cross::after { width: 12px; height: 60px; top: 0; left: 24px; }
+
+  /* Squiggle ring */
+  .ring {
+    top: 65%;
+    right: 8%;
+    width: 80px;
+    height: 80px;
+    border: 6px solid var(--pastel-blue);
+    border-radius: 50%;
+    animation: memphis-rotate 18s linear infinite;
+  }
+
+  /* Small triangles */
+  .tri-1 {
+    top: 40%;
+    left: 5%;
+    width: 0; height: 0;
+    border-left: 25px solid transparent;
+    border-right: 25px solid transparent;
+    border-bottom: 45px solid var(--pastel-green);
+    animation: memphis-drift 9s ease-in-out infinite;
+  }
+
+  .tri-2 {
+    bottom: 10%;
+    right: 20%;
+    width: 0; height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 35px solid var(--pastel-purple);
+    transform: rotate(30deg);
+    animation: memphis-rotate 14s ease-in-out infinite reverse;
+  }
+
+  @keyframes memphis-drift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(10px, -15px); }
+  }
+
+  @keyframes memphis-rotate {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+  }
+
+  /* ── Container ── */
+  .container {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2.5rem;
+  }
+
+  /* ── Brand ── */
+  .logo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-badge {
+    width: 64px;
+    height: 64px;
+    background: var(--pastel-yellow);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-6deg);
+    animation: badge-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .logo-badge svg { width: 30px; height: 30px; color: var(--bg-deep); }
+
+  .title {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin-top: 1rem;
+    animation: pop-up 0.5s 0.1s ease both;
+  }
+
+  .title .pink { color: var(--pastel-pink); }
+  .title .blue { color: var(--pastel-blue); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 1rem;
+    max-width: 400px;
+    text-align: center;
+    line-height: 1.6;
+    margin-top: 0.75rem;
+    font-weight: 500;
+    animation: pop-up 0.5s 0.15s ease both;
+  }
+
+  /* ── CTA ── */
+  .cta-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: pop-up 0.5s 0.25s ease both;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.15s;
+    position: relative;
+  }
+
+  .btn:hover { transform: translateY(-2px) rotate(-1deg); }
+  .btn:active { transform: translateY(0) rotate(0deg); }
+
+  .btn-create {
+    background: var(--pastel-pink);
+    color: var(--bg-deep);
+  }
+
+  /* Memphis offset shadow */
+  .btn-create::after {
+    content: '';
+    position: absolute;
+    inset: 4px -4px -4px 4px;
+    background: var(--bg-elevated);
+    border-radius: 10px;
+    z-index: -1;
+  }
+
+  .divider-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .divider-line::before,
+  .divider-line::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+  }
+
+  .join-row {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .code-input {
+    flex: 1;
+    background: var(--bg-deep);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-bright);
+    text-align: center;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .code-input::placeholder {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  .code-input:focus { border-color: var(--pastel-blue); }
+
+  .btn-join {
+    background: var(--pastel-blue);
+    color: var(--bg-deep);
+    padding: 0.8rem 1.2rem;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  .btn-join:hover { transform: translateY(-2px); }
+
+  /* ── Features with Memphis tag shapes ── */
+  .features {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 700px;
+    animation: pop-up 0.5s 0.4s ease both;
+  }
+
+  .feat {
+    background: var(--bg-surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    width: 200px;
+    transition: transform 0.2s;
+    position: relative;
+  }
+
+  .feat:hover { transform: translateY(-4px) rotate(-1deg); }
+
+  .feat-tag {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--bg-deep);
+    transform: rotate(-2deg);
+  }
+
+  .tag-yellow { background: var(--pastel-yellow); }
+  .tag-green { background: var(--pastel-green); }
+  .tag-purple { background: var(--pastel-purple); }
+
+  .feat h3 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 0.9rem;
+    margin-top: 0.6rem;
+  }
+
+  .feat p {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.3rem;
+    line-height: 1.5;
+  }
+
+  /* ── Label ── */
+  .variation-label {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--pastel-orange);
+    color: var(--bg-deep);
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 0.7rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    letter-spacing: 0.05em;
+    z-index: 100;
+    transform: rotate(2deg);
+  }
+
+  @keyframes badge-in {
+    from { opacity: 0; transform: scale(0.5) rotate(-20deg); }
+    to { opacity: 1; transform: scale(1) rotate(-6deg); }
+  }
+
+  @keyframes pop-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+  <div class="variation-label">3 / 4 — Flat & Retro</div>
+
+  <div class="memphis-bg">
+    <div class="memphis-shape dots"></div>
+    <div class="memphis-shape zigzag">
+      <svg viewBox="0 0 200 60" fill="none" stroke="var(--pastel-purple)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="10,50 30,10 50,50 70,10 90,50 110,10 130,50 150,10 170,50 190,10"/>
+      </svg>
+    </div>
+    <div class="memphis-shape cross"></div>
+    <div class="memphis-shape ring"></div>
+    <div class="memphis-shape tri-1"></div>
+    <div class="memphis-shape tri-2"></div>
+  </div>
+
+  <div class="container">
+    <div class="logo-block">
+      <div class="logo-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <h1 class="title"><span class="pink">Buzzer</span><span class="blue">Minds</span></h1>
+      <p class="subtitle">The live AI trivia party. One big screen, a room full of phones, and questions that adapt to your group.</p>
+    </div>
+
+    <div class="cta-card">
+      <button class="btn btn-create">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Create Game
+      </button>
+      <div class="divider-line">or join</div>
+      <div class="join-row">
+        <input class="code-input" type="text" placeholder="Room code" maxlength="6">
+        <button class="btn-join">Go!</button>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="feat">
+        <span class="feat-tag tag-yellow">Display</span>
+        <h3>Screen-first</h3>
+        <p>Put the display on a TV or projector. It runs the show.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-tag tag-green">Mobile</span>
+        <h3>Phone to play</h3>
+        <p>Players join from their phones with a room code. No app needed.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-tag tag-purple">Smart</span>
+        <h3>AI-powered</h3>
+        <p>Questions generated from player expertise. Every game is unique.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
