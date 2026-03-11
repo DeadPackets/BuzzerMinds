@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Final Mix: Retro Shapes + Bold Pastels + GSAP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+<style>
+  :root {
+    /* ── Bold pastels: punchy but not neon ── */
+    --coral: #ff6b7a;
+    --violet: #8b5cf6;
+    --teal: #2dd4a8;
+    --gold: #f5b731;
+    --sky: #38bdf8;
+    --blush: #f472b6;
+    --tangerine: #fb923c;
+
+    /* ── Surfaces ── */
+    --bg-deep: #131320;
+    --bg-surface: #1b1b30;
+    --bg-elevated: #252545;
+    --border: #2f2f55;
+
+    /* ── Text ── */
+    --text-bright: #f0edf8;
+    --text-dim: #908ca8;
+    --text-faint: #5c5878;
+
+    --radius: 14px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-bright);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ══════════════════════════════════════
+     MEMPHIS BACKGROUND SHAPES
+     ══════════════════════════════════════ */
+  .memphis {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .m-shape {
+    position: absolute;
+    will-change: transform;
+  }
+
+  /* Dot grid cluster */
+  .m-dots {
+    width: 220px;
+    height: 220px;
+    top: 2%;
+    left: -2%;
+    background-image: radial-gradient(var(--coral) 4px, transparent 4px);
+    background-size: 22px 22px;
+    opacity: 0.1;
+  }
+
+  .m-dots-2 {
+    width: 160px;
+    height: 160px;
+    bottom: 8%;
+    right: 3%;
+    background-image: radial-gradient(var(--sky) 3px, transparent 3px);
+    background-size: 18px 18px;
+    opacity: 0.08;
+  }
+
+  /* Zigzag */
+  .m-zigzag {
+    top: 18%;
+    right: 6%;
+    opacity: 0.12;
+  }
+
+  .m-zigzag svg { width: 180px; height: 80px; }
+
+  /* Cross */
+  .m-cross {
+    bottom: 25%;
+    left: 7%;
+    width: 50px;
+    height: 50px;
+    opacity: 0.1;
+  }
+
+  .m-cross::before, .m-cross::after {
+    content: '';
+    position: absolute;
+    background: var(--gold);
+    border-radius: 4px;
+  }
+  .m-cross::before { width: 50px; height: 10px; top: 20px; left: 0; }
+  .m-cross::after { width: 10px; height: 50px; top: 0; left: 20px; }
+
+  /* Ring */
+  .m-ring {
+    top: 58%;
+    right: 10%;
+    width: 70px;
+    height: 70px;
+    border: 5px solid var(--violet);
+    border-radius: 50%;
+    opacity: 0.1;
+  }
+
+  /* Triangles */
+  .m-tri-1 {
+    top: 38%;
+    left: 4%;
+    width: 0; height: 0;
+    border-left: 22px solid transparent;
+    border-right: 22px solid transparent;
+    border-bottom: 40px solid var(--teal);
+    opacity: 0.1;
+  }
+
+  .m-tri-2 {
+    bottom: 12%;
+    right: 22%;
+    width: 0; height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-bottom: 32px solid var(--blush);
+    opacity: 0.08;
+  }
+
+  /* Squiggly S-curve */
+  .m-squiggle {
+    top: 72%;
+    left: 18%;
+    opacity: 0.09;
+  }
+
+  .m-squiggle svg { width: 120px; height: 50px; }
+
+  /* Small squares */
+  .m-square-1 {
+    width: 30px;
+    height: 30px;
+    background: var(--tangerine);
+    border-radius: 6px;
+    top: 12%;
+    left: 20%;
+    opacity: 0.08;
+  }
+
+  .m-square-2 {
+    width: 22px;
+    height: 22px;
+    background: var(--sky);
+    border-radius: 4px;
+    bottom: 30%;
+    right: 15%;
+    opacity: 0.07;
+  }
+
+  /* ══════════════════════════════════════
+     LAYOUT
+     ══════════════════════════════════════ */
+  .container {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2.5rem;
+  }
+
+  /* ── Brand ── */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .logo-badge {
+    width: 68px;
+    height: 68px;
+    background: var(--violet);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-6deg);
+  }
+
+  .logo-badge svg {
+    width: 34px;
+    height: 34px;
+    fill: none;
+    stroke: var(--bg-deep);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .title {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin-top: 1rem;
+  }
+
+  .title .t-coral { color: var(--coral); }
+  .title .t-sky { color: var(--sky); }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 420px;
+    line-height: 1.6;
+    margin-top: 0.85rem;
+    font-weight: 500;
+  }
+
+  /* ── CTA Card ── */
+  .cta-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    opacity: 0;
+  }
+
+  /* Buttons with Memphis offset shadow */
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.95rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: filter 0.15s;
+  }
+
+  .btn:hover { filter: brightness(1.08); }
+
+  .btn-create {
+    background: var(--coral);
+    color: var(--bg-deep);
+  }
+
+  .btn-create::after {
+    content: '';
+    position: absolute;
+    inset: 5px -5px -5px 5px;
+    background: color-mix(in srgb, var(--coral) 25%, var(--bg-deep));
+    border-radius: 10px;
+    z-index: -1;
+    transition: inset 0.15s ease;
+  }
+
+  .btn-create:hover::after {
+    inset: 3px -3px -3px 3px;
+  }
+
+  .btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+  }
+
+  .join-row {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .code-input {
+    flex: 1;
+    background: var(--bg-deep);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-bright);
+    text-align: center;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .code-input::placeholder {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  .code-input:focus { border-color: var(--sky); }
+
+  .btn-join {
+    background: var(--sky);
+    color: var(--bg-deep);
+    padding: 0.85rem 1.3rem;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: filter 0.15s;
+  }
+
+  .btn-join:hover { filter: brightness(1.08); }
+
+  .btn-join::after {
+    content: '';
+    position: absolute;
+    inset: 4px -4px -4px 4px;
+    background: color-mix(in srgb, var(--sky) 25%, var(--bg-deep));
+    border-radius: 10px;
+    z-index: -1;
+    transition: inset 0.15s ease;
+  }
+
+  .btn-join:hover::after {
+    inset: 2px -2px -2px 2px;
+  }
+
+  /* ── Feature pills (tilted) ── */
+  .features {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 700px;
+    opacity: 0;
+  }
+
+  .feat {
+    background: var(--bg-surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.4rem;
+    width: 200px;
+    position: relative;
+    transition: transform 0.2s ease;
+  }
+
+  .feat:nth-child(1) { transform: rotate(-2deg); }
+  .feat:nth-child(2) { transform: rotate(1.5deg); }
+  .feat:nth-child(3) { transform: rotate(-1deg); }
+
+  .feat:hover {
+    transform: translateY(-6px) rotate(0deg) !important;
+  }
+
+  .feat-tag {
+    display: inline-block;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--bg-deep);
+    transform: rotate(-3deg);
+  }
+
+  .tag-gold { background: var(--gold); }
+  .tag-teal { background: var(--teal); }
+  .tag-violet { background: var(--violet); }
+
+  .feat h3 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 0.92rem;
+    margin-top: 0.6rem;
+  }
+
+  .feat p {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.3rem;
+    line-height: 1.55;
+  }
+
+  /* ══════════════════════════════════════
+     GSAP will handle all entrance + loop
+     animations. No CSS keyframes needed.
+     ══════════════════════════════════════ */
+</style>
+</head>
+<body>
+
+  <!-- ── Memphis background shapes ── -->
+  <div class="memphis">
+    <div class="m-shape m-dots"></div>
+    <div class="m-shape m-dots-2"></div>
+    <div class="m-shape m-zigzag">
+      <svg viewBox="0 0 200 60" fill="none" stroke="var(--violet)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="10,50 30,10 50,50 70,10 90,50 110,10 130,50 150,10 170,50 190,10"/>
+      </svg>
+    </div>
+    <div class="m-shape m-cross"></div>
+    <div class="m-shape m-ring"></div>
+    <div class="m-shape m-tri-1"></div>
+    <div class="m-shape m-tri-2"></div>
+    <div class="m-shape m-squiggle">
+      <svg viewBox="0 0 120 50" fill="none" stroke="var(--tangerine)" stroke-width="3.5" stroke-linecap="round">
+        <path d="M5,25 C20,5 35,45 50,25 C65,5 80,45 95,25 C110,5 115,25 115,25"/>
+      </svg>
+    </div>
+    <div class="m-shape m-square-1"></div>
+    <div class="m-shape m-square-2"></div>
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="container">
+
+    <div class="hero">
+      <div class="logo-badge">
+        <!-- Brain icon -->
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2a5 5 0 0 1 4.78 3.53A4.5 4.5 0 0 1 21 9.5a4.5 4.5 0 0 1-2.22 3.88A5 5 0 0 1 12 18"/>
+          <path d="M12 2a5 5 0 0 0-4.78 3.53A4.5 4.5 0 0 0 3 9.5a4.5 4.5 0 0 0 2.22 3.88A5 5 0 0 0 12 18"/>
+          <path d="M12 18v4"/>
+          <path d="M8 14.5c0-1 .8-2.5 2-3"/>
+          <path d="M14 14.5c0-1-.8-2.5-2-3"/>
+          <path d="M8 9h0"/>
+          <path d="M16 9h0"/>
+          <path d="M12 6v2"/>
+        </svg>
+      </div>
+      <h1 class="title"><span class="t-coral">Buzzer</span><span class="t-sky">Minds</span></h1>
+      <p class="subtitle">The live AI trivia party. One big screen, a room full of phones, and questions that adapt to your group.</p>
+    </div>
+
+    <div class="cta-card">
+      <button class="btn btn-create">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Create Game
+      </button>
+      <div class="divider">or join</div>
+      <div class="join-row">
+        <input class="code-input" type="text" placeholder="Room code" maxlength="6">
+        <button class="btn-join">Go!</button>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="feat">
+        <span class="feat-tag tag-gold">Display</span>
+        <h3>Screen-first</h3>
+        <p>Put the display on a TV or projector. It runs the show.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-tag tag-teal">Mobile</span>
+        <h3>Phone to play</h3>
+        <p>Players join from their phones with a room code. No app needed.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-tag tag-violet">Smart</span>
+        <h3>AI-powered</h3>
+        <p>Questions generated from player expertise. Every game is unique.</p>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ══════════════════════════════════════
+  // GSAP ANIMATIONS
+  // ══════════════════════════════════════
+
+  gsap.defaults({ ease: "power3.out" });
+
+  // ── 1. Entrance timeline ──
+  const tl = gsap.timeline();
+
+  // Hero block
+  tl.to(".hero", {
+    opacity: 1,
+    duration: 0
+  })
+  .from(".logo-badge", {
+    scale: 0,
+    rotation: -30,
+    duration: 0.7,
+    ease: "back.out(1.7)"
+  })
+  .from(".title", {
+    y: 30,
+    opacity: 0,
+    duration: 0.6,
+  }, "-=0.3")
+  .from(".subtitle", {
+    y: 20,
+    opacity: 0,
+    duration: 0.5,
+  }, "-=0.3")
+
+  // CTA card
+  .to(".cta-card", { opacity: 1, duration: 0 })
+  .from(".cta-card", {
+    y: 40,
+    scale: 0.95,
+    duration: 0.6,
+    ease: "back.out(1.4)"
+  }, "-=0.2")
+
+  // Feature pills stagger
+  .to(".features", { opacity: 1, duration: 0 })
+  .from(".feat", {
+    y: 30,
+    opacity: 0,
+    rotation: 0,
+    duration: 0.5,
+    stagger: 0.12,
+    ease: "back.out(1.3)",
+    onComplete: function() {
+      // Re-apply tilts after entrance
+      gsap.to(".feat:nth-child(1)", { rotation: -2, duration: 0.3 });
+      gsap.to(".feat:nth-child(2)", { rotation: 1.5, duration: 0.3 });
+      gsap.to(".feat:nth-child(3)", { rotation: -1, duration: 0.3 });
+    }
+  }, "-=0.2");
+
+  // ── 2. Background shapes: continuous floating ──
+  const shapes = document.querySelectorAll(".m-shape");
+
+  shapes.forEach((shape, i) => {
+    // Random starting position offsets
+    const xRange = 15 + Math.random() * 20;
+    const yRange = 12 + Math.random() * 18;
+    const rotRange = 8 + Math.random() * 15;
+    const dur = 5 + Math.random() * 7;
+
+    // Continuous float loop
+    gsap.to(shape, {
+      x: `random(-${xRange}, ${xRange})`,
+      y: `random(-${yRange}, ${yRange})`,
+      rotation: `random(-${rotRange}, ${rotRange})`,
+      duration: dur,
+      ease: "sine.inOut",
+      repeat: -1,
+      yoyo: true,
+      delay: i * 0.3,
+    });
+
+    // Subtle scale pulse
+    gsap.to(shape, {
+      scale: 0.9 + Math.random() * 0.2,
+      duration: dur * 0.8,
+      ease: "sine.inOut",
+      repeat: -1,
+      yoyo: true,
+      delay: i * 0.2,
+    });
+  });
+
+  // ── 3. Logo badge: gentle continuous wobble ──
+  gsap.to(".logo-badge", {
+    rotation: -3,
+    duration: 2.5,
+    ease: "sine.inOut",
+    repeat: -1,
+    yoyo: true,
+    delay: 1.5
+  });
+
+  // ── 4. Button hover: GSAP-powered press effect ──
+  document.querySelectorAll(".btn, .btn-join").forEach(btn => {
+    btn.addEventListener("mouseenter", () => {
+      gsap.to(btn, {
+        y: -3,
+        scale: 1.02,
+        duration: 0.25,
+        ease: "back.out(2)"
+      });
+    });
+    btn.addEventListener("mouseleave", () => {
+      gsap.to(btn, {
+        y: 0,
+        scale: 1,
+        duration: 0.3,
+        ease: "power2.out"
+      });
+    });
+    btn.addEventListener("mousedown", () => {
+      gsap.to(btn, {
+        y: 1,
+        scale: 0.97,
+        duration: 0.1,
+        ease: "power2.in"
+      });
+    });
+    btn.addEventListener("mouseup", () => {
+      gsap.to(btn, {
+        y: -3,
+        scale: 1.02,
+        duration: 0.2,
+        ease: "back.out(2)"
+      });
+    });
+  });
+
+  // ── 5. Feature cards: magnetic tilt on hover ──
+  document.querySelectorAll(".feat").forEach((card, i) => {
+    const baseTilt = [-2, 1.5, -1][i];
+
+    card.addEventListener("mouseenter", () => {
+      gsap.to(card, {
+        y: -8,
+        rotation: 0,
+        scale: 1.03,
+        duration: 0.35,
+        ease: "back.out(1.5)"
+      });
+    });
+
+    card.addEventListener("mouseleave", () => {
+      gsap.to(card, {
+        y: 0,
+        rotation: baseTilt,
+        scale: 1,
+        duration: 0.4,
+        ease: "power2.out"
+      });
+    });
+  });
+
+  // ── 6. Input focus pulse ──
+  const codeInput = document.querySelector(".code-input");
+  codeInput.addEventListener("focus", () => {
+    gsap.fromTo(codeInput, 
+      { borderColor: "var(--border)" },
+      { borderColor: "var(--sky)", duration: 0.3 }
+    );
+    gsap.to(codeInput, {
+      scale: 1.02,
+      duration: 0.2,
+      ease: "back.out(2)"
+    });
+  });
+  codeInput.addEventListener("blur", () => {
+    gsap.to(codeInput, {
+      borderColor: "var(--border)",
+      scale: 1,
+      duration: 0.3
+    });
+  });
+</script>
+</body>
+</html>
