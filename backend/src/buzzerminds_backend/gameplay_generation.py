@@ -4,7 +4,8 @@ import logging
 import os
 import re
 import secrets
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_ai import Agent
@@ -24,6 +25,7 @@ class QuestionGenerationInput:
     topic_label: str
     reveal_mode: str
     soft_filter_enabled: bool
+    previous_prompts: list[str] = field(default_factory=list)
 
 
 class GeneratedQuestionPayload(BaseModel):
@@ -79,8 +81,18 @@ class OpenRouterGameplayGenerator:
     ) -> GeneratedQuestionPayload:
         api_key = os.getenv(self.provider_config.api_key_env, "").strip()
         if not api_key:
+            logger.warning(
+                "Question generation skipped: missing API key",
+                extra={
+                    "event": "question_gen",
+                    "topic": input_data.topic_label,
+                    "outcome": "fallback_no_key",
+                },
+            )
             return self._fallback_question(input_data)
 
+        t0 = time.monotonic()
+        prompt_text = self._question_prompt(input_data)
         try:
             provider = self._provider(api_key)
             agent = Agent(
@@ -91,12 +103,34 @@ class OpenRouterGameplayGenerator:
                     "acceptable alternatives, and a factual explanation."
                 ),
             )
-            result = await agent.run(
-                self._question_prompt(input_data),
+            result = await agent.run(prompt_text)
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            logger.info(
+                "Question generated",
+                extra={
+                    "event": "question_gen",
+                    "model_id": model_id,
+                    "topic": input_data.topic_label,
+                    "duration_ms": duration_ms,
+                    "outcome": "success",
+                    "prompt_len": len(prompt_text),
+                },
             )
             return result.output
         except Exception as exc:
-            logger.warning("Question generation failed; falling back: %s", exc)
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            logger.warning(
+                "Question generation failed; falling back: %s",
+                exc,
+                extra={
+                    "event": "question_gen",
+                    "model_id": model_id,
+                    "topic": input_data.topic_label,
+                    "duration_ms": duration_ms,
+                    "outcome": "fallback_error",
+                    "error": str(exc),
+                },
+            )
             return self._fallback_question(input_data)
 
     async def grade_answer(
@@ -109,8 +143,13 @@ class OpenRouterGameplayGenerator:
     ) -> GradingPayload:
         api_key = os.getenv(self.provider_config.api_key_env, "").strip()
         if not api_key:
+            logger.warning(
+                "Grading skipped: missing API key",
+                extra={"event": "grade_answer", "outcome": "fallback_no_key"},
+            )
             return self._fallback_grade(canonical_answer, acceptable_answers, player_answer)
 
+        t0 = time.monotonic()
         try:
             provider = self._provider(api_key)
             agent = Agent(
@@ -128,9 +167,33 @@ class OpenRouterGameplayGenerator:
                 f"Acceptable alternatives: {', '.join(acceptable_answers)}\n"
                 f"Player answer: {player_answer}"
             )
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            logger.info(
+                "Answer graded",
+                extra={
+                    "event": "grade_answer",
+                    "model_id": model_id,
+                    "duration_ms": duration_ms,
+                    "outcome": "success",
+                    "decision": result.output.decision,
+                    "player_answer": player_answer[:80],
+                },
+            )
             return result.output
         except Exception as exc:
-            logger.warning("Grading failed; falling back: %s", exc)
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            logger.warning(
+                "Grading failed; falling back: %s",
+                exc,
+                extra={
+                    "event": "grade_answer",
+                    "model_id": model_id,
+                    "duration_ms": duration_ms,
+                    "outcome": "fallback_error",
+                    "error": str(exc),
+                    "player_answer": player_answer[:80],
+                },
+            )
             return self._fallback_grade(canonical_answer, acceptable_answers, player_answer)
 
     async def generate_bonus_questions(
@@ -143,8 +206,13 @@ class OpenRouterGameplayGenerator:
         api_key = os.getenv(self.provider_config.api_key_env, "").strip()
         fallback = self._fallback_bonus_questions(topic_label, main_answer, count)
         if not api_key:
+            logger.warning(
+                "Bonus generation skipped: missing API key",
+                extra={"event": "bonus_gen", "topic": topic_label, "outcome": "fallback_no_key"},
+            )
             return fallback
 
+        t0 = time.monotonic()
         try:
             provider = self._provider(api_key)
             agent = Agent(
@@ -160,13 +228,48 @@ class OpenRouterGameplayGenerator:
                 "Make each bonus same difficulty or slightly easier, direct-answer only."
             )
             bonuses = result.output
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            logger.info(
+                "Bonus questions generated",
+                extra={
+                    "event": "bonus_gen",
+                    "model_id": model_id,
+                    "topic": topic_label,
+                    "duration_ms": duration_ms,
+                    "outcome": "success",
+                    "count": min(len(bonuses) if bonuses else 0, count),
+                },
+            )
             return bonuses[:count] if bonuses else fallback
         except Exception as exc:
-            logger.warning("Bonus generation failed; falling back: %s", exc)
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            logger.warning(
+                "Bonus generation failed; falling back: %s",
+                exc,
+                extra={
+                    "event": "bonus_gen",
+                    "model_id": model_id,
+                    "topic": topic_label,
+                    "duration_ms": duration_ms,
+                    "outcome": "fallback_error",
+                    "error": str(exc),
+                },
+            )
             return fallback
 
     async def build_fact_card(self, payload: GeneratedQuestionPayload) -> FactCardState:
+        t0 = time.monotonic()
         citations = await self.retrieval.search(payload.answer, safesearch=1)
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        logger.info(
+            "Fact card built",
+            extra={
+                "event": "fact_card",
+                "duration_ms": duration_ms,
+                "citation_count": len(citations),
+                "answer": payload.answer[:80],
+            },
+        )
         return FactCardState(
             headline=payload.fact_headline,
             detail=payload.fact_detail,
@@ -186,6 +289,13 @@ class OpenRouterGameplayGenerator:
             if input_data.soft_filter_enabled
             else "Avoid unsafe or abusive content."
         )
+        history_block = ""
+        if input_data.previous_prompts:
+            items = "\n".join(f"- {p}" for p in input_data.previous_prompts)
+            history_block = (
+                "\n\nPreviously asked questions (DO NOT repeat, rephrase, or ask anything too similar):\n"
+                f"{items}\n"
+            )
         return (
             f"Write one trivia question for the topic '{input_data.topic_label}'.\n"
             f"Reveal mode: {input_data.reveal_mode}.\n"
@@ -195,6 +305,7 @@ class OpenRouterGameplayGenerator:
             "- Keep the question theatrical and punchy.\n"
             f"- {safety}\n"
             "- Include a short fact headline and short explanatory fact detail."
+            f"{history_block}"
         )
 
     def _fallback_question(self, input_data: QuestionGenerationInput) -> GeneratedQuestionPayload:

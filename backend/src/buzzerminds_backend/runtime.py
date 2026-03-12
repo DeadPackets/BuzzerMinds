@@ -45,10 +45,14 @@ class RoomRuntime:
             )
             CONNECTED_PLAYERS.set(total_players)
 
-            for room_code in room_codes:
+            async def _tick_and_broadcast(code: str) -> None:
                 try:
-                    room_state = await self.room_manager.tick_room(room_code)
-                    await self.realtime_hub.broadcast_room_state(room_code, room_state)
+                    room_state = await self.room_manager.tick_room(code)
+                    await self.realtime_hub.broadcast_room_state(code, room_state)
                 except Exception:
-                    continue
+                    pass
+
+            if room_codes:
+                await asyncio.gather(*[_tick_and_broadcast(code) for code in room_codes])
+
             await asyncio.sleep(self.room_manager.app_config.runtime.room_tick_interval_ms / 1000)

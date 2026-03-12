@@ -4,6 +4,7 @@ export type TimerExpiryMode = "finish_round" | "finish_main_only" | "stop_immedi
 export type PlayerRole = "vip_player" | "player" | "spectator";
 export type RoomPhase =
   | "lobby"
+  | "intro"
   | "topic_voting"
   | "question_loading"
   | "question_reveal_progressive"
@@ -203,6 +204,7 @@ export interface BuzzStateResponse {
   opened_at: string | null;
   deadline_at: string | null;
   winner_player_id: string | null;
+  winner_locked_at: string | null;
   eligible_player_ids: string[];
   locked_out_player_ids: string[];
   buzz_order: string[];
@@ -326,6 +328,7 @@ export interface RoomStateResponse {
   pause_state: PauseState | null;
   narration: NarrationCueState | null;
   finished: FinishedState | null;
+  intro_deadline_at: string | null;
 }
 
 export interface CreateRoomResponse {

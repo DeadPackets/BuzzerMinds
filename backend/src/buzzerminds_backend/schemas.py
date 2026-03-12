@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 RoomPhase = Literal[
     "lobby",
+    "intro",
     "topic_voting",
     "question_loading",
     "question_reveal_progressive",
@@ -214,6 +215,7 @@ class BuzzStateResponse(BaseModel):
     opened_at: datetime | None = None
     deadline_at: datetime | None = None
     winner_player_id: str | None = None
+    winner_locked_at: datetime | None = None
     eligible_player_ids: list[str]
     locked_out_player_ids: list[str]
     buzz_order: list[str]
@@ -384,6 +386,7 @@ class RoomStateResponse(BaseModel):
     pause_state: PauseState | None = None
     narration: NarrationCueState | None = None
     finished: FinishedState | None = None
+    intro_deadline_at: datetime | None = None
 
 
 class PlayerSessionResponse(BaseModel):
@@ -451,6 +454,10 @@ class UpdateSettingsRequest(PlayerAuthRequest):
 
 
 class StartGameRequest(PlayerAuthRequest):
+    pass
+
+
+class SkipIntroRequest(PlayerAuthRequest):
     pass
 
 

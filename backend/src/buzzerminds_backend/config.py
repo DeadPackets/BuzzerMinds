@@ -62,10 +62,16 @@ class ElevenLabsConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     api_key_env: str = "ELEVENLABS_API_KEY"
-    voice_id: str = "JBFqnCBsd6RMkjVDRZzb"
-    model_id: str = "eleven_multilingual_v2"
-    output_format: str = "mp3_44100_128"
-    timeout_seconds: int = 20
+    voice_id: str = "dEc1rkm0ul0kDedEuETS"
+    model_id: str = "eleven_v3"
+    output_format: str = "mp3_44100_192"
+    timeout_seconds: int = 30
+    # Voice settings (matching intro narration quality)
+    stability: float = 0.4
+    similarity_boost: float = 0.85
+    style: float = 0.6
+    speed: float = 1.0
+    use_speaker_boost: bool = True
 
 
 class ProvidersConfig(BaseModel):

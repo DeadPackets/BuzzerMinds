@@ -18,6 +18,8 @@ export function formatRole(role: string): string {
 
 export function formatPhase(phase: string): string {
   switch (phase) {
+    case "intro":
+      return "Introduction";
     case "topic_voting":
       return "Topic Voting";
     case "question_loading":

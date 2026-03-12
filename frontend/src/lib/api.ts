@@ -71,6 +71,11 @@ export const api = {
       method: "POST",
       body: authBody(playerToken, clientId),
     }),
+  skipIntro: (roomCode: string, playerId: string, playerToken: string, clientId: string) =>
+    request<RoomStateResponse>(`/api/rooms/${roomCode}/vip/${playerId}/skip-intro`, {
+      method: "POST",
+      body: authBody(playerToken, clientId),
+    }),
   kickPlayer: (roomCode: string, playerId: string, playerToken: string, clientId: string, targetPlayerId: string) =>
     request<RoomStateResponse>(`/api/rooms/${roomCode}/vip/${playerId}/kick`, {
       method: "POST",

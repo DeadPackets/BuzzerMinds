@@ -28,6 +28,7 @@ from .schemas import (
     ReadyUpdateRequest,
     ResetRoomRequest,
     RoomStateResponse,
+    SkipIntroRequest,
     StartGameRequest,
     SubmitAnswerRequest,
     SubmitTopicVotesRequest,
@@ -183,6 +184,24 @@ def create_app() -> FastAPI:
             http_request, "room_action", app_config.security.rate_limits.room_action_per_minute
         )
         room = await room_manager.start_game(
+            room_code=room_code,
+            player_id=player_id,
+            player_token=request.player_token,
+            client_id=request.client_id,
+        )
+        await realtime_hub.broadcast_room_state(room.code, room)
+        return room
+
+    @application.post(
+        "/api/rooms/{room_code}/vip/{player_id}/skip-intro", response_model=RoomStateResponse
+    )
+    async def skip_intro(
+        room_code: str, player_id: str, request: SkipIntroRequest, http_request: Request
+    ) -> RoomStateResponse:
+        rate_limit(
+            http_request, "room_action", app_config.security.rate_limits.room_action_per_minute
+        )
+        room = await room_manager.skip_intro(
             room_code=room_code,
             player_id=player_id,
             player_token=request.player_token,

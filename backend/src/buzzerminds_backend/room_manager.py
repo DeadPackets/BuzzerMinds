@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import secrets
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -62,12 +64,15 @@ from .security import InMemoryRateLimiter
 from .storage import PersistenceAdapter
 from .topic_generation import OpenRouterTopicGenerator, TopicSourceInput
 
+logger = logging.getLogger(__name__)
+
 MAX_APPROVALS_PER_PLAYER = 3
 SHORTLIST_SIZE = 12
 PLAYER_TOPIC_COUNT = 8
 STANDARD_TOPIC_COUNT = 4
 TOPIC_REROLLS_PER_GAME = 1
 BONUS_QUESTION_COUNT = 3
+BUZZ_CELEBRATION_SECONDS = 3
 VIP_RETURN_TIMEOUT_SECONDS = 90
 STANDARD_TOPICS = [
     "World History",
@@ -220,6 +225,7 @@ class BuzzState:
     opened_at: datetime | None = None
     deadline_at: datetime | None = None
     winner_player_id: str | None = None
+    winner_locked_at: datetime | None = None
     eligible_player_ids: list[str] = field(default_factory=list)
     locked_out_player_ids: list[str] = field(default_factory=list)
     buzz_order: list[str] = field(default_factory=list)
@@ -336,6 +342,10 @@ class Room:
     finished: FinishedState | None = None
     paused_phase: RoomPhase | None = None
     paused_remaining_seconds: dict[str, float] = field(default_factory=dict)
+    intro_deadline_at: datetime | None = None
+    async_work_in_progress: bool = False
+    _topic_task: asyncio.Task | None = None
+    _pending_narration_text: str | None = None
 
     @property
     def vip_player_id(self) -> str | None:
@@ -349,12 +359,19 @@ class RoomManager:
     def __init__(self, app_config: AppConfig) -> None:
         self.app_config = app_config
         self.rooms: dict[str, Room] = {}
-        self._lock = asyncio.Lock()
+        self._room_locks: dict[str, asyncio.Lock] = {}
+        self._creation_lock = asyncio.Lock()
         self.topic_generator = OpenRouterTopicGenerator(app_config)
         self.gameplay_generator = OpenRouterGameplayGenerator(app_config)
         self.narration_service = ElevenLabsNarrationService(app_config)
         self.rate_limiter = InMemoryRateLimiter()
         self.persistence = PersistenceAdapter(app_config)
+
+    def _get_room_lock(self, room_code: str) -> asyncio.Lock:
+        code = normalize_room_code(room_code)
+        if code not in self._room_locks:
+            self._room_locks[code] = asyncio.Lock()
+        return self._room_locks[code]
 
     def public_config(self) -> PublicConfigResponse:
         experimental_map = {item.id: item.experimental for item in self.app_config.models.catalog}
@@ -447,13 +464,17 @@ class RoomManager:
         return self.app_config.default_preset
 
     async def create_room(self) -> RoomStateResponse:
-        async with self._lock:
+        async with self._creation_lock:
             self.prune_expired_rooms()
             code = self._generate_room_code()
             room = Room(code=code, settings=self.default_settings())
             self.rooms[code] = room
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
+            logger.info(
+                "Room created",
+                extra={"event": "room_created", "room_code": code},
+            )
             return room_state
 
     def create_display_session(self, room_code: str) -> str:
@@ -488,9 +509,10 @@ class RoomManager:
                 to_delete.append(code)
         for code in to_delete:
             self.rooms.pop(code, None)
+            self._room_locks.pop(code, None)
 
     async def get_room_state(self, room_code: str) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             self.prune_expired_rooms()
             room = await self.load_room(room_code)
             self.advance_room_state(room)
@@ -501,7 +523,7 @@ class RoomManager:
     async def join_room(
         self, room_code: str, client_id: str, name: str, color: str, expertise: str
     ) -> JoinRoomResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             self.prune_expired_rooms()
             room = await self.load_room(room_code)
             self.advance_room_state(room)
@@ -546,6 +568,16 @@ class RoomManager:
             )
             room.players[player.id] = player
             room.updated_at = utc_now()
+            logger.info(
+                "Player joined room",
+                extra={
+                    "event": "player_joined",
+                    "room_code": room.code,
+                    "player_id": player.id,
+                    "role": player.role,
+                    "player_count": len(room.players),
+                },
+            )
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return JoinRoomResponse(
@@ -566,7 +598,7 @@ class RoomManager:
         ready: bool,
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -594,7 +626,7 @@ class RoomManager:
         patch: SettingsPatch,
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -684,7 +716,7 @@ class RoomManager:
     async def start_game(
         self, room_code: str, player_id: str, player_token: str, client_id: str | None = None
     ) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -695,9 +727,9 @@ class RoomManager:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot start game: " + "; ".join(blockers),
                 )
-            room.phase = "topic_voting"
+            room.phase = "intro"
             room.settings_locked = True
-            room.topic_voting = await self.build_topic_voting(room)
+            room.intro_deadline_at = utc_now() + timedelta(seconds=85)
             room.game_config_snapshot = self.clone_settings(room.settings)
             room.progress = GameProgress(
                 game_started_at=utc_now(),
@@ -705,6 +737,79 @@ class RoomManager:
                 if room.settings.end_mode == "timer"
                 else None,
             )
+            # Eagerly start topic generation in the background during intro
+            room._topic_task = asyncio.create_task(self.build_topic_voting(room))
+            room.updated_at = utc_now()
+            active_count = sum(1 for p in room.players.values() if p.role != "spectator")
+            logger.info(
+                "Game started",
+                extra={
+                    "event": "game_started",
+                    "room_code": room.code,
+                    "player_count": active_count,
+                    "end_mode": room.settings.end_mode,
+                    "reveal_mode": room.settings.reveal_mode,
+                    "content_model_id": room.settings.content_model_id,
+                    "grading_model_id": room.settings.grading_model_id,
+                },
+            )
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+            return room_state
+
+    async def skip_intro(
+        self, room_code: str, player_id: str, player_token: str, client_id: str | None = None
+    ) -> RoomStateResponse:
+        lock = self._get_room_lock(room_code)
+
+        # Phase 1: validate & transition under lock
+        async with lock:
+            room = await self.load_room(room_code)
+            player = self.require_player(room, player_id, player_token)
+            self.require_player_client(room, player, client_id)
+            self.require_vip(room, player)
+            if room.phase != "intro":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot skip intro: game is not in the intro phase.",
+                )
+            room.phase = "topic_voting"
+            room.intro_deadline_at = None
+
+            # Check if eager topic task is ready
+            if room._topic_task is not None and room._topic_task.done():
+                try:
+                    room.topic_voting = room._topic_task.result()
+                except Exception as exc:
+                    logger.warning(
+                        "Eager topic task failed in skip_intro: %s",
+                        exc,
+                        extra={
+                            "event": "eager_topic_failed",
+                            "room_code": room.code,
+                            "error": str(exc),
+                        },
+                    )
+                    room._topic_task = None
+                else:
+                    room._topic_task = None
+                    room.updated_at = utc_now()
+                    room_state = self.serialize_room(room)
+                    await self.persist_room(room, room_state)
+                    return room_state
+
+            room.async_work_in_progress = True
+            room.updated_at = utc_now()
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+
+        # Phase 2: generate topics without lock
+        topic_voting = await self.build_topic_voting(room)
+
+        # Phase 3: apply under lock
+        async with lock:
+            room.topic_voting = topic_voting
+            room.async_work_in_progress = False
             room.updated_at = utc_now()
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
@@ -718,7 +823,10 @@ class RoomManager:
         topic_ids: list[str],
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+        needs_finalize = False
+
+        async with lock:
             room = await self.load_room(room_code)
             self.advance_room_state(room)
             player = self.require_player(room, player_id, player_token)
@@ -755,7 +863,36 @@ class RoomManager:
             )
             room.updated_at = utc_now()
             if self.all_active_players_have_voted(room):
-                await self.finalize_topic_voting(room)
+                needs_finalize = True
+                # Finalize voting (tallying + deck setup) is synchronous,
+                # but start_next_main_question is async with LLM calls
+                self._finalize_topic_voting_sync(room)
+                room.async_work_in_progress = True
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+
+            if not needs_finalize:
+                return room_state
+
+        # Generate first question without lock
+        try:
+            await self.start_next_main_question(room)
+        except Exception as exc:
+            logger.warning(
+                "First question generation failed after topic voting: %s",
+                exc,
+                extra={
+                    "event": "first_question_failed",
+                    "room_code": room.code,
+                    "source": "submit_topic_votes",
+                    "error": str(exc),
+                },
+            )
+
+        async with lock:
+            room.async_work_in_progress = False
+            room.updated_at = utc_now()
+            self.advance_room_state(room)
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return room_state
@@ -763,7 +900,9 @@ class RoomManager:
     async def reroll_topics(
         self, room_code: str, player_id: str, player_token: str, client_id: str | None = None
     ) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+
+        async with lock:
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -779,9 +918,19 @@ class RoomManager:
                     detail="Cannot reroll after voting has started.",
                 )
             topic_voting.rerolls_remaining -= 1
-            topic_voting.options = await self.generate_topic_options(
-                room, seed=topic_voting.rerolls_remaining
-            )
+            reroll_seed = topic_voting.rerolls_remaining
+            room.async_work_in_progress = True
+            room.updated_at = utc_now()
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+
+        # Generate new topic options without lock
+        new_options = await self.generate_topic_options(room, seed=reroll_seed)
+
+        async with lock:
+            topic_voting = self.require_topic_voting(room)
+            topic_voting.options = new_options
+            room.async_work_in_progress = False
             room.updated_at = utc_now()
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
@@ -790,14 +939,39 @@ class RoomManager:
     async def lock_topic_voting(
         self, room_code: str, player_id: str, player_token: str, client_id: str | None = None
     ) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+
+        async with lock:
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
             self.require_vip(room, player)
             self.require_topic_voting(room)
-            await self.finalize_topic_voting(room)
+            self._finalize_topic_voting_sync(room)
+            room.async_work_in_progress = True
             room.updated_at = utc_now()
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+
+        # Generate first question without lock
+        try:
+            await self.start_next_main_question(room)
+        except Exception as exc:
+            logger.warning(
+                "First question generation failed after lock_topic_voting: %s",
+                exc,
+                extra={
+                    "event": "first_question_failed",
+                    "room_code": room.code,
+                    "source": "lock_topic_voting",
+                    "error": str(exc),
+                },
+            )
+
+        async with lock:
+            room.async_work_in_progress = False
+            room.updated_at = utc_now()
+            self.advance_room_state(room)
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return room_state
@@ -805,7 +979,7 @@ class RoomManager:
     async def buzz_in(
         self, room_code: str, player_id: str, player_token: str, client_id: str | None = None
     ) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             self.advance_room_state(room)
             player = self.require_player(room, player_id, player_token)
@@ -829,14 +1003,18 @@ class RoomManager:
                 )
             room.buzz_state.status = "locked"
             room.buzz_state.winner_player_id = player.id
+            room.buzz_state.winner_locked_at = utc_now()
             room.buzz_state.buzz_order.append(player.id)
-            room.phase = "answering"
-            if room.current_question is not None:
-                room.current_question.answering_player_id = player.id
-                room.current_question.answering_deadline_at = utc_now() + timedelta(
-                    seconds=room.settings.main_answer_seconds
-                )
-            player.is_answering = True
+            logger.info(
+                "Player buzzed in",
+                extra={
+                    "event": "buzz_in",
+                    "room_code": room.code,
+                    "player_id": player.id,
+                },
+            )
+            # Phase stays "buzz_open" for 3-second celebration delay
+            # advance_room_state will transition to "answering" after 3 seconds
             room.updated_at = utc_now()
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
@@ -850,22 +1028,231 @@ class RoomManager:
         answer: str,
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+
+        # --- Phase 1: validate & set phase under lock ---
+        async with lock:
             room = await self.load_room(room_code)
             self.advance_room_state(room)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
-            if room.phase == "answering":
-                await self._submit_main_answer(room, player, answer.strip())
-            elif room.phase == "bonus_answering":
+
+            if room.phase == "bonus_answering":
+                # Bonus grading stays under lock (single LLM, no retry).
+                # Narration is deferred and done outside the lock below.
                 await self._submit_bonus_answer(room, player, answer.strip())
-            else:
+                room.updated_at = utc_now()
+                self.advance_room_state(room)
+                narration_result = await self.drain_pending_narration(room, room_code, lock)
+                if narration_result is not None:
+                    return narration_result
+                room_state = self.serialize_room(room)
+                await self.persist_room(room, room_state)
+                return room_state
+
+            if room.phase != "answering":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="No answer is being accepted right now.",
                 )
+
+            question = room.current_question
+            if question is None or question.answering_player_id != player.id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="You are not the active answerer.",
+                )
+
+            stripped = answer.strip()
+            question.submitted_answer = stripped
+            player.is_answering = False
+            room.phase = "grading"
+            room.async_work_in_progress = True
+            room.updated_at = utc_now()
+
+            # Capture refs needed for unlocked grading
+            grading_model_id = room.settings.grading_model_id
+            prompt = question.question.prompt
+            correct_answer = question.question.answer
+            acceptable_answers = question.question.acceptable_answers
+
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+            # Lock released here — tick loop can now broadcast "grading" phase
+
+        # --- Phase 2: grade answer WITHOUT lock ---
+        grade: GradingPayload | None = None
+        last_error: Exception | None = None
+        for attempt in range(2):
+            try:
+                grade = await self.gameplay_generator.grade_answer(
+                    grading_model_id,
+                    prompt,
+                    correct_answer,
+                    acceptable_answers,
+                    stripped,
+                )
+                break
+            except Exception as exc:
+                last_error = exc
+
+        # --- Phase 3: apply grading result under lock ---
+        need_bonus = False
+        async with lock:
+            room = await self.load_room(room_code)
+            question = room.current_question
+            player = room.players.get(player_id)
+            if question is None or player is None:
+                room.async_work_in_progress = False
+                room_state = self.serialize_room(room)
+                await self.persist_room(room, room_state)
+                return room_state
+
+            question.retry_count = 1 if grade is None else 0
+
+            if grade is None:
+                question.grading_status = "fallback_to_adjudication"
+                question.grading_reason = (
+                    f"Automatic grading failed: {last_error}"
+                    if last_error
+                    else "Automatic grading failed."
+                )
+                logger.warning(
+                    "Grading fell back to adjudication",
+                    extra={
+                        "event": "grading_adjudication",
+                        "room_code": room_code,
+                        "player_id": player.id,
+                        "error": str(last_error) if last_error else None,
+                    },
+                )
+                room.async_work_in_progress = False
+                self.start_adjudication(room, player.id)
+                room.updated_at = utc_now()
+                self.advance_room_state(room)
+                room_state = self.serialize_room(room)
+                await self.persist_room(room, room_state)
+                return room_state
+
+            question.grading_status = "complete"
+            question.grading_reason = grade.reason
+            logger.info(
+                "Answer graded in submit_answer",
+                extra={
+                    "event": "answer_graded",
+                    "room_code": room_code,
+                    "player_id": player.id,
+                    "decision": grade.decision,
+                    "player_answer": stripped[:80],
+                },
+            )
+
+            content_model_id = room.settings.content_model_id
+            topic_label = ""
+            bonus_source_answer = ""
+
+            if grade.decision == "correct":
+                question.result = "correct"
+                question.status = "resolved"
+                player.score += 10
+                room.score_events = [
+                    ScoreEvent(player_id=player.id, delta=10, reason="Main question correct")
+                ]
+                room.phase = "bonus_loading"
+                need_bonus = True
+                # Keep async_work_in_progress=True while we generate bonus
+                content_model_id = room.settings.content_model_id
+                topic_label = question.question.topic_label
+                bonus_source_answer = question.question.answer
+            else:
+                question.result = "incorrect"
+                question.status = "resolved"
+                if room.settings.reveal_mode == "progressive":
+                    player.score -= 5
+                    room.score_events = [
+                        ScoreEvent(player_id=player.id, delta=-5, reason="Incorrect interruption")
+                    ]
+                else:
+                    room.score_events = []
+                player.can_buzz = False
+                player.has_buzzed = True
+                if room.buzz_state is None:
+                    room.buzz_state = BuzzState(
+                        status="waiting",
+                        eligible_player_ids=self.active_player_ids(room),
+                        locked_out_player_ids=[],
+                    )
+                room.buzz_state.locked_out_player_ids.append(player.id)
+                room.buzz_state.status = "waiting"
+                room.buzz_state.winner_player_id = None
+                if self.remaining_buzzers(room):
+                    room.phase = "buzz_open"
+                    room.buzz_state.deadline_at = utc_now() + timedelta(seconds=8)
+                    if room.current_question:
+                        room.current_question.answering_player_id = None
+                        room.current_question.answering_deadline_at = None
+                        room.current_question.question.interruption_index = (
+                            room.current_question.question.reveal_index
+                        )
+                        if room.settings.reveal_mode == "progressive":
+                            room.current_question.status = "active"
+                            room.phase = "question_reveal_progressive"
+                else:
+                    self.prepare_score_reveal(room, "Question resolved after incorrect answer.")
+                room.async_work_in_progress = False
+
             room.updated_at = utc_now()
             self.advance_room_state(room)
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+
+            if not need_bonus:
+                return room_state
+
+        # --- Phase 4: generate bonus questions WITHOUT lock ---
+        bonus_chain_result: BonusChain | None = None
+        try:
+            assert room.current_question is not None
+            bonuses = await self.gameplay_generator.generate_bonus_questions(
+                content_model_id,
+                topic_label,
+                bonus_source_answer,
+                BONUS_QUESTION_COUNT,
+            )
+            questions = [
+                BonusQuestion(
+                    id=make_id("bonus"),
+                    prompt=item.prompt,
+                    answer=item.answer,
+                    acceptable_answers=item.acceptable_answers,
+                )
+                for item in bonuses[:BONUS_QUESTION_COUNT]
+            ]
+            bonus_chain_result = BonusChain(
+                awarded_player_id=player_id,
+                source_question_id=room.current_question.question.id,
+                current_index=0,
+                total_questions=len(questions),
+                questions=questions,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Bonus chain generation failed in submit_answer: %s",
+                exc,
+                extra={"event": "bonus_chain_failed", "room_code": room_code, "error": str(exc)},
+            )
+            bonus_chain_result = None
+
+        # --- Phase 5: apply bonus chain under lock ---
+        async with lock:
+            room = await self.load_room(room_code)
+            room.bonus_chain = bonus_chain_result
+            room.async_work_in_progress = False
+            room.updated_at = utc_now()
+            self.advance_room_state(room)
+            narration_result = await self.drain_pending_narration(room, room_code, lock)
+            if narration_result is not None:
+                return narration_result
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return room_state
@@ -878,7 +1265,8 @@ class RoomManager:
         decision: Literal["accept", "reject"],
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+        async with lock:
             room = await self.load_room(room_code)
             self.advance_room_state(room)
             player = self.require_player(room, player_id, player_token)
@@ -908,6 +1296,9 @@ class RoomManager:
                 )
             room.updated_at = utc_now()
             self.advance_room_state(room)
+            narration_result = await self.drain_pending_narration(room, room_code, lock)
+            if narration_result is not None:
+                return narration_result
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return room_state
@@ -920,7 +1311,10 @@ class RoomManager:
         target_player_id: str,
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+        needs_finalize = False
+
+        async with lock:
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -945,7 +1339,34 @@ class RoomManager:
                 and room.topic_voting.status == "collecting_votes"
                 and self.all_active_players_have_voted(room)
             ):
-                await self.finalize_topic_voting(room)
+                needs_finalize = True
+                self._finalize_topic_voting_sync(room)
+                room.async_work_in_progress = True
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
+
+            if not needs_finalize:
+                return room_state
+
+        # Generate first question without lock
+        try:
+            await self.start_next_main_question(room)
+        except Exception as exc:
+            logger.warning(
+                "First question generation failed after kick_player: %s",
+                exc,
+                extra={
+                    "event": "first_question_failed",
+                    "room_code": room.code,
+                    "source": "kick_player",
+                    "error": str(exc),
+                },
+            )
+
+        async with lock:
+            room.async_work_in_progress = False
+            room.updated_at = utc_now()
+            self.advance_room_state(room)
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return room_state
@@ -953,7 +1374,7 @@ class RoomManager:
     async def reset_room(
         self, room_code: str, player_id: str, player_token: str, client_id: str | None = None
     ) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -980,13 +1401,17 @@ class RoomManager:
             room.finished = None
             room.summary_id = None
             room.question_history = []
+            room.async_work_in_progress = False
+            if room._topic_task and not room._topic_task.done():
+                room._topic_task.cancel()
+            room._topic_task = None
             room.updated_at = utc_now()
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
             return room_state
 
     async def set_display_connected(self, room_code: str, connected: bool) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             room.display_connection_count += 1 if connected else -1
             if room.display_connection_count < 0:
@@ -1005,7 +1430,7 @@ class RoomManager:
         connected: bool,
         client_id: str | None = None,
     ) -> RoomStateResponse:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             player = self.require_player(room, player_id, player_token)
             self.require_player_client(room, player, client_id)
@@ -1036,6 +1461,11 @@ class RoomManager:
             room.paused_remaining_seconds["buzz_deadline"] = max(
                 (room.buzz_state.deadline_at - now).total_seconds(), 0
             )
+        if room.buzz_state and room.buzz_state.winner_locked_at:
+            elapsed = (now - room.buzz_state.winner_locked_at).total_seconds()
+            room.paused_remaining_seconds["buzz_winner_delay"] = max(
+                BUZZ_CELEBRATION_SECONDS - elapsed, 0
+            )
         if room.current_question and room.current_question.answering_deadline_at:
             room.paused_remaining_seconds["answer_deadline"] = max(
                 (room.current_question.answering_deadline_at - now).total_seconds(), 0
@@ -1054,6 +1484,12 @@ class RoomManager:
             room.buzz_state.deadline_at = now + timedelta(
                 seconds=room.paused_remaining_seconds["buzz_deadline"]
             )
+        if room.buzz_state and "buzz_winner_delay" in room.paused_remaining_seconds:
+            # Reconstruct winner_locked_at so the remaining celebration time is preserved
+            remaining = room.paused_remaining_seconds["buzz_winner_delay"]
+            room.buzz_state.winner_locked_at = now - timedelta(
+                seconds=BUZZ_CELEBRATION_SECONDS - remaining
+            )
         if room.current_question and "answer_deadline" in room.paused_remaining_seconds:
             room.current_question.answering_deadline_at = now + timedelta(
                 seconds=room.paused_remaining_seconds["answer_deadline"]
@@ -1068,11 +1504,13 @@ class RoomManager:
     async def verify_player_credentials(
         self, room_code: str, player_id: str, player_token: str
     ) -> None:
-        async with self._lock:
+        async with self._get_room_lock(room_code):
             room = await self.load_room(room_code)
             self.require_player(room, player_id, player_token)
 
     def advance_room_state(self, room: Room) -> None:
+        if room.async_work_in_progress:
+            return
         now = utc_now()
         if room.pause_state and now >= room.pause_state.deadline_at:
             self.finish_game(room, "vip_disconnected_timeout")
@@ -1086,12 +1524,17 @@ class RoomManager:
             if room.settings.timer_expiry_mode == "stop_immediately":
                 self.finish_game(room, "timer_expired")
                 return
-        if room.phase == "question_loading":
+        if room.phase == "intro":
+            if room.intro_deadline_at and now >= room.intro_deadline_at:
+                room.phase = "topic_voting"
+                room.intro_deadline_at = None
+        elif room.phase == "question_loading":
             self.begin_question_reveal(room)
         elif room.phase in {"question_reveal_progressive", "question_reveal_full"}:
             self.maybe_complete_reveal(room)
         elif room.phase == "buzz_open":
-            self.maybe_expire_buzz(room)
+            if not self.maybe_transition_buzz_winner(room):
+                self.maybe_expire_buzz(room)
         elif room.phase == "answering":
             self.maybe_expire_main_answer(room)
         elif room.phase == "grading":
@@ -1110,7 +1553,7 @@ class RoomManager:
             return "grading"
         if room.current_question and room.current_question.answering_player_id:
             return "answering"
-        if room.buzz_state and room.buzz_state.status == "waiting":
+        if room.buzz_state and room.buzz_state.status in {"waiting", "locked"}:
             return "buzz_open"
         if room.current_question and room.current_question.result == "unanswered":
             return (
@@ -1293,6 +1736,12 @@ class RoomManager:
         return bool(active_ids) and active_ids.issubset(topic_voting.votes.keys())
 
     async def finalize_topic_voting(self, room: Room) -> None:
+        self._finalize_topic_voting_sync(room)
+        await self.start_next_main_question(room)
+
+    def _finalize_topic_voting_sync(self, room: Room) -> None:
+        """Tallies votes, selects topics, and sets up the topic deck. Does NOT
+        start the next question (which requires async LLM calls)."""
         topic_voting = self.require_topic_voting(room)
         approval_counts = {option.id: 0 for option in topic_voting.options}
         for vote in topic_voting.votes.values():
@@ -1335,7 +1784,6 @@ class RoomManager:
         topic_voting.selected_topic_ids = selected_ids
         topic_voting.tie_break = tie_break
         self.setup_topic_deck(room)
-        await self.start_next_main_question(room)
 
     def setup_topic_deck(self, room: Room) -> None:
         if room.progress is None or room.topic_voting is None:
@@ -1373,8 +1821,12 @@ class RoomManager:
         room.progress.current_topic_id = next_topic_id
         room.progress.current_topic_label = topic_label
         room.phase = "question_loading"
+        previous_prompts = [rec.prompt for rec in room.question_history]
+        t0 = time.monotonic()
         question_payload = None
+        attempts_used = 0
         for attempt in range(3):
+            attempts_used = attempt + 1
             generated = await self.gameplay_generator.generate_question(
                 room.settings.content_model_id,
                 QuestionGenerationInput(
@@ -1382,6 +1834,7 @@ class RoomManager:
                     topic_label=topic_label,
                     reveal_mode=room.settings.reveal_mode,
                     soft_filter_enabled=room.settings.moderation_mode != "off",
+                    previous_prompts=previous_prompts,
                 ),
             )
             if self.is_usable_question(generated.prompt, generated.answer):
@@ -1392,6 +1845,15 @@ class RoomManager:
                 room.progress.failure_counts.get(next_topic_id, 0) + 1
             )
             if room.progress.failure_counts[next_topic_id] >= 3:
+                logger.warning(
+                    "Topic skipped after 3 failures",
+                    extra={
+                        "event": "topic_skipped",
+                        "room_code": room.code,
+                        "topic_id": next_topic_id,
+                        "topic_label": topic_label,
+                    },
+                )
                 room.progress.skipped_topic_ids.append(next_topic_id)
                 room.progress.upcoming_topic_ids = [
                     item for item in room.progress.upcoming_topic_ids if item != next_topic_id
@@ -1399,6 +1861,15 @@ class RoomManager:
                 await self.start_next_main_question(room)
                 return
         if question_payload is None:
+            logger.warning(
+                "Topic skipped: no usable question after retries",
+                extra={
+                    "event": "topic_skipped",
+                    "room_code": room.code,
+                    "topic_id": next_topic_id,
+                    "topic_label": topic_label,
+                },
+            )
             room.progress.skipped_topic_ids.append(next_topic_id)
             room.progress.upcoming_topic_ids = [
                 item for item in room.progress.upcoming_topic_ids if item != next_topic_id
@@ -1420,7 +1891,20 @@ class RoomManager:
         room.buzz_state = None
         room.adjudication = Adjudication()
         self.reset_player_turn_flags(room)
-        self.prepare_narration(room, question.prompt)
+        await self.prepare_narration(room, question.prompt)
+        pipeline_ms = int((time.monotonic() - t0) * 1000)
+        logger.info(
+            "Question pipeline complete",
+            extra={
+                "event": "question_pipeline",
+                "room_code": room.code,
+                "question_id": question.id,
+                "topic": topic_label,
+                "round_index": room.progress.round_index,
+                "duration_ms": pipeline_ms,
+                "attempts": attempts_used,
+            },
+        )
 
     def is_usable_question(self, prompt: str, answer: str) -> bool:
         return len(prompt.strip()) >= 20 and bool(answer.strip())
@@ -1448,7 +1932,6 @@ class RoomManager:
                 if room.narration
                 and room.narration.status == "ready"
                 and room.narration.duration_ms
-                and room.narration.duration_ms <= 5000
                 else None
             )
             room.current_question.reveal_completed_at = utc_now() + timedelta(
@@ -1474,14 +1957,19 @@ class RoomManager:
                 and room.narration.status == "ready"
                 and room.narration.chunk_durations_ms
             ):
+                # Reveal each chunk when its narration STARTS (with a small
+                # lead so text appears just before the words are spoken).
+                REVEAL_LEAD_MS = 150
                 cumulative = 0
                 reveal_index = 0
                 step = max(len(room.narration.chunk_durations_ms) // max(len(chunks), 1), 1)
                 for index in range(len(chunks)):
+                    # Check BEFORE accumulating: does elapsed time reach
+                    # the start of this chunk's audio?
+                    if elapsed_ms + REVEAL_LEAD_MS >= cumulative:
+                        reveal_index = index + 1
                     slice_end = min((index + 1) * step, len(room.narration.chunk_durations_ms))
                     cumulative += sum(room.narration.chunk_durations_ms[index * step : slice_end])
-                    if elapsed_ms >= cumulative:
-                        reveal_index = index + 1
                 room.current_question.question.reveal_index = max(
                     room.current_question.question.reveal_index, min(reveal_index, len(chunks))
                 )
@@ -1519,9 +2007,7 @@ class RoomManager:
             player.can_buzz = player.role != "spectator"
             player.has_buzzed = False
             player.is_answering = False
-        deadline = utc_now() + timedelta(
-            seconds=(room.settings.no_buzz_window_seconds if with_window else 8)
-        )
+        deadline = utc_now() + timedelta(seconds=room.settings.no_buzz_window_seconds)
         room.buzz_state = BuzzState(
             status="waiting",
             opened_at=utc_now(),
@@ -1529,6 +2015,30 @@ class RoomManager:
             eligible_player_ids=self.active_player_ids(room),
             locked_out_player_ids=[],
         )
+
+    def maybe_transition_buzz_winner(self, room: Room) -> bool:
+        """After a player buzzes, wait BUZZ_CELEBRATION_SECONDS then transition
+        to the answering phase.  Returns True if the transition happened."""
+        bs = room.buzz_state
+        if bs is None or bs.status != "locked" or bs.winner_locked_at is None:
+            return False
+        elapsed = (utc_now() - bs.winner_locked_at).total_seconds()
+        if elapsed < BUZZ_CELEBRATION_SECONDS:
+            return False
+        question = room.current_question
+        if question is None:
+            return False
+        winner = room.players.get(bs.winner_player_id or "")
+        if winner is None:
+            return False
+        # Transition to answering phase
+        room.phase = "answering"
+        question.answering_player_id = winner.id
+        question.answering_deadline_at = utc_now() + timedelta(
+            seconds=room.settings.main_answer_seconds
+        )
+        winner.is_answering = True
+        return True
 
     def maybe_expire_buzz(self, room: Room) -> None:
         if room.buzz_state is None or utc_now() < (room.buzz_state.deadline_at or utc_now()):
@@ -1658,9 +2168,10 @@ class RoomManager:
         room.bonus_chain.answer_deadline_at = utc_now() + timedelta(
             seconds=room.settings.bonus_answer_seconds
         )
-        self.prepare_narration(
-            room, room.bonus_chain.questions[room.bonus_chain.current_index].prompt
-        )
+        # Defer narration to async caller (will be done outside the lock)
+        narration_text = room.bonus_chain.questions[room.bonus_chain.current_index].prompt
+        room._pending_narration_text = narration_text
+        room.async_work_in_progress = True
 
     async def _submit_bonus_answer(self, room: Room, player: Player, answer: str) -> None:
         chain = room.bonus_chain
@@ -1695,7 +2206,9 @@ class RoomManager:
             self.prepare_score_reveal(room, "Bonus chain completed.")
             return
         chain.answer_deadline_at = utc_now() + timedelta(seconds=room.settings.bonus_answer_seconds)
-        self.prepare_narration(room, chain.questions[chain.current_index].prompt)
+        # Defer narration to async caller (will be done outside the lock)
+        room._pending_narration_text = chain.questions[chain.current_index].prompt
+        room.async_work_in_progress = True
 
     def maybe_expire_main_answer(self, room: Room) -> None:
         if (
@@ -1906,24 +2419,120 @@ class RoomManager:
             finished_at=utc_now(),
             summary_id=room.summary_id,
         )
+        game_duration_ms = None
+        if room.progress and room.progress.game_started_at:
+            game_duration_ms = int(
+                (utc_now() - room.progress.game_started_at).total_seconds() * 1000
+            )
+        logger.info(
+            "Game finished",
+            extra={
+                "event": "game_finished",
+                "room_code": room.code,
+                "reason": reason,
+                "winner_count": len(winners),
+                "top_score": top_score,
+                "round_index": room.progress.round_index if room.progress else 0,
+                "game_duration_ms": game_duration_ms,
+            },
+        )
         GAMES_FINISHED.labels(reason=reason).inc()
 
     async def tick_room(self, room_code: str) -> RoomStateResponse:
-        async with self._lock:
+        lock = self._get_room_lock(room_code)
+        async_work: str | None = None
+
+        # --- Phase 1: advance state under lock, detect if async work needed ---
+        async with lock:
             room = await self.load_room(room_code)
             previous_phase = room.phase
             self.advance_room_state(room)
-            if room.phase == "question_loading" and previous_phase == "score_reveal":
-                await self.start_next_main_question(room)
-            elif room.phase == "question_loading" and room.current_question is None:
-                await self.start_next_main_question(room)
+
+            # Check if eager topic task completed (A4)
+            if (
+                room.phase == "topic_voting"
+                and previous_phase == "intro"
+                and room.topic_voting is None
+                and room._topic_task is not None
+                and room._topic_task.done()
+            ):
+                try:
+                    room.topic_voting = room._topic_task.result()
+                except Exception as exc:
+                    logger.warning(
+                        "Eager topic task failed in tick_room: %s",
+                        exc,
+                        extra={
+                            "event": "eager_topic_failed",
+                            "room_code": room_code,
+                            "error": str(exc),
+                        },
+                    )
+                    room._topic_task = None
+                    # Fall through to generate topics normally
+                else:
+                    room._topic_task = None
+
+            # Drain deferred narration (e.g. begin_bonus_chain set _pending_narration_text)
+            narration_result = await self.drain_pending_narration(room, room_code, lock)
+
+            # Determine what async work is needed (skip if already in progress)
+            if not room.async_work_in_progress:
+                if room.phase == "question_loading" and previous_phase == "score_reveal":
+                    async_work = "next_question"
+                elif room.phase == "question_loading" and room.current_question is None:
+                    async_work = "next_question"
+                elif (
+                    room.phase == "topic_voting"
+                    and previous_phase == "intro"
+                    and room.topic_voting is None
+                ):
+                    async_work = "topic_voting"
+
+                if async_work:
+                    room.async_work_in_progress = True
+
             room.updated_at = utc_now()
             room_state = self.serialize_room(room)
             await self.persist_room(room, room_state)
+
             if room.finished and room.summary_id:
                 await self.persistence.save_game_history(
                     room.code, self.build_game_summary(room).model_dump(mode="json")
                 )
+
+            if not async_work:
+                return room_state
+
+        # --- Phase 2: do async work WITHOUT lock ---
+        try:
+            if async_work == "next_question":
+                await self.start_next_main_question(room)
+            elif async_work == "topic_voting":
+                room.topic_voting = await self.build_topic_voting(room)
+        except Exception as exc:
+            logger.warning(
+                "Async work failed in tick_room (type=%s): %s",
+                async_work,
+                exc,
+                extra={
+                    "event": "tick_async_failed",
+                    "room_code": room_code,
+                    "async_work": async_work,
+                    "error": str(exc),
+                },
+            )
+
+        # --- Phase 3: apply results and clear flag under lock ---
+        async with lock:
+            room.async_work_in_progress = False
+            room.updated_at = utc_now()
+            self.advance_room_state(room)
+            narration_result = await self.drain_pending_narration(room, room_code, lock)
+            if narration_result is not None:
+                return narration_result
+            room_state = self.serialize_room(room)
+            await self.persist_room(room, room_state)
             return room_state
 
     def build_game_summary(self, room: Room) -> GameSummaryResponse:
@@ -2018,17 +2627,51 @@ class RoomManager:
             for index in range(0, len(words), chunk_size)
         ] or [prompt]
 
-    def prepare_narration(self, room: Room, text: str) -> None:
+    async def prepare_narration(self, room: Room, text: str) -> None:
         if not room.settings.narration_enabled:
             room.narration = self.narration_service.build_disabled_cue(text)
             return
-        cue = self.narration_service.synthesize(text)
-        if cue.status == "ready" and cue.duration_ms and cue.duration_ms > 5000:
-            room.narration = self.narration_service.build_disabled_cue(text)
-            room.narration.error = "Narration exceeded 5 second wait budget."
-            room.narration.status = "failed"
-            return
+        cue = await self.narration_service.synthesize(text)
         room.narration = cue
+
+    async def drain_pending_narration(
+        self, room: Room, room_code: str, lock: asyncio.Lock
+    ) -> RoomStateResponse | None:
+        """If a synchronous method deferred narration via _pending_narration_text,
+        release the lock, synthesize TTS, re-acquire lock, and apply the result.
+        Returns the updated room state, or None if no narration was pending."""
+        narration_text = room._pending_narration_text
+        if narration_text is None:
+            return None
+
+        logger.info(
+            "Draining pending narration",
+            extra={
+                "event": "drain_narration",
+                "room_code": room_code,
+                "text_len": len(narration_text),
+            },
+        )
+
+        # Persist current state before releasing so clients see the phase change
+        room_state = self.serialize_room(room)
+        await self.persist_room(room, room_state)
+
+        # --- Release lock, do async TTS ---
+        # (lock context manager is NOT used here — caller must manually release/acquire)
+        lock.release()
+        try:
+            await self.prepare_narration(room, narration_text)
+        finally:
+            await lock.acquire()
+
+        # Apply narration result and clear flag
+        room._pending_narration_text = None
+        room.async_work_in_progress = False
+        room.updated_at = utc_now()
+        room_state = self.serialize_room(room)
+        await self.persist_room(room, room_state)
+        return room_state
 
     async def get_summary(self, summary_id: str) -> GameSummaryResponse | None:
         return await self.persistence.get_game_summary(summary_id)
@@ -2253,6 +2896,7 @@ class RoomManager:
                 opened_at=room.buzz_state.opened_at,
                 deadline_at=room.buzz_state.deadline_at,
                 winner_player_id=room.buzz_state.winner_player_id,
+                winner_locked_at=room.buzz_state.winner_locked_at,
                 eligible_player_ids=room.buzz_state.eligible_player_ids,
                 locked_out_player_ids=room.buzz_state.locked_out_player_ids,
                 buzz_order=room.buzz_state.buzz_order,
@@ -2356,6 +3000,7 @@ class RoomManager:
             pause_state=room.pause_state,
             narration=room.narration,
             finished=room.finished,
+            intro_deadline_at=room.intro_deadline_at,
         )
 
     def _generate_room_code(self) -> str:

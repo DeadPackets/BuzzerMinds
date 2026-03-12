@@ -20,6 +20,7 @@ import {
   Loader2,
   Mic,
   Minus,
+  Monitor,
   Palette,
   Play,
   Plus,
@@ -28,6 +29,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldOff,
+  SkipForward,
   SlidersHorizontal,
   Sparkles,
   Target,
@@ -1167,6 +1169,35 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
   const activeMe = me;
 
   function renderPhaseCard() {
+    if (room.phase === "intro") {
+      return (
+        <div className="bm-intro-player">
+          <div className="bm-intro-player-icon">
+            <Monitor className="h-10 w-10" />
+          </div>
+          <h2 className="bm-intro-player-title">Watch the Display!</h2>
+          <p className="bm-intro-player-body">
+            The rules are being explained on the big screen. The game will begin shortly.
+          </p>
+          {isVip && (
+            <button
+              type="button"
+              className="bm-intro-skip"
+              disabled={busy === "skip-intro"}
+              onClick={() =>
+                runAction("skip-intro", () =>
+                  api.skipIntro(room.code, session.player_id, session.player_token, currentClientId())
+                )
+              }
+            >
+              <SkipForward className="h-4 w-4" />
+              {busy === "skip-intro" ? "Skipping..." : "Skip Intro"}
+            </button>
+          )}
+        </div>
+      );
+    }
+
     if (room.phase === "topic_voting" && topicVoting) {
       const maxPicks = topicVoting.max_approvals_per_player;
       const pickCount = myVote ? myVote.topic_ids.length : selectedTopicIds.length;
@@ -1179,14 +1210,14 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
           {/* Header */}
           <div className="bm-bingo-header">
             <h2 className="bm-bingo-title">
-              {isLocked ? "Pool Locked" : "Topic Board"}
+              {isLocked ? "Pool Locked" : "Pick Topics"}
             </h2>
             <p className="bm-bingo-sub">
-              {isLocked ? "Preparing the first question" : `Tap ${maxPicks} squares to mark your picks`}
+              {isLocked ? "Preparing the first question" : `Tap up to ${maxPicks} topics you want to play`}
             </p>
             {!isLocked && (
               <span className="bm-bingo-counter" data-full={pickCount >= maxPicks}>
-                {pickCount} / {maxPicks} marked
+                {pickCount} / {maxPicks} picked
               </span>
             )}
           </div>
@@ -1205,9 +1236,11 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
                   onClick={() => toggleTopic(topic.id)}
                   type="button"
                 >
-                  <span className="bm-bingo-tile-label">{topic.label}</span>
-                  <div className="bm-bingo-stamp">
-                    <Check strokeWidth={3} />
+                  <div className="bm-bingo-tile-top">
+                    <span className="bm-bingo-tile-label">{topic.label}</span>
+                    <div className="bm-bingo-check-dot">
+                      {selected && <Check strokeWidth={3} />}
+                    </div>
                   </div>
                 </button>
               );
@@ -1218,6 +1251,7 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
           <div className="bm-bingo-footer">
             {isLocked ? (
               <div className="bm-bingo-msg" data-variant="success">
+                <Loader2 className="inline-block h-4 w-4 animate-spin mr-2 align-middle" />
                 Pool locked — preparing the first question.
               </div>
             ) : hasVoted ? (
@@ -1294,14 +1328,33 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
     }
 
     if ((room.phase === "answering" || room.phase === "bonus_answering") && (activeMe.is_answering || activeMe.bonus_active || room.current_question?.answering_player_id === activeMe.id || room.bonus_chain?.awarded_player_id === activeMe.id)) {
-      const prompt = room.phase === "bonus_answering" ? room.bonus_chain?.questions[room.bonus_chain.current_index]?.prompt : room.current_question?.question.prompt;
-      const deadline = room.phase === "bonus_answering" ? room.bonus_chain?.answer_deadline_at : room.current_question?.answering_deadline_at;
+      const isBonus = room.phase === "bonus_answering";
+      const bc = room.bonus_chain;
+      const prompt = isBonus ? bc?.questions[bc.current_index]?.prompt : room.current_question?.question.prompt;
+      const deadline = isBonus ? bc?.answer_deadline_at : room.current_question?.answering_deadline_at;
+      const prevBonusQ = isBonus && bc && bc.current_index > 0 ? bc.questions[bc.current_index - 1] : null;
       return (
         <div className="bm-card rounded-[var(--radius)]">
           <div className="p-5">
-            <Badge variant="secondary">{room.phase === "bonus_answering" ? "Bonus" : "Your Turn"}</Badge>
+            <Badge variant="secondary">{isBonus ? "Bonus" : "Your Turn"}</Badge>
             <h2 className="bm-title mt-2 text-xl text-[var(--text-bright)]">You have the floor</h2>
+            {prevBonusQ && prevBonusQ.result !== "unanswered" && (
+              <p className={`mt-1 text-xs font-semibold ${prevBonusQ.result === "correct" ? "text-[var(--sage)]" : "text-[var(--rose)]"}`}>
+                {prevBonusQ.result === "correct" ? "Previous bonus: Correct! +5" : `Previous bonus: ${prevBonusQ.grading_reason ?? "Incorrect"}`}
+              </p>
+            )}
             <p className="bm-body mt-1 text-sm">{prompt}</p>
+            {isBonus && bc && (
+              <div className="flex items-center gap-1.5 mt-2">
+                {Array.from({ length: bc.total_questions }).map((_, i) => {
+                  const q = bc.questions[i];
+                  const color = i < bc.current_index
+                    ? q?.result === "correct" ? "var(--sage)" : "var(--rose)"
+                    : i === bc.current_index ? "var(--sky)" : "rgba(255,255,255,0.15)";
+                  return <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />;
+                })}
+              </div>
+            )}
           </div>
           <div className="grid gap-3 px-5 pb-5">
             <Textarea className="min-h-24 rounded-xl border border-[var(--border)] bg-[rgba(20,20,20,0.5)] text-[var(--text-bright)] placeholder:text-[var(--text-dim)]" maxLength={160} onChange={(e) => setAnswerText(e.target.value)} placeholder="Type your answer..." value={answerText} />
@@ -1318,7 +1371,26 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
     }
 
     if (room.phase === "answering" || room.phase === "bonus_answering") {
-      return <PhaseCard badge={room.phase === "bonus_answering" ? "Bonus" : "Answering"} title="Another player is answering" body="Watch the display and wait for the result." />;
+      const isBonus = room.phase === "bonus_answering";
+      const answerer = isBonus
+        ? room.players.find((p) => p.id === room.bonus_chain?.awarded_player_id)
+        : room.players.find((p) => p.id === room.current_question?.answering_player_id);
+      const deadline = isBonus
+        ? room.bonus_chain?.answer_deadline_at
+        : room.current_question?.answering_deadline_at;
+      return (
+        <PhaseCard
+          badge={isBonus ? "Bonus" : "Answering"}
+          title={`${answerer?.name ?? "Another player"} is answering`}
+          body={room.current_question?.question.prompt ?? "Watch the display and wait for the result."}
+        >
+          {deadline ? (
+            <span className="bm-countdown text-sm flex items-center gap-1">
+              <Clock className="h-4 w-4" />{formatCountdown(deadline)}
+            </span>
+          ) : null}
+        </PhaseCard>
+      );
     }
 
     if (room.phase === "grading" && room.adjudication?.status !== "idle") {
@@ -1397,7 +1469,11 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
       );
     }
 
-    return null;
+    return (
+      <PhaseCard badge="Stand By" title="Stand by..." body="Waiting for the next phase.">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-dim)]" />
+      </PhaseCard>
+    );
   }
 
   return (

@@ -9,6 +9,35 @@ from datetime import UTC, datetime
 class JSONFormatter(logging.Formatter):
     """Structured JSON log formatter for production observability."""
 
+    # Standard LogRecord attributes that should NOT be forwarded as extras.
+    _BUILTIN_ATTRS = frozenset(
+        {
+            "args",
+            "asctime",
+            "created",
+            "exc_info",
+            "exc_text",
+            "filename",
+            "funcName",
+            "levelname",
+            "levelno",
+            "lineno",
+            "message",
+            "module",
+            "msecs",
+            "msg",
+            "name",
+            "pathname",
+            "process",
+            "processName",
+            "relativeCreated",
+            "stack_info",
+            "taskName",
+            "thread",
+            "threadName",
+        }
+    )
+
     def format(self, record: logging.LogRecord) -> str:
         entry: dict[str, object] = {
             "timestamp": datetime.now(UTC).isoformat(),
@@ -18,10 +47,12 @@ class JSONFormatter(logging.Formatter):
         }
         if record.exc_info and record.exc_info[1] is not None:
             entry["exception"] = self.formatException(record.exc_info)
-        for attr in ("request_id", "room_code", "duration_ms"):
-            value = getattr(record, attr, None)
+        # Forward ALL extra fields generically.
+        for key, value in record.__dict__.items():
+            if key.startswith("_") or key in self._BUILTIN_ATTRS:
+                continue
             if value is not None:
-                entry[attr] = value
+                entry[key] = value
         return json.dumps(entry, default=str)
 
 

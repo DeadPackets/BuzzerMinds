@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -59,8 +60,18 @@ class OpenRouterTopicGenerator:
 
         api_key = os.getenv(self.provider_config.api_key_env, "").strip()
         if not api_key:
+            logger.warning(
+                "Topic generation skipped: missing API key",
+                extra={
+                    "event": "topic_gen",
+                    "outcome": "fallback_no_key",
+                    "player_count": len(players),
+                    "requested_count": count,
+                },
+            )
             return self._fallback_topics(players, count=count, seed=seed)
 
+        t0 = time.monotonic()
         try:
             payload = await self._request_topics(
                 api_key=api_key,
@@ -80,9 +91,24 @@ class OpenRouterTopicGenerator:
                 seen.add(key)
                 unique_labels.append(label)
 
+            duration_ms = int((time.monotonic() - t0) * 1000)
+
             if len(unique_labels) >= count:
+                logger.info(
+                    "Topics generated",
+                    extra={
+                        "event": "topic_gen",
+                        "model_id": model_id,
+                        "duration_ms": duration_ms,
+                        "outcome": "success",
+                        "player_count": len(players),
+                        "requested_count": count,
+                        "generated_count": len(unique_labels[:count]),
+                    },
+                )
                 return unique_labels[:count]
 
+            # Pad with fallback topics
             fallback = self._fallback_topics(players, count=count + len(unique_labels), seed=seed)
             for label in fallback:
                 key = label.casefold()
@@ -91,10 +117,33 @@ class OpenRouterTopicGenerator:
                 seen.add(key)
                 unique_labels.append(label)
                 if len(unique_labels) == count:
+                    logger.info(
+                        "Topics generated (padded with fallback)",
+                        extra={
+                            "event": "topic_gen",
+                            "model_id": model_id,
+                            "duration_ms": duration_ms,
+                            "outcome": "success_padded",
+                            "player_count": len(players),
+                            "requested_count": count,
+                            "generated_count": len(unique_labels),
+                        },
+                    )
                     return unique_labels
         except Exception as exc:  # pragma: no cover
+            duration_ms = int((time.monotonic() - t0) * 1000)
             logger.warning(
-                "OpenRouter topic generation failed; falling back to heuristics: %s", exc
+                "OpenRouter topic generation failed; falling back to heuristics: %s",
+                exc,
+                extra={
+                    "event": "topic_gen",
+                    "model_id": model_id,
+                    "duration_ms": duration_ms,
+                    "outcome": "fallback_error",
+                    "error": str(exc),
+                    "player_count": len(players),
+                    "requested_count": count,
+                },
             )
 
         return self._fallback_topics(players, count=count, seed=seed)

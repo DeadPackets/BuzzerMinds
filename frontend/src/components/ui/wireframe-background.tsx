@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 
 /**
  * Wireframe Banner background: Three.js wireframe octahedrons + CSS diagonal line pattern.
  * Renders 10 slowly rotating/drifting wireframe octahedrons in amber/sage/rose.
+ *
+ * Pass a `speedRef` to dynamically control animation speed (e.g. 3x during splash).
  */
 
-export function WireframeBackground() {
+interface WireframeBackgroundProps {
+  speedRef?: MutableRefObject<number>;
+}
+
+export function WireframeBackground({ speedRef }: WireframeBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
 
@@ -74,13 +80,14 @@ export function WireframeBackground() {
 
     function animate() {
       frameRef.current = requestAnimationFrame(animate);
+      const multiplier = speedRef?.current ?? 1;
 
       shapes.forEach((s) => {
-        s.mesh.rotation.x += s.rotSpeed.x;
-        s.mesh.rotation.y += s.rotSpeed.y;
-        s.mesh.rotation.z += s.rotSpeed.z;
-        s.mesh.position.x += s.driftSpeed.x;
-        s.mesh.position.y += s.driftSpeed.y;
+        s.mesh.rotation.x += s.rotSpeed.x * multiplier;
+        s.mesh.rotation.y += s.rotSpeed.y * multiplier;
+        s.mesh.rotation.z += s.rotSpeed.z * multiplier;
+        s.mesh.position.x += s.driftSpeed.x * multiplier;
+        s.mesh.position.y += s.driftSpeed.y * multiplier;
 
         // Wrap around
         if (s.mesh.position.x > 18) s.mesh.position.x = -18;
@@ -111,7 +118,7 @@ export function WireframeBackground() {
         (s.mesh.material as THREE.LineBasicMaterial).dispose();
       });
     };
-  }, []);
+  }, [speedRef]);
 
   return (
     <>
