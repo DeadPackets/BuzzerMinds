@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -107,6 +108,13 @@ html, body {
 .bg-lines {
   position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background: repeating-linear-gradient(45deg, rgba(245,158,11,0.025) 0px, rgba(245,158,11,0.025) 1px, transparent 1px, transparent 28px);
+}
+
+/* ─── Three.js wireframe canvas ─── */
+.wireframe-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
 }
 
 /* ═══════════════════════════════════════════
@@ -730,6 +738,7 @@ html, body {
     <div class="scenario-desc" id="scenario-desc">Players are choosing their preferred topics. Votes visible in real-time. VIP can lock pool or reroll.</div>
     <div class="screen-frame" id="screen-frame">
       <div class="bg-lines"></div>
+      <canvas class="wireframe-canvas" id="wireframe-canvas"></canvas>
       <div class="ff" id="ff-content">
         <!-- Content injected by JS -->
       </div>
@@ -1371,6 +1380,97 @@ function showScenario(id, btn) {
 // ─── Init ───
 renderScenario('topic_voting');
 lucide.createIcons();
+
+// ─── Three.js Wireframe Background (ported from wireframe-background.tsx) ───
+(function initWireframe() {
+  const canvas = document.getElementById('wireframe-canvas');
+  const container = document.getElementById('screen-frame');
+  if (!canvas || !container) return;
+
+  const rect = container.getBoundingClientRect();
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(rect.width, rect.height);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, rect.width / rect.height, 0.1, 100);
+  camera.position.z = 18;
+
+  const colors = [
+    new THREE.Color('#f59e0b'), // amber
+    new THREE.Color('#4ade80'), // sage
+    new THREE.Color('#fb7185'), // rose
+  ];
+
+  const shapes = [];
+
+  for (let i = 0; i < 10; i++) {
+    const size = 0.6 + Math.random() * 1.8;
+    const geometry = new THREE.OctahedronGeometry(size, 0);
+    const wireframe = new THREE.WireframeGeometry(geometry);
+    const color = colors[i % 3];
+    const opacity = 0.12 + Math.random() * 0.06;
+    const material = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+    });
+    const lineSegments = new THREE.LineSegments(wireframe, material);
+
+    lineSegments.position.set(
+      (Math.random() - 0.5) * 30,
+      (Math.random() - 0.5) * 18,
+      (Math.random() - 0.5) * 12
+    );
+
+    const rotSpeed = {
+      x: (Math.random() - 0.5) * 0.004,
+      y: (Math.random() - 0.5) * 0.006,
+      z: (Math.random() - 0.5) * 0.003,
+    };
+
+    const driftSpeed = {
+      x: (Math.random() - 0.5) * 0.003,
+      y: (Math.random() - 0.5) * 0.002,
+    };
+
+    shapes.push({ mesh: lineSegments, rotSpeed, driftSpeed });
+    scene.add(lineSegments);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    shapes.forEach(function(s) {
+      s.mesh.rotation.x += s.rotSpeed.x;
+      s.mesh.rotation.y += s.rotSpeed.y;
+      s.mesh.rotation.z += s.rotSpeed.z;
+      s.mesh.position.x += s.driftSpeed.x;
+      s.mesh.position.y += s.driftSpeed.y;
+
+      // Wrap around
+      if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+      if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+      if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+      if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+    });
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Resize handler scoped to screen-frame container
+  const ro = new ResizeObserver(function(entries) {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+  });
+  ro.observe(container);
+})();
 </script>
 </body>
 </html>
