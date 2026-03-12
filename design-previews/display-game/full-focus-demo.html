@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Full Focus Display Demo (All Scenarios)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #141414;
+  --surface: rgba(30, 30, 30, 0.65);
+  --surface-solid: #1e1e1e;
+  --amber: #f59e0b;
+  --sage: #4ade80;
+  --rose: #fb7185;
+  --sky: #38bdf8;
+  --cream: #fef3c7;
+  --text-bright: #f5f5f5;
+  --text-dim: #737373;
+  --border: rgba(255,255,255,0.06);
+  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --radius: 14px;
+}
+
+html, body {
+  height: 100%;
+  background: #0a0a0a;
+  color: var(--text-bright);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Desktop Shell ─── */
+.desktop-shell { display: flex; height: 100vh; }
+
+.selector-panel {
+  width: 300px; min-width: 300px;
+  background: #111;
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+.selector-panel h1 {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  color: var(--amber); margin-bottom: 2px;
+}
+.selector-panel .subtitle {
+  font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4;
+}
+.section-label {
+  font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+  padding: 10px 8px 4px; margin-top: 4px;
+}
+.selector-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--text-dim);
+  font-family: var(--font-body); font-size: 0.72rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; text-align: left; width: 100%;
+}
+.selector-btn:hover { background: rgba(255,255,255,0.04); color: var(--text-bright); }
+.selector-btn.active {
+  background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2);
+  color: var(--amber); font-weight: 600;
+}
+.selector-btn .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ─── Preview Area ─── */
+.preview-area {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(245,158,11,0.03) 0%, transparent 70%);
+  padding: 24px;
+}
+
+.scenario-label {
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 700;
+  color: var(--text-bright); margin-bottom: 6px; text-align: center;
+}
+.scenario-desc {
+  font-size: 0.7rem; color: var(--text-dim); margin-bottom: 14px; text-align: center;
+  max-width: 600px; line-height: 1.5;
+}
+
+/* 16:9 screen frame */
+.screen-frame {
+  width: 100%; max-width: 1152px;
+  aspect-ratio: 16/9;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+
+/* ─── Background pattern ─── */
+.bg-lines {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(45deg, rgba(245,158,11,0.025) 0px, rgba(245,158,11,0.025) 1px, transparent 1px, transparent 28px);
+}
+
+/* ═══════════════════════════════════════════
+   FULL FOCUS LAYOUT
+   ═══════════════════════════════════════════ */
+.ff {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px 48px; z-index: 1;
+}
+
+/* ─── Top-left logo area ─── */
+.ff-logo {
+  position: absolute; top: 24px; left: 32px;
+  display: flex; align-items: center; gap: 8px; z-index: 5;
+}
+.ff-logo .logo-text {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 800;
+}
+
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--sage);
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 6px;
+  font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.badge-amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+.badge-sage { background: rgba(74,222,128,0.12); color: var(--sage); }
+.badge-rose { background: rgba(251,113,133,0.12); color: var(--rose); }
+.badge-sky { background: rgba(56,189,248,0.12); color: var(--sky); }
+.badge-dim { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+.progress-text {
+  font-family: var(--font-display); font-size: 0.65rem; font-weight: 600;
+  color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* ─── Timer (floating top-right) ─── */
+.ff-timer {
+  position: absolute; top: 16px; right: 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  z-index: 5;
+}
+.timer-ring-container {
+  position: relative;
+  width: 100px; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+}
+.timer-ring-svg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.timer-ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.06);
+  stroke-width: 4;
+}
+.timer-ring-fg {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+}
+/* Invert blend mode — timer text gets inverted where ring overlaps */
+.timer-ring-invert {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  mix-blend-mode: exclusion;
+  pointer-events: none;
+}
+.timer-ring-invert-fill {
+  fill: none;
+  stroke: rgba(255,255,255,0.15);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.timer-value {
+  font-family: var(--font-display);
+  font-weight: 900; font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--amber);
+  z-index: 2;
+  position: relative;
+  line-height: 1;
+}
+.timer-label {
+  font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-dim); font-weight: 600; margin-top: 2px;
+}
+
+/* Warning state (<=5s) */
+.timer-warning .timer-ring-fg { stroke: var(--rose); }
+.timer-warning .timer-value { color: var(--rose); }
+.timer-warning .timer-ring-container {
+  animation: timerShake 0.4s ease-in-out infinite;
+}
+@keyframes timerShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+.timer-warning .timer-value {
+  animation: timerPulse 0.5s ease-in-out infinite;
+}
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+
+/* ─── Topic & Question ─── */
+.ff-topic {
+  display: flex; align-items: center; gap: 8px;
+  justify-content: center; margin-bottom: 16px;
+}
+.ff-question {
+  font-family: var(--font-body); font-weight: 700;
+  color: var(--text-bright); line-height: 1.4;
+  font-size: 2.6rem; max-width: 900px;
+}
+/* Chunk reveal: hidden chunks shown as dim */
+.ff-question .chunk-hidden {
+  color: rgba(255,255,255,0.1);
+  filter: blur(4px);
+  transition: all 0.4s ease;
+}
+.ff-question .chunk-visible {
+  color: var(--text-bright);
+  transition: all 0.4s ease;
+}
+.ff-question .chunk-latest {
+  color: var(--amber);
+  transition: all 0.4s ease;
+}
+
+/* ─── Player Pills (bottom row) ─── */
+.ff-players {
+  position: absolute; bottom: 20px; left: 32px; right: 32px;
+  display: flex; gap: 8px; justify-content: center; z-index: 5;
+  flex-wrap: wrap;
+}
+.ff-pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border-radius: 100px;
+  background: rgba(30,30,30,0.6); border: 2px solid var(--border);
+  font-size: 0.82rem; font-weight: 600; color: var(--text-bright);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: visible;
+}
+.ff-pill .swatch {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.ff-pill .pill-score {
+  font-family: var(--font-display); font-weight: 700;
+  color: var(--amber); font-size: 0.75rem;
+}
+.ff-pill .vip-tag {
+  font-family: var(--font-display); font-size: 0.45rem; font-weight: 800;
+  background: var(--amber); color: var(--bg); padding: 1px 5px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.ff-pill .pill-status {
+  font-family: var(--font-display); font-size: 0.55rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 2px 8px; border-radius: 4px;
+}
+
+/* ── Player States ── */
+
+/* Normal (connected) */
+.ff-pill.state-normal {
+  border-color: var(--border);
+  background: rgba(30,30,30,0.6);
+}
+
+/* Disconnected */
+.ff-pill.state-disconnected {
+  border-color: rgba(255,255,255,0.04);
+  background: rgba(20,20,20,0.4);
+  opacity: 0.4;
+}
+.ff-pill.state-disconnected .pill-name { text-decoration: line-through; }
+
+/* Buzzing (winner) — BIG AND LOUD */
+.ff-pill.state-buzzing {
+  border-color: var(--sage);
+  background: rgba(74,222,128,0.15);
+  transform: scale(1.12);
+  z-index: 10;
+  box-shadow: 0 0 20px rgba(74,222,128,0.25), 0 0 40px rgba(74,222,128,0.1);
+  animation: buzzFlare 0.6s ease-in-out infinite alternate;
+}
+@keyframes buzzFlare {
+  0% { box-shadow: 0 0 20px rgba(74,222,128,0.25), 0 0 40px rgba(74,222,128,0.1); }
+  100% { box-shadow: 0 0 30px rgba(74,222,128,0.35), 0 0 60px rgba(74,222,128,0.15); }
+}
+.ff-pill.state-buzzing .pill-status {
+  background: var(--sage); color: #141414;
+}
+/* Buzzer icon animation */
+.ff-pill.state-buzzing::before {
+  content: '';
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--sage);
+  animation: buzzDot 0.8s ease-in-out infinite;
+}
+@keyframes buzzDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+/* Answering — highlighted amber */
+.ff-pill.state-answering {
+  border-color: var(--amber);
+  background: rgba(245,158,11,0.15);
+  transform: scale(1.08);
+  z-index: 10;
+  box-shadow: 0 0 16px rgba(245,158,11,0.2);
+  animation: answerPulse 1.2s ease-in-out infinite;
+}
+@keyframes answerPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(245,158,11,0.2); }
+  50% { box-shadow: 0 0 24px rgba(245,158,11,0.35); }
+}
+.ff-pill.state-answering .pill-status {
+  background: var(--amber); color: #141414;
+}
+
+/* Evaluating (during grading phase — stays highlighted) */
+.ff-pill.state-evaluating {
+  border-color: var(--amber);
+  background: rgba(245,158,11,0.12);
+  transform: scale(1.06);
+  z-index: 10;
+  animation: evalPulse 1.5s ease-in-out infinite;
+}
+@keyframes evalPulse {
+  0%, 100% { border-color: var(--amber); }
+  50% { border-color: rgba(245,158,11,0.5); }
+}
+.ff-pill.state-evaluating .pill-status {
+  background: rgba(245,158,11,0.2); color: var(--amber);
+}
+
+/* Correct answer — green celebration */
+.ff-pill.state-correct {
+  border-color: var(--sage);
+  background: rgba(74,222,128,0.18);
+  transform: scale(1.1);
+  z-index: 10;
+  box-shadow: 0 0 20px rgba(74,222,128,0.3);
+}
+.ff-pill.state-correct .pill-status {
+  background: var(--sage); color: #141414;
+}
+.ff-pill.state-correct::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 100px; border: 2px solid var(--sage);
+  animation: correctRing 0.8s ease-out forwards;
+}
+@keyframes correctRing {
+  0% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* Wrong answer — red shake + locked out */
+.ff-pill.state-wrong {
+  border-color: var(--rose);
+  background: rgba(251,113,133,0.18);
+  animation: wrongShake 0.5s ease-in-out;
+  z-index: 10;
+}
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.ff-pill.state-wrong .pill-status {
+  background: var(--rose); color: #141414;
+}
+.ff-pill.state-wrong::before {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 100px; border: 2px solid var(--rose);
+  animation: wrongFlash 0.6s ease-out;
+}
+@keyframes wrongFlash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Locked out (previously wrong, can't buzz) */
+.ff-pill.state-locked {
+  border-color: rgba(251,113,133,0.2);
+  background: rgba(251,113,133,0.05);
+  opacity: 0.45;
+}
+.ff-pill.state-locked .pill-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--rose);
+}
+.ff-pill.state-locked .pill-status {
+  background: rgba(251,113,133,0.15); color: var(--rose);
+}
+
+/* Bonus active */
+.ff-pill.state-bonus {
+  border-color: var(--sky);
+  background: rgba(56,189,248,0.12);
+  transform: scale(1.08);
+  z-index: 10;
+  box-shadow: 0 0 16px rgba(56,189,248,0.2);
+}
+.ff-pill.state-bonus .pill-status {
+  background: var(--sky); color: #141414;
+}
+
+/* Can buzz (eligible during buzz_open) */
+.ff-pill.state-eligible {
+  border-color: rgba(245,158,11,0.2);
+  background: rgba(245,158,11,0.06);
+  animation: eligibleBreath 2s ease-in-out infinite;
+}
+@keyframes eligibleBreath {
+  0%, 100% { border-color: rgba(245,158,11,0.2); }
+  50% { border-color: rgba(245,158,11,0.4); }
+}
+
+/* ─── Center Content Variants ─── */
+
+/* Grading overlay */
+.ff-grading {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  margin-top: 20px;
+}
+.ff-grading .grading-spinner {
+  width: 24px; height: 24px;
+  border: 3px solid rgba(245,158,11,0.2);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ff-grading .grading-answer {
+  padding: 14px 24px; border-radius: 12px;
+  background: rgba(30,30,30,0.5); border: 1px solid var(--border);
+}
+.ff-grading .grading-label {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim); font-weight: 600;
+}
+.ff-grading .grading-value {
+  font-size: 1.2rem; font-weight: 700; color: var(--text-bright); margin-top: 4px;
+}
+
+/* Score reveal */
+.ff-score-reveal {
+  max-width: 580px; width: 100%; text-align: left;
+}
+.ff-score-reveal .score-headline {
+  font-family: var(--font-display); font-size: 1.8rem; font-weight: 800;
+  color: var(--text-bright); text-align: center; margin-bottom: 16px;
+}
+.ff-correct-answer {
+  padding: 14px 20px; border-radius: 12px;
+  background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2);
+  margin-bottom: 16px;
+}
+.ff-correct-answer .answer-label {
+  font-weight: 700; color: var(--sage); font-size: 0.95rem;
+}
+.ff-correct-answer .answer-detail {
+  font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; line-height: 1.5;
+}
+.ff-wrong-answer {
+  padding: 14px 20px; border-radius: 12px;
+  background: rgba(251,113,133,0.08); border: 1px solid rgba(251,113,133,0.2);
+  margin-bottom: 16px;
+}
+.ff-standings {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.ff-standing-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: 10px;
+  background: rgba(30,30,30,0.5); border: 1px solid var(--border);
+}
+.ff-standing-row.winner {
+  border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06);
+}
+.ff-standing-rank {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
+  min-width: 28px; text-align: center;
+}
+.ff-standing-name {
+  font-weight: 600; font-size: 0.88rem; color: var(--text-bright); flex: 1;
+}
+.ff-standing-score {
+  font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+  color: var(--amber);
+}
+.ff-standing-delta {
+  font-family: var(--font-display); font-weight: 700; font-size: 0.72rem;
+  margin-left: 4px;
+}
+.delta-plus { color: var(--sage); }
+.delta-minus { color: var(--rose); }
+
+/* Finished screen */
+.ff-finished {
+  text-align: center;
+}
+.ff-finished .finished-title {
+  font-family: var(--font-display); font-size: 2.8rem; font-weight: 900;
+  color: var(--text-bright); margin-bottom: 6px;
+}
+.ff-finished .finished-sub {
+  font-size: 0.95rem; color: var(--text-dim); margin-bottom: 24px;
+}
+
+/* Topic voting grid */
+.ff-topic-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  max-width: 700px; width: 100%; margin-top: 16px;
+}
+.ff-topic-card {
+  padding: 12px 10px; border-radius: 10px;
+  background: rgba(30,30,30,0.5); border: 1px solid var(--border);
+  text-align: center; transition: all 0.2s;
+}
+.ff-topic-card.voted {
+  border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08);
+}
+.ff-topic-card .topic-name {
+  font-weight: 600; font-size: 0.78rem; color: var(--text-bright);
+}
+.ff-topic-card .topic-votes {
+  font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+  color: var(--text-dim); margin-top: 4px;
+}
+.ff-topic-card .topic-source {
+  font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-dim); margin-top: 2px;
+}
+
+/* Loading state */
+.ff-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.ff-loading .loading-spinner {
+  width: 40px; height: 40px;
+  border: 4px solid rgba(245,158,11,0.15);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.ff-loading .loading-text {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+  color: var(--text-dim);
+}
+.ff-loading .loading-topic {
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 600;
+  color: var(--amber);
+}
+
+/* Answering badge under question */
+.ff-answerer-badge {
+  margin-top: 16px; display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px; border-radius: 100px;
+  background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25);
+  font-family: var(--font-display); font-weight: 700; font-size: 0.85rem;
+  color: var(--sage);
+}
+.ff-answerer-badge .answerer-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--sage);
+  animation: livePulse 1s ease-in-out infinite;
+}
+
+/* Paused */
+.ff-paused {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.ff-paused .paused-icon {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: rgba(245,158,11,0.1); border: 2px solid rgba(245,158,11,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem;
+}
+.ff-paused .paused-title {
+  font-family: var(--font-display); font-size: 1.6rem; font-weight: 800;
+  color: var(--text-bright);
+}
+.ff-paused .paused-reason {
+  font-size: 0.85rem; color: var(--text-dim);
+}
+
+/* Bonus chain */
+.ff-bonus-progress {
+  display: flex; align-items: center; gap: 6px; margin-top: 14px;
+}
+.ff-bonus-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.ff-bonus-dot.completed { background: var(--sage); border-color: var(--sage); }
+.ff-bonus-dot.current { background: var(--sky); border-color: var(--sky); animation: livePulse 1s infinite; }
+.ff-bonus-dot.upcoming { background: transparent; }
+
+/* Timeout/no-buzz display */
+.ff-timeout {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 16px;
+}
+.ff-timeout .timeout-text {
+  font-family: var(--font-display); font-size: 1.4rem; font-weight: 800;
+  color: var(--rose);
+}
+.ff-timeout .timeout-sub {
+  font-size: 0.8rem; color: var(--text-dim);
+}
+
+</style>
+</head>
+<body>
+<div class="desktop-shell">
+  <!-- ─── LEFT PANEL ─── -->
+  <div class="selector-panel">
+    <h1>Full Focus — All Scenarios</h1>
+    <p class="subtitle">Every state the display screen can be in. Click each scenario to preview.</p>
+
+    <div class="section-label">Pre-Game</div>
+    <button class="selector-btn active" data-scenario="topic_voting" onclick="showScenario('topic_voting', this)">
+      <span class="dot" style="background:var(--rose)"></span>Topic Voting
+    </button>
+    <button class="selector-btn" data-scenario="topics_locked" onclick="showScenario('topics_locked', this)">
+      <span class="dot" style="background:var(--rose)"></span>Topics Locked
+    </button>
+
+    <div class="section-label">Question Flow</div>
+    <button class="selector-btn" data-scenario="question_loading" onclick="showScenario('question_loading', this)">
+      <span class="dot" style="background:var(--amber)"></span>Question Loading
+    </button>
+    <button class="selector-btn" data-scenario="reveal_progressive" onclick="showScenario('reveal_progressive', this)">
+      <span class="dot" style="background:var(--amber)"></span>Question Reveal (Progressive)
+    </button>
+    <button class="selector-btn" data-scenario="reveal_full" onclick="showScenario('reveal_full', this)">
+      <span class="dot" style="background:var(--amber)"></span>Question Reveal (Full)
+    </button>
+
+    <div class="section-label">Buzzer Phase</div>
+    <button class="selector-btn" data-scenario="buzz_open" onclick="showScenario('buzz_open', this)">
+      <span class="dot" style="background:var(--amber)"></span>Buzz Open (12s)
+    </button>
+    <button class="selector-btn" data-scenario="buzz_warning" onclick="showScenario('buzz_warning', this)">
+      <span class="dot" style="background:var(--rose)"></span>Buzz Open (5s Warning)
+    </button>
+    <button class="selector-btn" data-scenario="buzz_last_second" onclick="showScenario('buzz_last_second', this)">
+      <span class="dot" style="background:var(--rose)"></span>Buzz Open (1s Left!)
+    </button>
+    <button class="selector-btn" data-scenario="player_buzzed" onclick="showScenario('player_buzzed', this)">
+      <span class="dot" style="background:var(--sage)"></span>Player Buzzed In
+    </button>
+
+    <div class="section-label">Answering</div>
+    <button class="selector-btn" data-scenario="answering" onclick="showScenario('answering', this)">
+      <span class="dot" style="background:var(--sage)"></span>Player Answering (18s)
+    </button>
+    <button class="selector-btn" data-scenario="answering_warning" onclick="showScenario('answering_warning', this)">
+      <span class="dot" style="background:var(--rose)"></span>Player Answering (4s Warning)
+    </button>
+
+    <div class="section-label">Grading</div>
+    <button class="selector-btn" data-scenario="grading" onclick="showScenario('grading', this)">
+      <span class="dot" style="background:var(--amber)"></span>Evaluating Answer
+    </button>
+
+    <div class="section-label">Score Reveal</div>
+    <button class="selector-btn" data-scenario="score_correct" onclick="showScenario('score_correct', this)">
+      <span class="dot" style="background:var(--sage)"></span>Correct Answer
+    </button>
+    <button class="selector-btn" data-scenario="score_wrong" onclick="showScenario('score_wrong', this)">
+      <span class="dot" style="background:var(--rose)"></span>Wrong Answer
+    </button>
+    <button class="selector-btn" data-scenario="score_timeout" onclick="showScenario('score_timeout', this)">
+      <span class="dot" style="background:var(--rose)"></span>Timeout (No Buzz)
+    </button>
+
+    <div class="section-label">Bonus Chain</div>
+    <button class="selector-btn" data-scenario="bonus_loading" onclick="showScenario('bonus_loading', this)">
+      <span class="dot" style="background:var(--sky)"></span>Bonus Loading
+    </button>
+    <button class="selector-btn" data-scenario="bonus_answering" onclick="showScenario('bonus_answering', this)">
+      <span class="dot" style="background:var(--sky)"></span>Bonus Answering
+    </button>
+
+    <div class="section-label">Other</div>
+    <button class="selector-btn" data-scenario="paused" onclick="showScenario('paused', this)">
+      <span class="dot" style="background:var(--amber)"></span>Paused (VIP Disconnected)
+    </button>
+    <button class="selector-btn" data-scenario="finished" onclick="showScenario('finished', this)">
+      <span class="dot" style="background:var(--sage)"></span>Game Over
+    </button>
+  </div>
+
+  <!-- ─── PREVIEW AREA ─── -->
+  <div class="preview-area">
+    <div class="scenario-label" id="scenario-label">Topic Voting</div>
+    <div class="scenario-desc" id="scenario-desc">Players are choosing their preferred topics. Votes visible in real-time. VIP can lock pool or reroll.</div>
+    <div class="screen-frame" id="screen-frame">
+      <div class="bg-lines"></div>
+      <div class="ff" id="ff-content">
+        <!-- Content injected by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Mock Data ───
+const PLAYERS = [
+  { name: 'Alex',   color: '#f59e0b', score: 340, vip: true },
+  { name: 'Jordan', color: '#4ade80', score: 280, vip: false },
+  { name: 'Sam',    color: '#fb7185', score: 220, vip: false },
+  { name: 'Riley',  color: '#38bdf8', score: 180, vip: false },
+  { name: 'Casey',  color: '#a78bfa', score: 140, vip: false },
+];
+
+const QUESTION = "Which Soviet intelligence officer defected to the West in 1961 and revealed the existence of a mole inside MI6?";
+const QUESTION_CHUNKS = [
+  "Which Soviet intelligence officer",
+  "defected to the West in 1961",
+  "and revealed the existence of",
+  "a mole inside MI6?"
+];
+const ANSWER = "Anatoliy Golitsyn";
+const TOPIC = "COLD WAR SPIES";
+
+const TOPICS = [
+  { label: "Cold War Spies", source: "player", votes: 4, voted: true },
+  { label: "Ancient Rome", source: "player", votes: 3, voted: true },
+  { label: "Space Race", source: "player", votes: 3, voted: false },
+  { label: "Quantum Physics", source: "player", votes: 2, voted: false },
+  { label: "90s Hip-Hop", source: "player", votes: 2, voted: false },
+  { label: "Ocean Biology", source: "player", votes: 1, voted: false },
+  { label: "Greek Myths", source: "player", votes: 1, voted: false },
+  { label: "Film Noir", source: "player", votes: 0, voted: false },
+  { label: "World Geography", source: "standard", votes: 2, voted: true },
+  { label: "Pop Culture", source: "standard", votes: 1, voted: false },
+  { label: "Science & Nature", source: "standard", votes: 1, voted: false },
+  { label: "History", source: "standard", votes: 0, voted: false },
+];
+
+const BONUS_QUESTION = "What was the codename of the British intelligence operation to intercept Soviet naval communications?";
+
+// ─── Scenario Definitions ───
+const SCENARIOS = {
+  topic_voting: {
+    label: "Topic Voting",
+    desc: "Players are choosing their preferred topics. Votes visible in real-time. VIP can lock pool or reroll.",
+    badge: "TOPIC VOTING", badgeClass: "badge-rose",
+    progress: "Pre-Game",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+  topics_locked: {
+    label: "Topics Locked",
+    desc: "VIP has locked the topic pool. The top-voted topics are selected. Game is about to begin.",
+    badge: "TOPICS LOCKED", badgeClass: "badge-sage",
+    progress: "Pre-Game",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+  question_loading: {
+    label: "Question Loading",
+    desc: "The AI is generating a question for the selected topic. Shows spinner and topic name.",
+    badge: "LOADING", badgeClass: "badge-amber",
+    progress: "Round 1 of 5",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+  reveal_progressive: {
+    label: "Question Reveal (Progressive)",
+    desc: "Question text is being revealed chunk by chunk. The latest chunk is highlighted in amber. Players can't buzz yet.",
+    badge: "REVEALING", badgeClass: "badge-rose",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+  reveal_full: {
+    label: "Question Reveal (Full)",
+    desc: "Full question is now visible. All chunks revealed at once. Buzz phase is about to start.",
+    badge: "QUESTION READY", badgeClass: "badge-rose",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+  buzz_open: {
+    label: "Buzz Open (12s Remaining)",
+    desc: "Players can buzz in now! Timer shows full countdown. All eligible players have subtle breathing border animation.",
+    badge: "BUZZ OPEN", badgeClass: "badge-amber",
+    progress: "Round 2 of 5",
+    timer: { value: '0:12', seconds: 12, total: 15, label: 'Buzz Timer' },
+    players: [
+      { ...PLAYERS[0], state: 'eligible' },
+      { ...PLAYERS[1], state: 'eligible' },
+      { ...PLAYERS[2], state: 'eligible' },
+      { ...PLAYERS[3], state: 'eligible' },
+      { ...PLAYERS[4], state: 'eligible' },
+    ],
+  },
+  buzz_warning: {
+    label: "Buzz Open (5s Warning!)",
+    desc: "Timer hits 5 seconds — circle turns ROSE, timer text turns ROSE, shaking + pulsing animation to draw attention.",
+    badge: "BUZZ OPEN", badgeClass: "badge-amber",
+    progress: "Round 2 of 5",
+    timer: { value: '0:05', seconds: 5, total: 15, label: 'Buzz Timer', warning: true },
+    players: [
+      { ...PLAYERS[0], state: 'eligible' },
+      { ...PLAYERS[1], state: 'eligible' },
+      { ...PLAYERS[2], state: 'eligible' },
+      { ...PLAYERS[3], state: 'locked' },
+      { ...PLAYERS[4], state: 'eligible' },
+    ],
+  },
+  buzz_last_second: {
+    label: "Buzz Open (1s Left!)",
+    desc: "Timer nearly expired. Maximum urgency — intense rose animation, almost empty ring.",
+    badge: "BUZZ OPEN", badgeClass: "badge-amber",
+    progress: "Round 2 of 5",
+    timer: { value: '0:01', seconds: 1, total: 15, label: 'Buzz Timer', warning: true },
+    players: [
+      { ...PLAYERS[0], state: 'eligible' },
+      { ...PLAYERS[1], state: 'eligible' },
+      { ...PLAYERS[2], state: 'locked' },
+      { ...PLAYERS[3], state: 'locked' },
+      { ...PLAYERS[4], state: 'eligible' },
+    ],
+  },
+  player_buzzed: {
+    label: "Player Buzzed In!",
+    desc: "Jordan buzzed first! Their pill scales up with a green glow + pulsing dot. Other players return to normal/locked states.",
+    badge: "BUZZED IN", badgeClass: "badge-sage",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'buzzing' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'locked' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  answering: {
+    label: "Player Answering (18s)",
+    desc: "Jordan is now answering. Their pill is highlighted amber with a pulsing glow. Answer timer is counting down.",
+    badge: "ANSWERING", badgeClass: "badge-sage",
+    progress: "Round 2 of 5",
+    timer: { value: '0:18', seconds: 18, total: 20, label: 'Answer Timer' },
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'answering' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'locked' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  answering_warning: {
+    label: "Player Answering (4s Warning)",
+    desc: "Answer timer at 4 seconds. Rose warning state activated. Jordan still highlighted as answerer.",
+    badge: "ANSWERING", badgeClass: "badge-sage",
+    progress: "Round 2 of 5",
+    timer: { value: '0:04', seconds: 4, total: 20, label: 'Answer Timer', warning: true },
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'answering' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'locked' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  grading: {
+    label: "Evaluating Answer",
+    desc: "AI is grading Jordan's answer. Jordan's pill stays highlighted in 'evaluating' state (amber outline, subtler than answering). Spinner + submitted answer shown.",
+    badge: "GRADING", badgeClass: "badge-amber",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'evaluating' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'locked' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  score_correct: {
+    label: "Score Reveal — Correct Answer",
+    desc: "Jordan answered correctly! Their pill shows green 'CORRECT' badge with celebration ring. Score delta shown in standings (+100).",
+    badge: "SCORE REVEAL", badgeClass: "badge-sage",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'correct', score: 380 },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'normal' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  score_wrong: {
+    label: "Score Reveal — Wrong Answer",
+    desc: "Jordan answered incorrectly! Their pill shakes with red 'WRONG' badge and flash ring. They lose 50 points. The correct answer is still shown.",
+    badge: "SCORE REVEAL", badgeClass: "badge-rose",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'wrong', score: 230 },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'normal' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  score_timeout: {
+    label: "Score Reveal — Timeout",
+    desc: "No one buzzed in time. The correct answer is revealed. No score changes. All players back to normal.",
+    badge: "SCORE REVEAL", badgeClass: "badge-rose",
+    progress: "Round 2 of 5",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+  bonus_loading: {
+    label: "Bonus Chain Loading",
+    desc: "Jordan earned a bonus round! Loading bonus questions. Jordan's pill shows 'BONUS' state (sky blue highlight).",
+    badge: "BONUS CHAIN", badgeClass: "badge-sky",
+    progress: "Round 2 of 5 — Bonus",
+    timer: null,
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'bonus' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'normal' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  bonus_answering: {
+    label: "Bonus Chain — Answering",
+    desc: "Jordan is answering bonus question 2 of 3. Timer shows answer countdown. Progress dots at bottom of question area.",
+    badge: "BONUS CHAIN", badgeClass: "badge-sky",
+    progress: "Round 2 of 5 — Bonus",
+    timer: { value: '0:08', seconds: 8, total: 10, label: 'Bonus Timer' },
+    players: [
+      { ...PLAYERS[0], state: 'normal' },
+      { ...PLAYERS[1], state: 'bonus' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'normal' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  paused: {
+    label: "Paused — VIP Disconnected",
+    desc: "VIP has disconnected. Game is paused with a timeout countdown. Waiting for VIP to reconnect.",
+    badge: "PAUSED", badgeClass: "badge-amber",
+    progress: "Round 2 of 5",
+    timer: { value: '1:30', seconds: 90, total: 120, label: 'Timeout' },
+    players: [
+      { ...PLAYERS[0], state: 'disconnected' },
+      { ...PLAYERS[1], state: 'normal' },
+      { ...PLAYERS[2], state: 'normal' },
+      { ...PLAYERS[3], state: 'normal' },
+      { ...PLAYERS[4], state: 'normal' },
+    ],
+  },
+  finished: {
+    label: "Game Over!",
+    desc: "The game is complete. Final standings shown with winner highlighted. Link to full summary available.",
+    badge: "GAME OVER", badgeClass: "badge-sage",
+    progress: "Final",
+    timer: null,
+    players: PLAYERS.map(p => ({ ...p, state: 'normal' })),
+  },
+};
+
+let currentScenario = 'topic_voting';
+
+// ─── Timer Ring SVG ───
+function timerHTML(timer) {
+  if (!timer) return '';
+
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  const progress = timer.seconds / timer.total;
+  const offset = circumference * (1 - progress);
+  const warningClass = timer.warning ? 'timer-warning' : '';
+
+  return `
+    <div class="ff-timer ${warningClass}">
+      <div class="timer-ring-container">
+        <svg class="timer-ring-svg" viewBox="0 0 100 100">
+          <circle class="timer-ring-bg" cx="50" cy="50" r="${radius}" />
+          <circle class="timer-ring-fg" cx="50" cy="50" r="${radius}"
+            stroke-dasharray="${circumference}"
+            stroke-dashoffset="${offset}" />
+        </svg>
+        <!-- Invert layer -->
+        <svg class="timer-ring-svg" viewBox="0 0 100 100" style="mix-blend-mode:exclusion; opacity:0.6">
+          <circle class="timer-ring-invert-fill" cx="50" cy="50" r="${radius}"
+            stroke-dasharray="${circumference}"
+            stroke-dashoffset="${offset}"
+            fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round" />
+        </svg>
+        <span class="timer-value">${timer.value}</span>
+      </div>
+      <span class="timer-label">${timer.label}</span>
+    </div>
+  `;
+}
+
+// ─── Player Pill HTML ───
+function pillHTML(p) {
+  return `
+    <div class="ff-pill state-${p.state}">
+      <div class="swatch" style="background:${p.color}"></div>
+      <span class="pill-name">${p.name}</span>
+      ${p.vip ? '<span class="vip-tag">VIP</span>' : ''}
+      <span class="pill-score">${p.score}</span>
+      ${p.state === 'buzzing' ? '<span class="pill-status">BUZZED</span>' : ''}
+      ${p.state === 'answering' ? '<span class="pill-status">ANSWERING</span>' : ''}
+      ${p.state === 'evaluating' ? '<span class="pill-status">GRADING</span>' : ''}
+      ${p.state === 'correct' ? '<span class="pill-status">CORRECT</span>' : ''}
+      ${p.state === 'wrong' ? '<span class="pill-status">WRONG</span>' : ''}
+      ${p.state === 'locked' ? '<span class="pill-status">LOCKED</span>' : ''}
+      ${p.state === 'bonus' ? '<span class="pill-status">BONUS</span>' : ''}
+      ${p.state === 'disconnected' ? '<span class="pill-status">OFFLINE</span>' : ''}
+    </div>
+  `;
+}
+
+// ─── Logo + Top-left ───
+function logoHTML(scenario) {
+  const s = SCENARIOS[scenario];
+  return `
+    <div class="ff-logo">
+      <span class="logo-text">
+        <span style="color:var(--amber)">Buzzer</span><span style="color:var(--sage)">Minds</span>
+      </span>
+      <div class="live-dot"></div>
+      <span class="badge ${s.badgeClass}">${s.badge}</span>
+      <span class="progress-text">${s.progress}</span>
+    </div>
+  `;
+}
+
+// ─── Standings HTML ───
+function standingsHTML(players, deltas, isFinished) {
+  const sorted = [...players].sort((a, b) => b.score - a.score);
+  const trophies = ['&#127942;', '&#129352;', '&#129353;'];
+
+  let html = '<div class="ff-standings">';
+  sorted.forEach((p, i) => {
+    const rank = i < 3 ? trophies[i] : `<span style="color:var(--text-dim);font-weight:700">#${i+1}</span>`;
+    const delta = deltas?.[p.name];
+    const deltaHTML = delta
+      ? `<span class="ff-standing-delta ${delta > 0 ? 'delta-plus' : 'delta-minus'}">${delta > 0 ? '+' : ''}${delta}</span>`
+      : '';
+    const winnerClass = isFinished && i === 0 ? 'winner' : '';
+    html += `
+      <div class="ff-standing-row ${winnerClass}">
+        <span class="ff-standing-rank">${rank}</span>
+        <div class="swatch" style="background:${p.color};width:10px;height:10px;border-radius:50%"></div>
+        <span class="ff-standing-name">${p.name}</span>
+        <span class="ff-standing-score">${p.score} pts${deltaHTML}</span>
+      </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+// ─── Render Scenario ───
+function renderScenario(scenario) {
+  const s = SCENARIOS[scenario];
+  const ff = document.getElementById('ff-content');
+
+  document.getElementById('scenario-label').textContent = s.label;
+  document.getElementById('scenario-desc').textContent = s.desc;
+
+  let center = '';
+
+  switch (scenario) {
+    case 'topic_voting':
+      center = `
+        <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;color:var(--text-bright);margin-bottom:6px">
+          Choose Your Topics
+        </div>
+        <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:20px">
+          Approve up to 3 topics each — <span style="color:var(--amber)">2 of 5 players voted</span>
+        </div>
+        <div class="ff-topic-grid">
+          ${TOPICS.map(t => `
+            <div class="ff-topic-card ${t.voted ? 'voted' : ''}">
+              <div class="topic-name">${t.label}</div>
+              <div class="topic-votes">${t.votes} votes</div>
+              <div class="topic-source">${t.source}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      break;
+
+    case 'topics_locked':
+      const selected = TOPICS.filter(t => t.votes >= 2).slice(0, 5);
+      center = `
+        <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;color:var(--text-bright);margin-bottom:6px">
+          Topics Locked
+        </div>
+        <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:20px">
+          These topics will be used for the game — starting soon!
+        </div>
+        <div class="ff-topic-grid" style="grid-template-columns:repeat(${Math.min(selected.length, 5)}, 1fr)">
+          ${selected.map(t => `
+            <div class="ff-topic-card voted">
+              <div class="topic-name">${t.label}</div>
+              <div class="topic-votes">${t.votes} votes</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      break;
+
+    case 'question_loading':
+      center = `
+        <div class="ff-loading">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Generating question...</div>
+          <div class="loading-topic">Topic: ${TOPIC}</div>
+        </div>
+      `;
+      break;
+
+    case 'reveal_progressive':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-rose">${TOPIC}</span>
+        </div>
+        <p class="ff-question">
+          <span class="chunk-visible">${QUESTION_CHUNKS[0]} </span>
+          <span class="chunk-visible">${QUESTION_CHUNKS[1]} </span>
+          <span class="chunk-latest">${QUESTION_CHUNKS[2]} </span>
+          <span class="chunk-hidden">${QUESTION_CHUNKS[3]}</span>
+        </p>
+      `;
+      break;
+
+    case 'reveal_full':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-rose">${TOPIC}</span>
+        </div>
+        <p class="ff-question">${QUESTION}</p>
+      `;
+      break;
+
+    case 'buzz_open':
+    case 'buzz_warning':
+    case 'buzz_last_second':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-rose">${TOPIC}</span>
+        </div>
+        <p class="ff-question">${QUESTION}</p>
+      `;
+      break;
+
+    case 'player_buzzed':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-rose">${TOPIC}</span>
+        </div>
+        <p class="ff-question">${QUESTION}</p>
+        <div class="ff-answerer-badge">
+          <div class="answerer-dot"></div>
+          Jordan buzzed in first!
+        </div>
+      `;
+      break;
+
+    case 'answering':
+    case 'answering_warning':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-rose">${TOPIC}</span>
+        </div>
+        <p class="ff-question">${QUESTION}</p>
+        <div class="ff-answerer-badge">
+          <div class="answerer-dot"></div>
+          Jordan is answering...
+        </div>
+      `;
+      break;
+
+    case 'grading':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-rose">${TOPIC}</span>
+        </div>
+        <p class="ff-question" style="font-size:2rem">${QUESTION}</p>
+        <div class="ff-grading">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="grading-spinner"></div>
+            <span style="font-size:0.85rem;color:var(--text-dim)">Evaluating Jordan's answer...</span>
+          </div>
+          <div class="grading-answer">
+            <div class="grading-label">Submitted Answer</div>
+            <div class="grading-value">${ANSWER}</div>
+          </div>
+        </div>
+      `;
+      break;
+
+    case 'score_correct':
+      center = `
+        <div class="ff-score-reveal">
+          <div class="score-headline">Jordan nailed it!</div>
+          <div class="ff-correct-answer">
+            <div class="answer-label">Correct: ${ANSWER}</div>
+            <div class="answer-detail">Golitsyn defected in December 1961 and exposed Kim Philby as a Soviet double agent working within MI6.</div>
+          </div>
+          ${standingsHTML(s.players, { 'Jordan': +100 }, false)}
+        </div>
+      `;
+      break;
+
+    case 'score_wrong':
+      center = `
+        <div class="ff-score-reveal">
+          <div class="score-headline">Not quite!</div>
+          <div class="ff-wrong-answer">
+            <div style="font-weight:700;color:var(--rose);font-size:0.95rem">Jordan answered: "Oleg Penkovsky"</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);margin-top:4px">Close, but Penkovsky was actually a GRU colonel who spied FOR the West, not a defector who exposed MI6 moles.</div>
+          </div>
+          <div class="ff-correct-answer">
+            <div class="answer-label">Correct: ${ANSWER}</div>
+            <div class="answer-detail">Golitsyn defected in December 1961 and exposed Kim Philby as a Soviet double agent.</div>
+          </div>
+          ${standingsHTML(s.players, { 'Jordan': -50 }, false)}
+        </div>
+      `;
+      break;
+
+    case 'score_timeout':
+      center = `
+        <div class="ff-score-reveal">
+          <div class="score-headline">Time's up!</div>
+          <div class="ff-timeout">
+            <div class="timeout-text">Nobody buzzed in</div>
+            <div class="timeout-sub">The clock ran out before anyone pressed the buzzer.</div>
+          </div>
+          <div class="ff-correct-answer" style="margin-top:16px">
+            <div class="answer-label">The answer was: ${ANSWER}</div>
+            <div class="answer-detail">Golitsyn defected in December 1961 and exposed Kim Philby as a Soviet double agent.</div>
+          </div>
+          ${standingsHTML(s.players, {}, false)}
+        </div>
+      `;
+      break;
+
+    case 'bonus_loading':
+      center = `
+        <div class="ff-loading">
+          <div class="loading-spinner" style="border-top-color:var(--sky)"></div>
+          <div class="loading-text">Bonus chain starting...</div>
+          <div style="font-family:var(--font-display);font-size:0.85rem;font-weight:600;color:var(--sky)">
+            Jordan earned a bonus round!
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-dim)">3 rapid-fire questions coming up</div>
+        </div>
+      `;
+      break;
+
+    case 'bonus_answering':
+      center = `
+        <div class="ff-topic">
+          <span class="badge badge-sky">BONUS Q2</span>
+        </div>
+        <p class="ff-question" style="font-size:2.2rem">${BONUS_QUESTION}</p>
+        <div class="ff-bonus-progress">
+          <div class="ff-bonus-dot completed"></div>
+          <div class="ff-bonus-dot current"></div>
+          <div class="ff-bonus-dot upcoming"></div>
+        </div>
+        <div class="ff-answerer-badge" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.25)">
+          <div class="answerer-dot" style="background:var(--sky)"></div>
+          <span style="color:var(--sky)">Jordan's bonus round — Q2 of 3</span>
+        </div>
+      `;
+      break;
+
+    case 'paused':
+      center = `
+        <div class="ff-paused">
+          <div class="paused-icon">&#9208;</div>
+          <div class="paused-title">Game Paused</div>
+          <div class="paused-reason">VIP (Alex) has disconnected. Waiting for reconnection...</div>
+          <div style="font-size:0.75rem;color:var(--text-dim);margin-top:4px">Game will end if VIP doesn't return before timeout.</div>
+        </div>
+      `;
+      break;
+
+    case 'finished':
+      const finalPlayers = [
+        { ...PLAYERS[0], score: 520 },
+        { ...PLAYERS[1], score: 480 },
+        { ...PLAYERS[2], score: 340 },
+        { ...PLAYERS[3], score: 290 },
+        { ...PLAYERS[4], score: 210 },
+      ];
+      center = `
+        <div class="ff-finished">
+          <div class="finished-title">Game Over!</div>
+          <div class="finished-sub">Alex wins with 520 points</div>
+          <div style="max-width:500px;margin:0 auto;text-align:left">
+            ${standingsHTML(finalPlayers, {}, true)}
+          </div>
+        </div>
+      `;
+      break;
+  }
+
+  // Build the full layout
+  ff.innerHTML = `
+    ${logoHTML(scenario)}
+    ${timerHTML(s.timer)}
+    ${center}
+    <div class="ff-players">
+      ${s.players.map(p => pillHTML(p)).join('')}
+    </div>
+  `;
+
+  lucide.createIcons();
+}
+
+// ─── Nav ───
+function showScenario(id, btn) {
+  currentScenario = id;
+  document.querySelectorAll('.selector-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderScenario(id);
+}
+
+// ─── Init ───
+renderScenario('topic_voting');
+lucide.createIcons();
+</script>
+</body>
+</html>
