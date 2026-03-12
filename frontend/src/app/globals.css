@@ -1957,7 +1957,7 @@ textarea.bm-ticket-input {
 .bm-bingo-tile[data-disabled="true"]:active { transform: none; }
 
 .bm-bingo-tile-label {
-  font-size: 0.88rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-bright);
   line-height: 1.3;
@@ -3343,4 +3343,591 @@ textarea.bm-ticket-input {
 .bm-intro-skip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════════════════
+   Player Game — Full Bleed Layout  (bm-pg-*)
+   ══════════════════════════════════════════════════════ */
+
+/* Outer wrapper: full viewport, position context for overlays */
+.bm-pg-wrap {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Overlay top bar (gradient fade) ── */
+.bm-pg-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: linear-gradient(to bottom, var(--bg) 50%, transparent);
+  padding: 40px 16px 24px;
+}
+.bm-pg-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bm-pg-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bm-pg-topbar-icon {
+  width: 22px;
+  height: 22px;
+  background: var(--amber);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bm-pg-topbar-icon svg {
+  width: 12px;
+  height: 12px;
+  color: var(--bg);
+}
+.bm-pg-topbar-wordmark {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+/* Phase badge in top bar */
+.bm-pg-phase-badge {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+}
+.bm-pg-phase-badge[data-accent="amber"] {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--amber);
+}
+.bm-pg-phase-badge[data-accent="sage"] {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--sage);
+}
+.bm-pg-phase-badge[data-accent="rose"] {
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--rose);
+}
+.bm-pg-phase-badge[data-accent="sky"] {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--sky);
+}
+
+/* ── Round/Topic info strip ── */
+.bm-pg-info-strip {
+  position: fixed;
+  top: 76px;
+  left: 16px;
+  right: 16px;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+.bm-pg-info-strip-tag {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Full bleed content area ── */
+.bm-pg-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px 90px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Absolute-fill variant for buzz/score */
+.bm-pg-content--full {
+  position: absolute;
+  inset: 0;
+  padding: 100px 20px 90px;
+  z-index: 2;
+}
+
+/* ── Bottom identity pill ── */
+.bm-pg-pill {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.bm-pg-pill-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bm-pg-pill-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+.bm-pg-pill-score {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Buzz hero (full-bleed buzz button) ── */
+.bm-pg-buzz-hero {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+.bm-pg-buzz-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+}
+.bm-pg-buzz-sub {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+.bm-pg-buzz-btn {
+  width: 100%;
+  height: 200px;
+  border-radius: 24px;
+  border: none;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 2.2rem;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.bm-pg-buzz-btn:active {
+  transform: scale(0.97);
+}
+.bm-pg-buzz-btn:disabled {
+  background: rgba(30, 30, 30, 0.65);
+  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+.bm-pg-buzz-btn--locked {
+  background: rgba(30, 30, 30, 0.65);
+  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: default;
+  font-size: 1.4rem;
+}
+
+/* ── Reveal + Buzz combined view ── */
+.bm-pg-reveal {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bm-pg-reveal-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-bright);
+  min-height: 80px;
+}
+.bm-pg-reveal-text .bm-pg-chunk {
+  display: inline;
+}
+.bm-pg-reveal-text .bm-pg-chunk--dim {
+  color: var(--text-dim);
+  opacity: 0.3;
+}
+.bm-pg-reveal-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--amber);
+  animation: bm-pg-cursor-blink 0.8s ease-in-out infinite;
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+@keyframes bm-pg-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.bm-pg-reveal-buzz-btn {
+  width: 100%;
+  height: 80px;
+  border-radius: 16px;
+  border: none;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform 0.1s;
+}
+.bm-pg-reveal-buzz-btn:active {
+  transform: scale(0.97);
+}
+.bm-pg-reveal-buzz-btn:disabled {
+  background: rgba(30, 30, 30, 0.65);
+  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+
+/* ── Score reveal hero ── */
+.bm-pg-score-hero {
+  text-align: center;
+  max-width: 320px;
+}
+.bm-pg-score-rank {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 4rem;
+  font-weight: 900;
+  color: var(--amber);
+  line-height: 1;
+}
+.bm-pg-score-headline {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-top: 8px;
+}
+.bm-pg-score-points {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.bm-pg-score-answer {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  background: rgba(74, 222, 128, 0.06);
+  text-align: left;
+  margin-top: 16px;
+}
+.bm-pg-score-answer-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--sage);
+  margin-bottom: 4px;
+}
+.bm-pg-score-answer-detail {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* ── Answering form (full bleed) ── */
+.bm-pg-answer {
+  width: 100%;
+  max-width: 360px;
+}
+.bm-pg-answer-prompt {
+  font-size: 0.92rem;
+  color: var(--text-bright);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.bm-pg-answer-textarea {
+  width: 100%;
+  min-height: 100px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(20, 20, 20, 0.5);
+  color: var(--text-bright);
+  font-size: 0.92rem;
+  padding: 12px 14px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+.bm-pg-answer-textarea::placeholder {
+  color: var(--text-dim);
+}
+.bm-pg-answer-textarea:focus {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.bm-pg-answer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+.bm-pg-answer-charcount {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+.bm-pg-answer-submit {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: var(--amber);
+  color: var(--bg);
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.bm-pg-answer-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.bm-pg-bonus-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.bm-pg-bonus-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ── Spectating view ── */
+.bm-pg-spectate {
+  text-align: center;
+  max-width: 320px;
+}
+.bm-pg-spectate-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+}
+.bm-pg-spectate-body {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── Grading / adjudication ── */
+.bm-pg-grading {
+  text-align: center;
+  max-width: 320px;
+}
+.bm-pg-grading-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+.bm-pg-grading-body {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.bm-pg-adj-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+.bm-pg-adj-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.bm-pg-adj-btn--accept {
+  background: var(--sage);
+  color: var(--bg);
+}
+.bm-pg-adj-btn--reject {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-bright);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.bm-pg-adj-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Generic centered message (loading, paused, fallback) ── */
+.bm-pg-center-msg {
+  text-align: center;
+  max-width: 320px;
+}
+.bm-pg-center-msg-icon {
+  margin-bottom: 12px;
+  color: var(--text-dim);
+}
+.bm-pg-center-msg-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+.bm-pg-center-msg-body {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── Finished screen ── */
+.bm-pg-finished {
+  text-align: center;
+  max-width: 320px;
+}
+.bm-pg-finished-rank {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--amber);
+  line-height: 1;
+}
+.bm-pg-finished-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-top: 8px;
+}
+.bm-pg-finished-body {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+  margin-bottom: 20px;
+}
+.bm-pg-finished-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ── Player timer (smaller variant of display FFTimer) ── */
+.bm-pg-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+.bm-pg-timer-ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bm-pg-timer-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.bm-pg-timer-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 4;
+}
+.bm-pg-timer-fg {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+}
+.bm-pg-timer-value {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--amber);
+  z-index: 2;
+  position: relative;
+  line-height: 1;
+}
+.bm-pg-timer-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* Timer warning state */
+.bm-pg-timer--warning .bm-pg-timer-fg {
+  stroke: var(--rose);
+}
+.bm-pg-timer--warning .bm-pg-timer-value {
+  color: var(--rose);
+  animation: bm-ff-timer-pulse 0.5s ease-in-out infinite;
+}
+.bm-pg-timer--warning .bm-pg-timer-ring {
+  animation: bm-ff-timer-shake 0.4s ease-in-out infinite;
+}
+
+/* ── Error toast (floating) ── */
+.bm-pg-error {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--rose);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 6px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 113, 133, 0.2);
+  max-width: 320px;
+  text-align: center;
 }

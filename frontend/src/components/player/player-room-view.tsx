@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, FormEvent, useMemo, useState, useCallback } from "react";
+import { ReactNode, FormEvent, useMemo, useState, useCallback, useEffect } from "react";
 import {
   ArrowRight,
   Brain,
@@ -14,7 +14,6 @@ import {
   Eye,
   Flag,
   Gamepad2,
-  Hash,
   Hourglass,
   Layers,
   Loader2,
@@ -35,15 +34,13 @@ import {
   Target,
   Ticket,
   Timer,
-  Trophy,
   User,
   X,
   XCircle,
   Zap,
 } from "lucide-react";
 
-import { NarrationAudio } from "@/components/providers/narration-audio";
-import { ShowAudio } from "@/components/providers/show-audio";
+
 import { useTurnstile, TurnstileProvider } from "@/components/providers/turnstile-provider";
 import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
 import { RoomLiveProvider, useRoomLive } from "@/components/providers/room-live-provider";
@@ -110,6 +107,85 @@ function PhaseCard({ badge, title, body, children }: { badge: string; title: str
       {children ? <div className="px-5 pb-5">{children}</div> : null}
     </div>
   );
+}
+
+/* ── useCountdown hook (shared with display) ── */
+
+function useCountdown(deadline: string | null) {
+  const [remaining, setRemaining] = useState<number>(() => {
+    if (!deadline) return 0;
+    return Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 1000));
+  });
+
+  useEffect(() => {
+    if (!deadline) { setRemaining(0); return; }
+    function tick() {
+      const diff = Math.max(0, Math.ceil((new Date(deadline!).getTime() - Date.now()) / 1000));
+      setRemaining(diff);
+    }
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [deadline]);
+
+  return remaining;
+}
+
+/* ── PGTimer: Circular SVG countdown (player-size variant) ── */
+
+function PGTimer({ deadline, totalSeconds, label }: { deadline: string | null; totalSeconds: number; label: string }) {
+  const remaining = useCountdown(deadline);
+  const progress = totalSeconds > 0 ? remaining / totalSeconds : 0;
+  const isWarning = remaining > 0 && remaining <= 5;
+
+  const r = 42;
+  const circumference = 2 * Math.PI * r;
+  const dashoffset = circumference * (1 - progress);
+
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const display = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+  if (!deadline) return null;
+
+  return (
+    <div className={`bm-pg-timer ${isWarning ? "bm-pg-timer--warning" : ""}`}>
+      <div className="bm-pg-timer-ring">
+        <svg className="bm-pg-timer-svg" viewBox="0 0 100 100">
+          <circle className="bm-pg-timer-bg" cx="50" cy="50" r={r} />
+          <circle
+            className="bm-pg-timer-fg"
+            cx="50" cy="50" r={r}
+            strokeDasharray={circumference}
+            strokeDashoffset={dashoffset}
+          />
+        </svg>
+        <span className="bm-pg-timer-value">{display}</span>
+      </div>
+      <span className="bm-pg-timer-label">{label}</span>
+    </div>
+  );
+}
+
+/* ── Phase badge accent helper ── */
+
+function phaseBadgeAccent(phase: string): "amber" | "sage" | "rose" | "sky" | undefined {
+  switch (phase) {
+    case "buzz_open":
+    case "question_reveal_progressive":
+    case "question_reveal_full":
+      return "amber";
+    case "answering":
+    case "bonus_answering":
+      return "sky";
+    case "score_reveal":
+    case "finished":
+      return "sage";
+    case "grading":
+      return "rose";
+    default:
+      return undefined;
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1050,12 +1126,21 @@ function LobbyScreen({
    ══════════════════════════════════════════════════════ */
 
 function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSessionResponse; config: PublicConfigResponse; onSessionLost: () => void }) {
-  const { room, connected, replaceRoom } = useRoomLive();
+  const { room, connected, replaceRoom, buzzViaWs, onBuzzError } = useRoomLive();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [answerText, setAnswerText] = useState("");
   const [vipConfigured, setVipConfigured] = useState(false);
+
+  // Register buzz error callback to surface server rejections
+  useEffect(() => {
+    onBuzzError((errMsg) => {
+      setBusy(null);
+      setError(errMsg);
+    });
+    return () => onBuzzError(null);
+  }, [onBuzzError]);
 
   const me = room.players.find((p) => p.id === session.player_id) ?? null;
   const isVip = me?.role === "vip_player";
@@ -1099,6 +1184,28 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
     } finally {
       setBusy(null);
     }
+  }
+
+  /**
+   * Buzz-in: prefer WebSocket (lowest latency) with HTTP fallback.
+   * WebSocket buzz fires instantly and state arrives via broadcast.
+   * HTTP buzz is used when the WebSocket isn't connected.
+   */
+  function doBuzz() {
+    setBusy("buzz");
+    setError(null);
+    const cid = currentClientId();
+    const sent = buzzViaWs(cid);
+    if (sent) {
+      // WebSocket buzz sent — state update arrives via broadcast.
+      // Clear busy after a short timeout as a safety net (server broadcast
+      // will trigger a re-render which naturally resets the UI).
+      // If server sends buzz_error, the onBuzzError callback clears busy.
+      setTimeout(() => setBusy((prev) => (prev === "buzz" ? null : prev)), 4000);
+      return;
+    }
+    // Fallback to HTTP if WebSocket not connected
+    runAction("buzz", () => api.buzzIn(room.code, session.player_id, session.player_token, cid));
   }
 
   function patchSettings(settings: SettingsPatch) {
@@ -1164,40 +1271,52 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
     );
   }
 
-  // ── All other game phases (wrapped in bm-shell) ──
+  // ── All other game phases (Full Bleed layout) ──
   // `me` is guaranteed non-null past the early return above; alias for TS narrowing inside closure
   const activeMe = me;
 
-  function renderPhaseCard() {
+  const roundIndex = (room.progress?.round_index ?? 0) + 1;
+  const topicLabel = room.progress?.current_topic_label ?? null;
+  const accent = phaseBadgeAccent(room.phase);
+
+  // Determine if we should show the buzz button during reveal
+  const isRevealPhase = room.phase === "question_reveal_progressive" || room.phase === "question_reveal_full";
+  const canBuzzDuringReveal = isRevealPhase && activeMe.can_buzz && activeMe.role !== "spectator" && room.buzz_state?.status === "waiting";
+
+  function renderPhaseContent() {
+    // ── Intro ──
     if (room.phase === "intro") {
       return (
-        <div className="bm-intro-player">
-          <div className="bm-intro-player-icon">
-            <Monitor className="h-10 w-10" />
+        <div className="bm-pg-content">
+          <div className="bm-pg-center-msg">
+            <div className="bm-pg-center-msg-icon">
+              <Monitor className="h-10 w-10 mx-auto" />
+            </div>
+            <h2 className="bm-pg-center-msg-title">Watch the Display!</h2>
+            <p className="bm-pg-center-msg-body">
+              The rules are being explained on the big screen. The game will begin shortly.
+            </p>
+            {isVip && (
+              <button
+                type="button"
+                className="bm-intro-skip mt-4"
+                disabled={busy === "skip-intro"}
+                onClick={() =>
+                  runAction("skip-intro", () =>
+                    api.skipIntro(room.code, session.player_id, session.player_token, currentClientId())
+                  )
+                }
+              >
+                <SkipForward className="h-4 w-4" />
+                {busy === "skip-intro" ? "Skipping..." : "Skip Intro"}
+              </button>
+            )}
           </div>
-          <h2 className="bm-intro-player-title">Watch the Display!</h2>
-          <p className="bm-intro-player-body">
-            The rules are being explained on the big screen. The game will begin shortly.
-          </p>
-          {isVip && (
-            <button
-              type="button"
-              className="bm-intro-skip"
-              disabled={busy === "skip-intro"}
-              onClick={() =>
-                runAction("skip-intro", () =>
-                  api.skipIntro(room.code, session.player_id, session.player_token, currentClientId())
-                )
-              }
-            >
-              <SkipForward className="h-4 w-4" />
-              {busy === "skip-intro" ? "Skipping..." : "Skip Intro"}
-            </button>
-          )}
         </div>
       );
     }
 
+    // ── Topic Voting ──
     if (room.phase === "topic_voting" && topicVoting) {
       const maxPicks = topicVoting.max_approvals_per_player;
       const pickCount = myVote ? myVote.topic_ids.length : selectedTopicIds.length;
@@ -1206,163 +1325,226 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
       const tileDisabled = isLocked || hasVoted;
 
       return (
-        <div className="bm-bingo">
-          {/* Header */}
-          <div className="bm-bingo-header">
-            <h2 className="bm-bingo-title">
-              {isLocked ? "Pool Locked" : "Pick Topics"}
-            </h2>
-            <p className="bm-bingo-sub">
-              {isLocked ? "Preparing the first question" : `Tap up to ${maxPicks} topics you want to play`}
-            </p>
-            {!isLocked && (
-              <span className="bm-bingo-counter" data-full={pickCount >= maxPicks}>
-                {pickCount} / {maxPicks} picked
-              </span>
-            )}
-          </div>
+        <div className="bm-pg-content" style={{ justifyContent: "flex-start", paddingTop: 100 }}>
+          <div className="bm-bingo">
+            <div className="bm-bingo-header">
+              <h2 className="bm-bingo-title">
+                {isLocked ? "Pool Locked" : "Pick Topics"}
+              </h2>
+              <p className="bm-bingo-sub">
+                {isLocked ? "Preparing the first question" : `Tap up to ${maxPicks} topics you want to play`}
+              </p>
+              {!isLocked && (
+                <span className="bm-bingo-counter" data-full={pickCount >= maxPicks}>
+                  {pickCount} / {maxPicks} picked
+                </span>
+              )}
+            </div>
 
-          {/* Grid */}
-          <div className="bm-bingo-grid">
-            {shuffledTopics.map((topic) => {
-              const selected = selectedTopicIds.includes(topic.id) || (myVote?.topic_ids.includes(topic.id) ?? false);
-              return (
-                <button
-                  key={topic.id}
-                  className="bm-bingo-tile"
-                  data-selected={selected}
-                  data-disabled={tileDisabled}
-                  disabled={tileDisabled}
-                  onClick={() => toggleTopic(topic.id)}
-                  type="button"
-                >
-                  <div className="bm-bingo-tile-top">
-                    <span className="bm-bingo-tile-label">{topic.label}</span>
-                    <div className="bm-bingo-check-dot">
-                      {selected && <Check strokeWidth={3} />}
+            <div className="bm-bingo-grid">
+              {shuffledTopics.map((topic) => {
+                const selected = selectedTopicIds.includes(topic.id) || (myVote?.topic_ids.includes(topic.id) ?? false);
+                return (
+                  <button
+                    key={topic.id}
+                    className="bm-bingo-tile"
+                    data-selected={selected}
+                    data-disabled={tileDisabled}
+                    disabled={tileDisabled}
+                    onClick={() => toggleTopic(topic.id)}
+                    type="button"
+                  >
+                    <div className="bm-bingo-tile-top">
+                      <span className="bm-bingo-tile-label">{topic.label}</span>
+                      <div className="bm-bingo-check-dot">
+                        {selected && <Check strokeWidth={3} />}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Footer */}
-          <div className="bm-bingo-footer">
-            {isLocked ? (
-              <div className="bm-bingo-msg" data-variant="success">
-                <Loader2 className="inline-block h-4 w-4 animate-spin mr-2 align-middle" />
-                Pool locked — preparing the first question.
-              </div>
-            ) : hasVoted ? (
-              <div className="bm-bingo-msg">
-                Vote locked. Waiting on: {topicVoting.players_pending.join(", ") || "nobody"}
-              </div>
-            ) : (
-              <>
-                <button
-                  className="bm-btn-primary w-full py-3"
-                  disabled={selectedTopicIds.length === 0 || busy === "topic-vote"}
-                  onClick={() => runAction("topic-vote", () => api.submitTopicVotes(room.code, session.player_id, session.player_token, currentClientId(), selectedTopicIds))}
-                  type="button"
-                >
-                  {busy === "topic-vote" ? "Submitting..." : `Submit ${selectedTopicIds.length} Pick${selectedTopicIds.length !== 1 ? "s" : ""}`}
-                </button>
-                {isVip && (
-                  <div className="bm-bingo-vip-row">
-                    <button
-                      className="bm-btn-outline flex-1 py-2.5 text-sm"
-                      disabled={topicVoting.rerolls_remaining <= 0 || topicVoting.votes.length > 0 || busy === "reroll-topics"}
-                      onClick={() => runAction("reroll-topics", () => api.rerollTopics(room.code, session.player_id, session.player_token, currentClientId()))}
-                      type="button"
-                    >
-                      {busy === "reroll-topics" ? "Refreshing..." : `Reroll (${topicVoting.rerolls_remaining})`}
-                    </button>
-                    <button
-                      className="bm-btn-primary flex-1 py-2.5 text-sm"
-                      disabled={busy === "lock-topics"}
-                      onClick={() => runAction("lock-topics", () => api.lockTopicVoting(room.code, session.player_id, session.player_token, currentClientId()))}
-                      type="button"
-                    >
-                      {busy === "lock-topics" ? "Locking..." : "Lock Pool"}
-                    </button>
-                  </div>
-                )}
-              </>
+            <div className="bm-bingo-footer">
+              {isLocked ? (
+                <div className="bm-bingo-msg" data-variant="success">
+                  <Loader2 className="inline-block h-4 w-4 animate-spin mr-2 align-middle" />
+                  Pool locked — preparing the first question.
+                </div>
+              ) : hasVoted ? (
+                <div className="bm-bingo-msg">
+                  Vote locked. Waiting on: {topicVoting.players_pending.join(", ") || "nobody"}
+                </div>
+              ) : (
+                <>
+                  <button
+                    className="bm-btn-primary w-full py-3"
+                    disabled={selectedTopicIds.length === 0 || busy === "topic-vote"}
+                    onClick={() => runAction("topic-vote", () => api.submitTopicVotes(room.code, session.player_id, session.player_token, currentClientId(), selectedTopicIds))}
+                    type="button"
+                  >
+                    {busy === "topic-vote" ? "Submitting..." : `Submit ${selectedTopicIds.length} Pick${selectedTopicIds.length !== 1 ? "s" : ""}`}
+                  </button>
+                  {isVip && (
+                    <div className="bm-bingo-vip-row">
+                      <button
+                        className="bm-btn-outline flex-1 py-2.5 text-sm"
+                        disabled={topicVoting.rerolls_remaining <= 0 || topicVoting.votes.length > 0 || busy === "reroll-topics"}
+                        onClick={() => runAction("reroll-topics", () => api.rerollTopics(room.code, session.player_id, session.player_token, currentClientId()))}
+                        type="button"
+                      >
+                        {busy === "reroll-topics" ? "Refreshing..." : `Reroll (${topicVoting.rerolls_remaining})`}
+                      </button>
+                      <button
+                        className="bm-btn-primary flex-1 py-2.5 text-sm"
+                        disabled={busy === "lock-topics"}
+                        onClick={() => runAction("lock-topics", () => api.lockTopicVoting(room.code, session.player_id, session.player_token, currentClientId()))}
+                        type="button"
+                      >
+                        {busy === "lock-topics" ? "Locking..." : "Lock Pool"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Question Loading ──
+    if (room.phase === "question_loading") {
+      return (
+        <div className="bm-pg-content">
+          <div className="bm-pg-center-msg">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--amber)] mx-auto mb-3" />
+            <h2 className="bm-pg-center-msg-title">Question incoming</h2>
+            <p className="bm-pg-center-msg-body">Topic: {room.progress?.current_topic_label ?? "Unknown"}</p>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Question Reveal (with buzz-during-reveal) ──
+    if (isRevealPhase && room.current_question) {
+      const chunks = room.current_question.question.prompt_chunks;
+      const revealIndex = room.current_question.question.reveal_index;
+      const isProgressive = room.phase === "question_reveal_progressive";
+
+      return (
+        <div className="bm-pg-content">
+          <div className="bm-pg-reveal">
+            <div className="bm-pg-reveal-text">
+              {isProgressive ? (
+                <>
+                  {chunks.slice(0, revealIndex).map((chunk, i) => (
+                    <span key={i} className="bm-pg-chunk">{chunk} </span>
+                  ))}
+                  {revealIndex < chunks.length && <span className="bm-pg-reveal-cursor" />}
+                </>
+              ) : (
+                <span>{chunks.join(" ")}</span>
+              )}
+            </div>
+            {activeMe.role !== "spectator" && (
+              <button
+                className={`bm-pg-reveal-buzz-btn ${!canBuzzDuringReveal ? "" : ""}`}
+                disabled={!canBuzzDuringReveal || busy === "buzz"}
+                onClick={() => doBuzz()}
+                type="button"
+              >
+                {busy === "buzz" ? "BUZZING..." : canBuzzDuringReveal ? "BUZZ IN" : "LOCKED OUT"}
+              </button>
             )}
           </div>
         </div>
       );
     }
 
-    if (room.phase === "question_loading") {
-      return (
-        <PhaseCard badge="Loading" title="Question incoming" body={`Topic: ${room.progress?.current_topic_label ?? "Unknown"}`}>
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--amber)]" />
-        </PhaseCard>
-      );
-    }
-
-    if ((room.phase === "question_reveal_progressive" || room.phase === "question_reveal_full") && room.current_question) {
-      const chunks = room.phase === "question_reveal_full" ? room.current_question.question.prompt_chunks : room.current_question.question.prompt_chunks.slice(0, room.current_question.question.reveal_index);
-      return <PhaseCard badge={formatPhase(room.phase)} title={room.current_question.question.topic_label} body={chunks.join(" ") || "Stand by..."} />;
-    }
-
+    // ── Buzz Open (full-bleed hero) ──
     if (room.phase === "buzz_open") {
       return (
-        <PhaseCard badge="Buzz Open" title="Hit the buzzer!" body={`Window closes in ${formatCountdown(room.buzz_state?.deadline_at ?? null)}.`}>
-          {activeMe.role === "spectator" ? (
-            <p className="text-sm text-[var(--text-dim)]">Spectators watch this round.</p>
-          ) : (
-            <button
-              className={`w-full rounded-xl py-6 text-xl font-bold transition-all duration-150 ${activeMe.can_buzz ? "bm-btn-primary bm-buzz-active text-2xl" : "cursor-default rounded-xl border border-[var(--border)] bg-[rgba(20,20,20,0.5)] text-[var(--text-dim)] opacity-60"}`}
-              disabled={!activeMe.can_buzz || busy === "buzz"}
-              onClick={() => runAction("buzz", () => api.buzzIn(room.code, session.player_id, session.player_token, currentClientId()))}
-              type="button"
-            >
-              {busy === "buzz" ? "BUZZING..." : activeMe.can_buzz ? "BUZZ IN" : "LOCKED OUT"}
-            </button>
-          )}
-        </PhaseCard>
+        <div className="bm-pg-content bm-pg-content--full">
+          <PGTimer
+            deadline={room.buzz_state?.deadline_at ?? null}
+            totalSeconds={room.settings.no_buzz_window_seconds}
+            label="Buzz"
+          />
+          <div className="bm-pg-buzz-hero">
+            <h2 className="bm-pg-buzz-title">Hit the buzzer!</h2>
+            <p className="bm-pg-buzz-sub">
+              {room.buzz_state?.status === "locked"
+                ? `${room.players.find(p => p.id === room.buzz_state?.winner_player_id)?.name ?? "Someone"} buzzed in!`
+                : `Window closes in ${formatCountdown(room.buzz_state?.deadline_at ?? null)}.`}
+            </p>
+            {activeMe.role === "spectator" ? (
+              <p className="bm-pg-buzz-sub">Spectators watch this round.</p>
+            ) : (
+              <button
+                className={`bm-pg-buzz-btn ${!activeMe.can_buzz ? "bm-pg-buzz-btn--locked" : ""}`}
+                disabled={!activeMe.can_buzz || busy === "buzz" || room.buzz_state?.status === "locked"}
+                onClick={() => doBuzz()}
+                type="button"
+              >
+                {busy === "buzz" ? "BUZZING..." : room.buzz_state?.status === "locked" ? "LOCKED" : activeMe.can_buzz ? "BUZZ IN" : "LOCKED OUT"}
+              </button>
+            )}
+          </div>
+        </div>
       );
     }
 
+    // ── Answering (active: you are the answerer) ──
     if ((room.phase === "answering" || room.phase === "bonus_answering") && (activeMe.is_answering || activeMe.bonus_active || room.current_question?.answering_player_id === activeMe.id || room.bonus_chain?.awarded_player_id === activeMe.id)) {
       const isBonus = room.phase === "bonus_answering";
       const bc = room.bonus_chain;
       const prompt = isBonus ? bc?.questions[bc.current_index]?.prompt : room.current_question?.question.prompt;
       const deadline = isBonus ? bc?.answer_deadline_at : room.current_question?.answering_deadline_at;
+      const totalSecs = isBonus ? room.settings.bonus_answer_seconds : room.settings.main_answer_seconds;
       const prevBonusQ = isBonus && bc && bc.current_index > 0 ? bc.questions[bc.current_index - 1] : null;
+
       return (
-        <div className="bm-card rounded-[var(--radius)]">
-          <div className="p-5">
-            <Badge variant="secondary">{isBonus ? "Bonus" : "Your Turn"}</Badge>
-            <h2 className="bm-title mt-2 text-xl text-[var(--text-bright)]">You have the floor</h2>
+        <div className="bm-pg-content">
+          <PGTimer
+            deadline={deadline ?? null}
+            totalSeconds={totalSecs}
+            label={isBonus ? "Bonus" : "Answer"}
+          />
+          <div className="bm-pg-answer">
             {prevBonusQ && prevBonusQ.result !== "unanswered" && (
-              <p className={`mt-1 text-xs font-semibold ${prevBonusQ.result === "correct" ? "text-[var(--sage)]" : "text-[var(--rose)]"}`}>
+              <p className={`text-xs font-semibold mb-2 ${prevBonusQ.result === "correct" ? "text-[var(--sage)]" : "text-[var(--rose)]"}`}>
                 {prevBonusQ.result === "correct" ? "Previous bonus: Correct! +5" : `Previous bonus: ${prevBonusQ.grading_reason ?? "Incorrect"}`}
               </p>
             )}
-            <p className="bm-body mt-1 text-sm">{prompt}</p>
             {isBonus && bc && (
-              <div className="flex items-center gap-1.5 mt-2">
+              <div className="bm-pg-bonus-dots">
                 {Array.from({ length: bc.total_questions }).map((_, i) => {
                   const q = bc.questions[i];
                   const color = i < bc.current_index
                     ? q?.result === "correct" ? "var(--sage)" : "var(--rose)"
                     : i === bc.current_index ? "var(--sky)" : "rgba(255,255,255,0.15)";
-                  return <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: color }} />;
+                  return <div key={i} className="bm-pg-bonus-dot" style={{ background: color }} />;
                 })}
               </div>
             )}
-          </div>
-          <div className="grid gap-3 px-5 pb-5">
-            <Textarea className="min-h-24 rounded-xl border border-[var(--border)] bg-[rgba(20,20,20,0.5)] text-[var(--text-bright)] placeholder:text-[var(--text-dim)]" maxLength={160} onChange={(e) => setAnswerText(e.target.value)} placeholder="Type your answer..." value={answerText} />
-            <div className="flex items-center justify-between">
-              <span className="bm-countdown text-sm flex items-center gap-1"><Clock className="h-4 w-4" />{formatCountdown(deadline ?? null)}</span>
-              <span className="text-xs text-[var(--text-dim)]">{answerText.length}/160</span>
+            <p className="bm-pg-answer-prompt">{prompt}</p>
+            <textarea
+              className="bm-pg-answer-textarea"
+              maxLength={160}
+              onChange={(e) => setAnswerText(e.target.value)}
+              placeholder="Type your answer..."
+              value={answerText}
+            />
+            <div className="bm-pg-answer-meta">
+              <span className="bm-pg-answer-charcount">{answerText.length}/160</span>
             </div>
-            <button className="bm-btn-primary w-full py-3" disabled={!answerText.trim() || busy === "answer"} onClick={() => runAction("answer", async () => { const nr = await api.submitAnswer(room.code, session.player_id, session.player_token, currentClientId(), answerText.trim()); setAnswerText(""); return nr; })} type="button">
+            <button
+              className="bm-pg-answer-submit"
+              disabled={!answerText.trim() || busy === "answer"}
+              onClick={() => runAction("answer", async () => { const nr = await api.submitAnswer(room.code, session.player_id, session.player_token, currentClientId(), answerText.trim()); setAnswerText(""); return nr; })}
+              type="button"
+            >
               {busy === "answer" ? "Submitting..." : "Submit Answer"}
             </button>
           </div>
@@ -1370,6 +1552,7 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
       );
     }
 
+    // ── Answering (spectating: someone else is answering) ──
     if (room.phase === "answering" || room.phase === "bonus_answering") {
       const isBonus = room.phase === "bonus_answering";
       const answerer = isBonus
@@ -1378,172 +1561,210 @@ function PlayerRoomScene({ session, config, onSessionLost }: { session: PlayerSe
       const deadline = isBonus
         ? room.bonus_chain?.answer_deadline_at
         : room.current_question?.answering_deadline_at;
+      const totalSecs = isBonus ? room.settings.bonus_answer_seconds : room.settings.main_answer_seconds;
+
       return (
-        <PhaseCard
-          badge={isBonus ? "Bonus" : "Answering"}
-          title={`${answerer?.name ?? "Another player"} is answering`}
-          body={room.current_question?.question.prompt ?? "Watch the display and wait for the result."}
-        >
-          {deadline ? (
-            <span className="bm-countdown text-sm flex items-center gap-1">
-              <Clock className="h-4 w-4" />{formatCountdown(deadline)}
-            </span>
-          ) : null}
-        </PhaseCard>
+        <div className="bm-pg-content">
+          <PGTimer
+            deadline={deadline ?? null}
+            totalSeconds={totalSecs}
+            label={isBonus ? "Bonus" : "Answer"}
+          />
+          <div className="bm-pg-spectate">
+            <h2 className="bm-pg-spectate-title">
+              {answerer?.name ?? "Another player"} is answering
+            </h2>
+            <p className="bm-pg-spectate-body">
+              {room.current_question?.question.prompt ?? "Watch the display and wait for the result."}
+            </p>
+          </div>
+        </div>
       );
     }
 
+    // ── Grading: Adjudication ──
     if (room.phase === "grading" && room.adjudication?.status !== "idle") {
       const adj = room.adjudication;
       if (!adj) return null;
       const canVote = adj.eligible_voter_ids.includes(activeMe.id) || (isVip && adj.status === "vip_deciding");
       return (
-        <PhaseCard badge="Adjudication" title="Manual decision needed" body={adj.prompt ?? room.current_question?.grading_reason ?? "Automatic grading failed."}>
-          {canVote ? (
-            <div className="flex gap-3">
-              <button className="bm-btn-primary flex-1 py-3 flex items-center justify-center gap-2" disabled={busy === "adjudicate-accept"} onClick={() => runAction("adjudicate-accept", () => api.adjudicate(room.code, session.player_id, session.player_token, currentClientId(), "accept"))} type="button">
-                <CheckCircle className="h-5 w-5" /> Accept
-              </button>
-              <button className="bm-btn-outline flex-1 py-3 flex items-center justify-center gap-2" disabled={busy === "adjudicate-reject"} onClick={() => runAction("adjudicate-reject", () => api.adjudicate(room.code, session.player_id, session.player_token, currentClientId(), "reject"))} type="button">
-                <XCircle className="h-5 w-5" /> Reject
-              </button>
-            </div>
-          ) : <p className="text-sm text-[var(--text-dim)]">Only eligible voters can decide.</p>}
-        </PhaseCard>
+        <div className="bm-pg-content">
+          <div className="bm-pg-grading">
+            <h2 className="bm-pg-grading-title">Manual decision needed</h2>
+            <p className="bm-pg-grading-body">{adj.prompt ?? room.current_question?.grading_reason ?? "Automatic grading failed."}</p>
+            {canVote ? (
+              <div className="bm-pg-adj-buttons">
+                <button
+                  className="bm-pg-adj-btn bm-pg-adj-btn--accept"
+                  disabled={busy === "adjudicate-accept"}
+                  onClick={() => runAction("adjudicate-accept", () => api.adjudicate(room.code, session.player_id, session.player_token, currentClientId(), "accept"))}
+                  type="button"
+                >
+                  <CheckCircle className="h-5 w-5" /> Accept
+                </button>
+                <button
+                  className="bm-pg-adj-btn bm-pg-adj-btn--reject"
+                  disabled={busy === "adjudicate-reject"}
+                  onClick={() => runAction("adjudicate-reject", () => api.adjudicate(room.code, session.player_id, session.player_token, currentClientId(), "reject"))}
+                  type="button"
+                >
+                  <XCircle className="h-5 w-5" /> Reject
+                </button>
+              </div>
+            ) : <p className="bm-pg-spectate-body">Only eligible voters can decide.</p>}
+          </div>
+        </div>
       );
     }
 
+    // ── Grading: Auto ──
     if (room.phase === "grading") {
       return (
-        <PhaseCard badge="Grading" title="Checking the answer" body={room.current_question?.submitted_answer ?? "Hold on..."}>
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--amber)]" />
-        </PhaseCard>
+        <div className="bm-pg-content">
+          <div className="bm-pg-center-msg">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--amber)] mx-auto mb-3" />
+            <h2 className="bm-pg-center-msg-title">Checking the answer</h2>
+            <p className="bm-pg-center-msg-body">{room.current_question?.submitted_answer ?? "Hold on..."}</p>
+          </div>
+        </div>
       );
     }
 
+    // ── Bonus Loading ──
     if (room.phase === "bonus_loading") {
       return (
-        <PhaseCard badge="Bonus" title="Bonus chain incoming" body="Three solo bonus questions.">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--sage)]" />
-        </PhaseCard>
+        <div className="bm-pg-content">
+          <div className="bm-pg-center-msg">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--sage)] mx-auto mb-3" />
+            <h2 className="bm-pg-center-msg-title">Bonus chain incoming</h2>
+            <p className="bm-pg-center-msg-body">Three solo bonus questions.</p>
+          </div>
+        </div>
       );
     }
 
+    // ── Score Reveal (full-bleed hero) ──
     if (room.phase === "score_reveal") {
       const resolved = room.score_reveal?.resolved_question;
       return (
-        <PhaseCard badge="Scores" title={room.score_reveal?.headline ?? "Standings updated"} body={myStanding ? `You are #${myStanding.rank} with ${myStanding.score} points.` : "Stand by for the next round."}>
-          {resolved ? (
-            <div className="grid gap-2 text-sm">
-              <div className="rounded-xl border border-[var(--sage)]/20 bg-[var(--sage)]/5 px-4 py-3">
-                <p className="font-semibold text-[var(--sage)]">Answer: {resolved.correct_answer}</p>
-                <p className="mt-1 text-[var(--text-dim)]">{resolved.grading_reason ?? "No grading note."}</p>
-                <p className="mt-1 text-[var(--text-dim)]">{resolved.fact_card.detail}</p>
+        <div className="bm-pg-content bm-pg-content--full" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(245,158,11,0.03) 100%)" }}>
+          <div className="bm-pg-score-hero">
+            {myStanding && <span className="bm-pg-score-rank">#{myStanding.rank}</span>}
+            <h2 className="bm-pg-score-headline">{room.score_reveal?.headline ?? "Standings updated"}</h2>
+            <p className="bm-pg-score-points">
+              {myStanding ? `${myStanding.score} points` : "Stand by for the next round."}
+            </p>
+            {resolved && (
+              <div className="bm-pg-score-answer">
+                <div className="bm-pg-score-answer-label">Answer: {resolved.correct_answer}</div>
+                <div className="bm-pg-score-answer-detail">
+                  {resolved.fact_card?.detail ?? resolved.grading_reason ?? "No grading note."}
+                </div>
               </div>
-            </div>
-          ) : null}
-        </PhaseCard>
+            )}
+          </div>
+        </div>
       );
     }
 
+    // ── Paused ──
     if (room.phase === "paused_waiting_for_vip") {
       return (
-        <PhaseCard badge="Paused" title="Waiting for VIP" body={`${room.pause_state?.reason ?? "Match paused."} ${room.pause_state ? `Timeout ${formatCountdown(room.pause_state.deadline_at)}.` : ""}`} />
+        <div className="bm-pg-content">
+          <div className="bm-pg-center-msg">
+            <Hourglass className="h-8 w-8 text-[var(--text-dim)] mx-auto mb-3" />
+            <h2 className="bm-pg-center-msg-title">Waiting for VIP</h2>
+            <p className="bm-pg-center-msg-body">
+              {room.pause_state?.reason ?? "Match paused."}{" "}
+              {room.pause_state ? `Timeout ${formatCountdown(room.pause_state.deadline_at)}.` : ""}
+            </p>
+          </div>
+        </div>
       );
     }
 
+    // ── Finished ──
     if (room.phase === "finished") {
       return (
-        <PhaseCard badge="Game Over" title="Match complete" body={myStanding ? `Final rank #${myStanding.rank} with ${myStanding.score} points.` : "Thanks for playing."}>
-          <div className="flex flex-col gap-3">
-            {room.finished?.summary_id ? (
-              <Button asChild className="rounded-xl" variant="outline"><Link href={`/summary/${room.finished.summary_id}`}>View Summary</Link></Button>
-            ) : null}
-            {isVip ? (
-              <button className="bm-btn-primary w-full py-3" disabled={busy === "reset"} onClick={() => runAction("reset", () => api.resetRoom(room.code, session.player_id, session.player_token, currentClientId()))} type="button">
-                {busy === "reset" ? "Resetting..." : "Reset Room"}
-              </button>
-            ) : null}
+        <div className="bm-pg-content">
+          <div className="bm-pg-finished">
+            {myStanding && <span className="bm-pg-finished-rank">#{myStanding.rank}</span>}
+            <h2 className="bm-pg-finished-title">Match complete</h2>
+            <p className="bm-pg-finished-body">
+              {myStanding ? `Final rank #${myStanding.rank} with ${myStanding.score} points.` : "Thanks for playing."}
+            </p>
+            <div className="bm-pg-finished-actions">
+              {room.finished?.summary_id ? (
+                <Button asChild className="rounded-xl" variant="outline"><Link href={`/summary/${room.finished.summary_id}`}>View Summary</Link></Button>
+              ) : null}
+              {isVip ? (
+                <button className="bm-pg-answer-submit" disabled={busy === "reset"} onClick={() => runAction("reset", () => api.resetRoom(room.code, session.player_id, session.player_token, currentClientId()))} type="button">
+                  {busy === "reset" ? "Resetting..." : "Reset Room"}
+                </button>
+              ) : null}
+            </div>
           </div>
-        </PhaseCard>
+        </div>
       );
     }
 
+    // ── Fallback ──
     return (
-      <PhaseCard badge="Stand By" title="Stand by..." body="Waiting for the next phase.">
-        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-dim)]" />
-      </PhaseCard>
+      <div className="bm-pg-content">
+        <div className="bm-pg-center-msg">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--text-dim)] mx-auto mb-3" />
+          <h2 className="bm-pg-center-msg-title">Stand by...</h2>
+          <p className="bm-pg-center-msg-body">Waiting for the next phase.</p>
+        </div>
+      </div>
     );
   }
 
+  // Show round/topic info strip for in-game phases
+  const showInfoStrip = !["intro", "topic_voting", "finished", "paused_waiting_for_vip"].includes(room.phase);
+
   return (
-    <main className="bm-shell relative z-10">
-      <div className="relative z-10 mx-auto max-w-7xl">
-        {/* Top bar */}
-        <div className="flex items-center justify-between gap-3 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--amber)" }}>
-              <Sparkles className="h-4 w-4" style={{ color: "var(--bg)" }} />
+    <main className="bm-pg-wrap">
+      {/* Overlay top bar */}
+      <div className="bm-pg-topbar">
+        <div className="bm-pg-topbar-inner">
+          <div className="bm-pg-topbar-brand">
+            <div className="bm-pg-topbar-icon">
+              <Sparkles />
             </div>
-            <span className="bm-title text-base text-[var(--text-bright)]">BuzzerMinds</span>
+            <span className="bm-pg-topbar-wordmark">BuzzerMinds</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={connected ? "secondary" : "outline"}>{connected ? "Live" : "..."}</Badge>
-            <span className="bm-display-code text-sm text-[var(--amber)]">{room.code}</span>
-          </div>
-        </div>
-
-        {/* Player identity strip */}
-        <div className="mb-5 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="bm-swatch" style={{ backgroundColor: activeMe.color }} />
-            <div>
-              <p className="font-semibold text-[var(--text-bright)]">{activeMe.name}</p>
-              <p className="text-xs text-[var(--text-dim)]">{formatRole(activeMe.role)} · {activeMe.score} pts</p>
-            </div>
-          </div>
-          <Badge variant="outline">{formatPhase(room.phase)}</Badge>
-        </div>
-
-        {/* Main content */}
-        <div className="grid gap-4">
-          {renderPhaseCard()}
-
-          {/* Player roster (collapsible on mobile) */}
-          <details className="bm-card rounded-[var(--radius)]">
-            <summary className="cursor-pointer p-5 text-sm font-bold uppercase tracking-widest text-[var(--text-dim)]">
-              Players ({room.players.length})
-            </summary>
-            <div className="grid gap-2 px-5 pb-5">
-              {room.players.map((player) => (
-                <PlayerRow
-                  key={player.id}
-                  active={player.is_answering || player.bonus_active || room.buzz_state?.winner_player_id === player.id}
-                  color={player.color}
-                  connected={player.connected}
-                  name={player.name}
-                  ready={player.ready}
-                  role={player.role}
-                  score={player.score}
-                  trailing={
-                    player.id === room.vip_player_id ? <Badge>VIP</Badge> : null
-                  }
-                />
-              ))}
-            </div>
-          </details>
-
-          {/* Narration */}
-          {room.narration?.text ? (
-            <div className="bm-card rounded-xl p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-dim)]">Narration</p>
-              <p className="mt-1.5 text-sm italic text-[var(--text-bright)]">{room.narration.text}</p>
-            </div>
-          ) : null}
-
-          {error ? <p className="text-center text-sm font-semibold text-[var(--rose)]">{error}</p> : null}
+          <span className="bm-pg-phase-badge" data-accent={accent}>
+            {formatPhase(room.phase)}
+          </span>
         </div>
       </div>
+
+      {/* Round/Topic info strip */}
+      {showInfoStrip && (
+        <div className="bm-pg-info-strip">
+          <span className="bm-pg-info-strip-tag">R{roundIndex}</span>
+          {topicLabel && (
+            <>
+              <span style={{ color: "var(--text-dim)", opacity: 0.4 }}>/</span>
+              <span>{topicLabel}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Phase content */}
+      {renderPhaseContent()}
+
+      {/* Bottom identity pill */}
+      <div className="bm-pg-pill">
+        <span className="bm-pg-pill-swatch" style={{ backgroundColor: activeMe.color }} />
+        <span className="bm-pg-pill-name">{activeMe.name}</span>
+        <span className="bm-pg-pill-score">{activeMe.score} pts</span>
+      </div>
+
+      {/* Floating error toast */}
+      {error && <div className="bm-pg-error">{error}</div>}
     </main>
   );
 }
@@ -1577,8 +1798,6 @@ export function PlayerRoomView({ roomCode, initialRoom, config }: PlayerRoomView
       <WireframeBackground />
       <TurnstileProvider config={config}>
         <RoomLiveProvider initialRoom={room} query={{ client_type: "player", player_id: session.player_id, player_token: session.player_token, client_id: currentClientId() }} roomCode={roomCode}>
-          <NarrationAudio />
-          <ShowAudio />
           <PlayerRoomScene config={config} onSessionLost={resetSession} session={session} />
         </RoomLiveProvider>
       </TurnstileProvider>

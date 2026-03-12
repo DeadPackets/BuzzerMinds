@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import uvicorn
 from contextlib import asynccontextmanager
@@ -300,7 +302,8 @@ def create_app() -> FastAPI:
             player_token=request.player_token,
             client_id=request.client_id,
         )
-        await realtime_hub.broadcast_room_state(room.code, room)
+        # Fire-and-forget: don't block the buzzer's HTTP response on broadcast
+        asyncio.create_task(realtime_hub.broadcast_room_state(room.code, room))
         return room
 
     @application.post(
@@ -426,7 +429,33 @@ def create_app() -> FastAPI:
 
         try:
             while True:
-                await websocket.receive_text()
+                text = await websocket.receive_text()
+                if text == "ping":
+                    continue
+                # Parse JSON messages from clients
+                try:
+                    msg = json.loads(text)
+                except json.JSONDecodeError, TypeError:
+                    continue
+                msg_type = msg.get("type")
+                # ── WebSocket buzz-in (lowest latency path) ──
+                if msg_type == "buzz" and client_type == "player" and player_id:
+                    try:
+                        room_state = await room_manager.buzz_in(
+                            room_code=normalized_room_code,
+                            player_id=player_id,
+                            player_token=player_token or "",
+                            client_id=msg.get("client_id") or client_id,
+                        )
+                        # Fire-and-forget broadcast to all clients
+                        asyncio.create_task(
+                            realtime_hub.broadcast_room_state(normalized_room_code, room_state)
+                        )
+                    except Exception as exc:
+                        await realtime_hub.send_to_websocket(
+                            websocket,
+                            {"type": "buzz_error", "error": str(exc)},
+                        )
         except WebSocketDisconnect:
             pass
         finally:
@@ -479,4 +508,4 @@ app.router.lifespan_context = lifespan
 
 
 def main() -> None:
-    uvicorn.run("buzzerminds_backend:app", host="0.0.0.0", port=8000)
+    uvicorn.run("buzzerminds_backend:app", host="0.0.0.0", port=8000, log_level="warning")

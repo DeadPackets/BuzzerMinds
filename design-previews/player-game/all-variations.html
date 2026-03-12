@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Player Game Screen Layout Variations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+/* ───────── RESET ───────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #141414;
+  --surface: rgba(30, 30, 30, 0.65);
+  --surface-solid: #1e1e1e;
+  --amber: #f59e0b;
+  --sage: #4ade80;
+  --rose: #fb7185;
+  --sky: #38bdf8;
+  --cream: #fef3c7;
+  --text-bright: #f5f5f5;
+  --text-dim: #737373;
+  --border: rgba(255,255,255,0.06);
+  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --radius: 14px;
+}
+
+html, body {
+  height: 100%;
+  background: #0a0a0a;
+  color: var(--text-bright);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ───────── DESKTOP LAYOUT ───────── */
+.desktop-shell { display: flex; height: 100vh; }
+
+/* LEFT PANEL */
+.selector-panel {
+  width: 260px; min-width: 260px;
+  background: #111;
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  overflow-y: auto;
+}
+.selector-panel h1 {
+  font-family: var(--font-display); font-size: 1.05rem; font-weight: 700;
+  color: var(--amber); margin-bottom: 2px;
+}
+.selector-panel .subtitle {
+  font-size: 0.72rem; color: var(--text-dim); margin-bottom: 12px; line-height: 1.4;
+}
+.selector-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--text-dim);
+  font-family: var(--font-body); font-size: 0.8rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; text-align: left; width: 100%;
+}
+.selector-btn:hover { background: rgba(255,255,255,0.04); color: var(--text-bright); }
+.selector-btn.active {
+  background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2);
+  color: var(--amber); font-weight: 600;
+}
+.selector-btn .num {
+  font-family: var(--font-display); font-size: 0.7rem; font-weight: 700;
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; background: rgba(255,255,255,0.06); flex-shrink: 0;
+}
+.selector-btn.active .num { background: var(--amber); color: #141414; }
+
+/* CENTER — Phone preview */
+.preview-area {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(245,158,11,0.03) 0%, transparent 70%);
+  padding: 24px;
+}
+
+/* Phase switcher bar */
+.phase-switcher {
+  display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center;
+  max-width: 820px;
+}
+.phase-btn {
+  padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: rgba(20,20,20,0.6); color: var(--text-dim);
+  font-family: var(--font-body); font-size: 0.68rem; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.phase-btn:hover { border-color: rgba(255,255,255,0.12); color: var(--text-bright); }
+.phase-btn.active { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); color: var(--amber); }
+
+/* Phone frame */
+.phone-frame {
+  width: 375px; height: 812px;
+  background: var(--bg);
+  border-radius: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  overflow: hidden; position: relative;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+}
+.phone-notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 160px; height: 30px; background: #000;
+  border-radius: 0 0 20px 20px; z-index: 50;
+}
+.phone-screen {
+  width: 100%; height: 100%;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.phone-screen::-webkit-scrollbar { display: none; }
+
+/* ───────── BACKGROUND PATTERN ───────── */
+.bg-lines {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(45deg, rgba(245,158,11,0.025) 0px, rgba(245,158,11,0.025) 1px, transparent 1px, transparent 28px);
+}
+
+/* ───────── SHARED CARD / BADGE STYLES ───────── */
+.card {
+  background: var(--surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 6px;
+  font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.badge-amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+.badge-sage { background: rgba(74,222,128,0.12); color: var(--sage); }
+.badge-rose { background: rgba(251,113,133,0.12); color: var(--rose); }
+.badge-sky { background: rgba(56,189,248,0.12); color: var(--sky); }
+.badge-dim { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+.swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.btn-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 14px; border-radius: 12px; border: none;
+  background: var(--amber); color: #141414;
+  font-family: var(--font-display); font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+.btn-outline {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: rgba(20,20,20,0.5); color: var(--text-dim);
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-outline:hover { border-color: rgba(255,255,255,0.12); color: var(--text-bright); }
+
+.btn-sage {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; border-radius: 12px; border: none;
+  background: var(--sage); color: #141414;
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; flex: 1;
+}
+
+.btn-rose-outline {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px; border-radius: 12px;
+  border: 1px solid rgba(251,113,133,0.3); background: rgba(251,113,133,0.06); color: var(--rose);
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; flex: 1;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid rgba(245,158,11,0.15); border-top-color: var(--amber);
+  animation: spin 0.8s linear infinite;
+}
+.spinner-sage {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid rgba(74,222,128,0.15); border-top-color: var(--sage);
+  animation: spin 0.8s linear infinite;
+}
+
+/* Topic tile grid for voting */
+.topic-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.topic-tile {
+  padding: 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface);
+  font-size: 0.78rem; font-weight: 600; color: var(--text-bright);
+  cursor: pointer; transition: all 0.15s; text-align: center;
+  position: relative;
+}
+.topic-tile.selected {
+  border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.08);
+}
+.topic-tile.selected::after {
+  content: ''; position: absolute; top: 6px; right: 6px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--sky);
+}
+
+/* Textarea */
+.answer-textarea {
+  width: 100%; padding: 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: rgba(20,20,20,0.5);
+  color: var(--text-bright); font-family: var(--font-body); font-size: 0.85rem;
+  resize: none; outline: none; min-height: 80px;
+}
+.answer-textarea::placeholder { color: var(--text-dim); }
+.answer-textarea:focus { border-color: rgba(245,158,11,0.3); }
+
+/* Player list */
+.player-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; font-size: 0.78rem; color: var(--text-dim);
+}
+.player-row .swatch { width: 8px; height: 8px; }
+.player-row .name { flex: 1; color: var(--text-bright); font-weight: 500; }
+.player-row .score { font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; }
+
+/* Progress dots for bonus */
+.progress-dots {
+  display: flex; gap: 8px; justify-content: center; align-items: center;
+}
+.progress-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.1);
+}
+.progress-dot.correct { background: var(--sage); }
+.progress-dot.current { background: var(--sky); }
+.progress-dot.upcoming { background: rgba(255,255,255,0.1); }
+
+/* Collapsible details */
+.player-details {
+  border-top: 1px solid var(--border);
+}
+.player-details summary {
+  padding: 10px 16px; font-size: 0.78rem; font-weight: 600;
+  color: var(--text-dim); cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 6px;
+}
+.player-details summary::-webkit-details-marker { display: none; }
+.player-details .player-list { padding: 0 16px 12px; }
+</style>
+</head>
+<body>
+<div class="desktop-shell">
+
+  <!-- ─── LEFT PANEL ─── -->
+  <div class="selector-panel">
+    <h1>Player Game Screen</h1>
+    <p class="subtitle">10 layout variations for the in-game player phone experience. Each shows all 14 game phases.</p>
+    <button class="selector-btn active" onclick="showVariation(1)"><span class="num">01</span>Stacked Classic</button>
+    <button class="selector-btn" onclick="showVariation(2)"><span class="num">02</span>Floating Card</button>
+    <button class="selector-btn" onclick="showVariation(3)"><span class="num">03</span>Full Bleed</button>
+    <button class="selector-btn" onclick="showVariation(4)"><span class="num">04</span>Split Screen</button>
+    <button class="selector-btn" onclick="showVariation(5)"><span class="num">05</span>Bottom Sheet</button>
+    <button class="selector-btn" onclick="showVariation(6)"><span class="num">06</span>Tabbed Panels</button>
+    <button class="selector-btn" onclick="showVariation(7)"><span class="num">07</span>Centered Focus</button>
+    <button class="selector-btn" onclick="showVariation(8)"><span class="num">08</span>Dashboard Compact</button>
+    <button class="selector-btn" onclick="showVariation(9)"><span class="num">09</span>Cinematic</button>
+    <button class="selector-btn" onclick="showVariation(10)"><span class="num">10</span>Game HUD</button>
+  </div>
+
+  <!-- ─── PREVIEW AREA ─── -->
+  <div class="preview-area">
+    <!-- Phase switcher -->
+    <div class="phase-switcher" id="phaseSwitcher"></div>
+
+    <!-- Phone frame -->
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen" id="phoneScreen"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════ */
+let currentVariation = 1;
+let currentPhase = 'intro';
+
+const PHASES = [
+  { id: 'intro', label: 'Intro' },
+  { id: 'topic_voting', label: 'Topic Vote' },
+  { id: 'question_loading', label: 'Q Loading' },
+  { id: 'question_reveal', label: 'Q Reveal' },
+  { id: 'buzz_open', label: 'Buzz' },
+  { id: 'answering_active', label: 'Answering' },
+  { id: 'answering_spectating', label: 'Spectating' },
+  { id: 'grading_auto', label: 'Grading' },
+  { id: 'grading_adjudication', label: 'Adjudication' },
+  { id: 'bonus_loading', label: 'Bonus Load' },
+  { id: 'bonus_answering', label: 'Bonus Answer' },
+  { id: 'score_reveal', label: 'Scores' },
+  { id: 'paused', label: 'Paused' },
+  { id: 'finished', label: 'Finished' },
+];
+
+const TOPICS = [
+  'Space Exploration', 'Ancient Rome', 'Pop Music 2020s', 'Quantum Physics',
+  'World Cuisine', 'Olympic History', 'Horror Movies', 'Internet Culture'
+];
+
+const PLAYERS = [
+  { name: 'Sarah', color: '#f59e0b', score: 25, you: true },
+  { name: 'Alex', color: '#38bdf8', score: 30, you: false },
+  { name: 'Jordan', color: '#4ade80', score: 18, you: false },
+  { name: 'Riley', color: '#fb7185', score: 12, you: false },
+  { name: 'Casey', color: '#a78bfa', score: 8, you: false },
+];
+
+const QUESTION = 'In what year did NASA\'s Voyager 1 become the first human-made object to enter interstellar space?';
+const QUESTION_PARTIAL = 'In what year did NASA\'s Voyager 1 become the first...';
+
+/* ═══════════════════════════════════════════════════════
+   PHASE SWITCHER INIT
+   ═══════════════════════════════════════════════════════ */
+document.getElementById('phaseSwitcher').innerHTML = PHASES.map(p =>
+  `<button class="phase-btn${p.id === currentPhase ? ' active' : ''}" onclick="setPhase('${p.id}', this)">${p.label}</button>`
+).join('');
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════ */
+function phaseBadge(phase) {
+  const map = {
+    intro: ['Intro', 'badge-dim'],
+    topic_voting: ['Voting', 'badge-sky'],
+    question_loading: ['Loading', 'badge-dim'],
+    question_reveal: ['Revealing', 'badge-amber'],
+    buzz_open: ['Buzz Open', 'badge-amber'],
+    answering_active: ['Your Turn', 'badge-sage'],
+    answering_spectating: ['Answering', 'badge-sky'],
+    grading_auto: ['Grading', 'badge-dim'],
+    grading_adjudication: ['Adjudication', 'badge-rose'],
+    bonus_loading: ['Bonus', 'badge-sage'],
+    bonus_answering: ['Bonus', 'badge-sage'],
+    score_reveal: ['Scores', 'badge-amber'],
+    paused: ['Paused', 'badge-dim'],
+    finished: ['Game Over', 'badge-rose'],
+  };
+  const [text, cls] = map[phase] || ['Unknown', 'badge-dim'];
+  return `<span class="badge ${cls}">${text}</span>`;
+}
+
+function phaseLabel(phase) {
+  const map = {
+    intro: 'Intro', topic_voting: 'Topic Vote', question_loading: 'Loading',
+    question_reveal: 'Revealing', buzz_open: 'Buzz Open', answering_active: 'Your Turn',
+    answering_spectating: 'Answering', grading_auto: 'Grading', grading_adjudication: 'Adjudication',
+    bonus_loading: 'Bonus', bonus_answering: 'Bonus', score_reveal: 'Scores',
+    paused: 'Paused', finished: 'Finished',
+  };
+  return map[phase] || phase;
+}
+
+function playersHTML() {
+  return PLAYERS.map(p =>
+    `<div class="player-row">
+      <span class="swatch" style="background:${p.color}"></span>
+      <span class="name">${p.name}${p.you ? ' (You)' : ''}</span>
+      <span class="score">${p.score} pts</span>
+    </div>`
+  ).join('');
+}
+
+function topBarHTML() {
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:38px 16px 8px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:24px;height:24px;background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="sparkles" style="width:14px;height:14px;color:#141414;"></i>
+      </div>
+      <span style="font-family:var(--font-display);font-size:0.85rem;font-weight:700;color:var(--text-bright);">BuzzerMinds</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:rgba(74,222,128,0.12);color:var(--sage);font-size:0.65rem;font-weight:700;">
+        <span style="width:5px;height:5px;border-radius:50%;background:var(--sage);"></span>Live
+      </span>
+      <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:700;color:var(--text-dim);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;">XKCD</span>
+    </div>
+  </div>`;
+}
+
+function identityStripHTML() {
+  return `<div style="display:flex;align-items:center;gap:8px;padding:4px 16px 8px;flex-wrap:wrap;">
+    <span class="swatch" style="background:var(--amber);width:12px;height:12px;"></span>
+    <span style="font-weight:600;font-size:0.85rem;color:var(--text-bright);">Sarah</span>
+    <span style="font-size:0.72rem;color:var(--text-dim);">Player</span>
+    <span style="font-family:var(--font-display);font-size:0.72rem;font-weight:700;color:var(--amber);">25 pts</span>
+    <span style="margin-left:auto;">${phaseBadge(currentPhase)}</span>
+  </div>`;
+}
+
+function rosterHTML() {
+  return `<details class="player-details">
+    <summary><i data-lucide="users" style="width:14px;height:14px;"></i> Players (5)</summary>
+    <div class="player-list">${playersHTML()}</div>
+  </details>`;
+}
+
+function topicGridHTML() {
+  const selected = [0, 3]; // indices of selected topics
+  return TOPICS.map((t, i) =>
+    `<div class="topic-tile${selected.includes(i) ? ' selected' : ''}">${t}</div>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   PHASE CONTENT GENERATORS
+   ═══════════════════════════════════════════════════════ */
+function phaseContent_intro() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;gap:16px;">
+    <div style="width:64px;height:64px;border-radius:16px;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;">
+      <i data-lucide="monitor" style="width:32px;height:32px;color:var(--amber);"></i>
+    </div>
+    <h2 style="font-family:var(--font-display);font-size:1.2rem;font-weight:700;">Watch the Display!</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);line-height:1.5;">The rules are being explained on the big screen. The game will begin shortly.</p>
+    <button class="btn-outline" style="width:auto;padding:10px 20px;margin-top:8px;opacity:0.6;">
+      <i data-lucide="skip-forward" style="width:14px;height:14px;"></i> Skip Intro
+    </button>
+    <span style="font-size:0.65rem;color:var(--text-dim);">VIP only</span>
+  </div>`;
+}
+
+function phaseContent_topicVoting() {
+  return `<div style="padding:12px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <h3 style="font-family:var(--font-display);font-size:1.05rem;font-weight:700;">Pick Topics</h3>
+      <span class="badge badge-sky">2 / 3 picked</span>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">Tap up to 3 topics you want to play</p>
+    <div class="topic-grid">${topicGridHTML()}</div>
+    <div style="margin-top:16px;">
+      <button class="btn-primary">Submit 2 Picks</button>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn-outline" style="flex:1;padding:10px;font-size:0.78rem;">
+          <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Reroll (2)
+        </button>
+        <button class="btn-primary" style="flex:1;padding:10px;font-size:0.78rem;">
+          <i data-lucide="lock" style="width:13px;height:13px;"></i> Lock Pool
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function phaseContent_questionLoading() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:50px 24px;gap:16px;">
+    ${phaseBadge('question_loading')}
+    <h2 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">Question incoming</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);">Topic: Space Exploration</p>
+    <div class="spinner" style="margin-top:8px;"></div>
+  </div>`;
+}
+
+function phaseContent_questionReveal() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;gap:14px;">
+    ${phaseBadge('question_reveal')}
+    <h2 style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Space Exploration</h2>
+    <p style="font-size:0.88rem;color:var(--text-bright);line-height:1.5;font-weight:600;animation:pulse 1.5s ease-in-out infinite;">${QUESTION_PARTIAL}</p>
+  </div>`;
+}
+
+function phaseContent_buzzOpen() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 16px;gap:16px;">
+    ${phaseBadge('buzz_open')}
+    <h2 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">Hit the buzzer!</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);">Window closes in 0:08.</p>
+    <button style="width:100%;padding:40px 16px;border-radius:16px;border:none;background:var(--amber);color:#141414;font-family:var(--font-display);font-size:1.6rem;font-weight:900;cursor:pointer;margin-top:8px;letter-spacing:0.04em;text-transform:uppercase;">
+      BUZZ IN
+    </button>
+  </div>`;
+}
+
+function phaseContent_buzzOpenLocked() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 16px;gap:16px;">
+    ${phaseBadge('buzz_open')}
+    <h2 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">Hit the buzzer!</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);">Window closes in 0:08.</p>
+    <button style="width:100%;padding:40px 16px;border-radius:16px;border:none;background:rgba(255,255,255,0.06);color:var(--text-dim);font-family:var(--font-display);font-size:1.4rem;font-weight:800;cursor:not-allowed;margin-top:8px;opacity:0.45;letter-spacing:0.04em;text-transform:uppercase;" disabled>
+      LOCKED OUT
+    </button>
+  </div>`;
+}
+
+function phaseContent_answeringActive() {
+  return `<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      ${phaseBadge('answering_active')}
+      <div style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="clock" style="width:14px;height:14px;color:var(--amber);"></i>
+        <span style="font-family:var(--font-display);font-weight:800;font-size:1rem;color:var(--amber);font-variant-numeric:tabular-nums;">0:12</span>
+      </div>
+    </div>
+    <h2 style="font-family:var(--font-display);font-size:1.05rem;font-weight:700;">You have the floor</h2>
+    <p style="font-size:0.85rem;color:var(--text-bright);line-height:1.5;font-weight:600;">${QUESTION}</p>
+    <textarea class="answer-textarea" placeholder="Type your answer..." rows="3">2012</textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:0.72rem;color:var(--text-dim);">12 / 160</span>
+    </div>
+    <button class="btn-primary">Submit Answer</button>
+  </div>`;
+}
+
+function phaseContent_answeringSpectating() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;gap:14px;">
+    ${phaseBadge('answering_spectating')}
+    <h2 style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Alex is answering</h2>
+    <p style="font-size:0.85rem;color:var(--text-bright);line-height:1.5;font-weight:500;">${QUESTION}</p>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+      <i data-lucide="clock" style="width:16px;height:16px;color:var(--amber);"></i>
+      <span style="font-family:var(--font-display);font-weight:800;font-size:1.2rem;color:var(--amber);font-variant-numeric:tabular-nums;">0:12</span>
+    </div>
+  </div>`;
+}
+
+function phaseContent_gradingAuto() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:50px 24px;gap:16px;">
+    ${phaseBadge('grading_auto')}
+    <h2 style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Checking the answer</h2>
+    <div style="padding:12px 20px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);">
+      <span style="font-size:0.88rem;color:var(--text-bright);font-weight:600;">"2012"</span>
+    </div>
+    <div class="spinner" style="margin-top:4px;"></div>
+  </div>`;
+}
+
+function phaseContent_gradingAdjudication() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;gap:14px;">
+    ${phaseBadge('grading_adjudication')}
+    <h2 style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Manual decision needed</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);line-height:1.5;">The AI grader is unsure about this answer. Players must vote.</p>
+    <div style="display:flex;gap:10px;width:100%;margin-top:8px;">
+      <button class="btn-sage"><i data-lucide="check" style="width:16px;height:16px;"></i> Accept</button>
+      <button class="btn-rose-outline"><i data-lucide="x" style="width:16px;height:16px;"></i> Reject</button>
+    </div>
+  </div>`;
+}
+
+function phaseContent_bonusLoading() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:50px 24px;gap:16px;">
+    ${phaseBadge('bonus_loading')}
+    <h2 style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;">Bonus chain incoming</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);">Three solo bonus questions.</p>
+    <div class="spinner-sage" style="margin-top:4px;"></div>
+  </div>`;
+}
+
+function phaseContent_bonusAnswering() {
+  return `<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      ${phaseBadge('bonus_answering')}
+      <div style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="clock" style="width:14px;height:14px;color:var(--amber);"></i>
+        <span style="font-family:var(--font-display);font-weight:800;font-size:1rem;color:var(--amber);font-variant-numeric:tabular-nums;">0:08</span>
+      </div>
+    </div>
+    <div style="padding:8px 12px;border-radius:8px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.15);">
+      <span style="font-size:0.78rem;font-weight:600;color:var(--sage);">Previous bonus: Correct! +5</span>
+    </div>
+    <h2 style="font-family:var(--font-display);font-size:1rem;font-weight:700;">You have the floor</h2>
+    <p style="font-size:0.85rem;color:var(--text-bright);line-height:1.5;font-weight:500;">Which planet in our solar system has the most moons?</p>
+    <div class="progress-dots">
+      <span class="progress-dot correct"></span>
+      <span class="progress-dot current"></span>
+      <span class="progress-dot upcoming"></span>
+    </div>
+    <textarea class="answer-textarea" placeholder="Type your answer..." rows="2"></textarea>
+    <button class="btn-primary">Submit Answer</button>
+  </div>`;
+}
+
+function phaseContent_scoreReveal() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 20px;gap:14px;">
+    ${phaseBadge('score_reveal')}
+    <h2 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">Sarah nailed it!</h2>
+    <p style="font-size:0.85rem;color:var(--text-dim);">You are #2 with 25 points.</p>
+    <div style="width:100%;padding:14px;border-radius:12px;border:1px solid rgba(74,222,128,0.25);background:rgba(74,222,128,0.06);text-align:left;">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--sage);margin-bottom:4px;">Answer: 2012</div>
+      <div style="font-size:0.72rem;color:var(--text-dim);line-height:1.4;">Close! The correct answer is 2012 — Voyager 1 crossed the heliopause in August 2012.</div>
+      <div style="font-size:0.68rem;color:var(--text-dim);margin-top:6px;font-style:italic;">Voyager 1 was launched on September 5, 1977, and is now over 15 billion miles from Earth.</div>
+    </div>
+  </div>`;
+}
+
+function phaseContent_paused() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 24px;gap:16px;">
+    ${phaseBadge('paused')}
+    <h2 style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">Waiting for VIP</h2>
+    <p style="font-size:0.82rem;color:var(--text-dim);">Match paused. Timeout 1:30.</p>
+    <i data-lucide="pause-circle" style="width:48px;height:48px;color:var(--text-dim);opacity:0.4;"></i>
+  </div>`;
+}
+
+function phaseContent_finished() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;gap:14px;">
+    ${phaseBadge('finished')}
+    <h2 style="font-family:var(--font-display);font-size:1.2rem;font-weight:700;">Match complete</h2>
+    <p style="font-size:0.85rem;color:var(--text-dim);">Final rank #2 with 25 points.</p>
+    <button class="btn-outline" style="width:auto;padding:10px 24px;">
+      <i data-lucide="bar-chart-3" style="width:14px;height:14px;"></i> View Summary
+    </button>
+    <button class="btn-primary" style="width:auto;padding:10px 24px;font-size:0.82rem;">
+      <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i> Reset Room
+    </button>
+    <span style="font-size:0.65rem;color:var(--text-dim);">VIP only</span>
+  </div>`;
+}
+
+function getPhaseContent(phase) {
+  const map = {
+    intro: phaseContent_intro,
+    topic_voting: phaseContent_topicVoting,
+    question_loading: phaseContent_questionLoading,
+    question_reveal: phaseContent_questionReveal,
+    buzz_open: phaseContent_buzzOpen,
+    answering_active: phaseContent_answeringActive,
+    answering_spectating: phaseContent_answeringSpectating,
+    grading_auto: phaseContent_gradingAuto,
+    grading_adjudication: phaseContent_gradingAdjudication,
+    bonus_loading: phaseContent_bonusLoading,
+    bonus_answering: phaseContent_bonusAnswering,
+    score_reveal: phaseContent_scoreReveal,
+    paused: phaseContent_paused,
+    finished: phaseContent_finished,
+  };
+  return (map[phase] || phaseContent_intro)();
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   VARIATION RENDERERS
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── V01: Stacked Classic ─── */
+function renderV01() {
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      ${topBarHTML()}
+      ${identityStripHTML()}
+      <div style="flex:1;padding:0 16px 8px;">
+        <div class="card" style="padding:16px;">
+          ${getPhaseContent(currentPhase)}
+        </div>
+      </div>
+      ${rosterHTML()}
+    </div>
+  </div>`;
+}
+
+/* ─── V02: Floating Card ─── */
+function renderV02() {
+  const accentColor = (() => {
+    if (['buzz_open','answering_active','question_reveal','score_reveal'].includes(currentPhase)) return 'rgba(245,158,11,0.5)';
+    if (['grading_adjudication','paused','finished'].includes(currentPhase)) return 'rgba(251,113,133,0.5)';
+    if (['bonus_loading','bonus_answering','grading_auto'].includes(currentPhase)) return 'rgba(74,222,128,0.5)';
+    return 'rgba(255,255,255,0.08)';
+  })();
+
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:38px 16px 8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:24px;height:24px;background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="sparkles" style="width:14px;height:14px;color:#141414;"></i>
+          </div>
+          <span style="font-weight:600;font-size:0.85rem;">Sarah</span>
+          <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:700;color:var(--amber);">25 pts</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:rgba(74,222,128,0.12);color:var(--sage);font-size:0.65rem;font-weight:700;">
+            <span style="width:5px;height:5px;border-radius:50%;background:var(--sage);"></span>Live
+          </span>
+          <span style="font-family:var(--font-display);font-size:0.72rem;font-weight:700;color:var(--text-dim);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;">XKCD</span>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:16px;">
+        <div style="width:100%;background:var(--surface);backdrop-filter:blur(16px);border:1px solid var(--border);border-left:3px solid ${accentColor};border-radius:var(--radius);padding:8px;box-shadow:0 16px 48px rgba(0,0,0,0.4);">
+          ${getPhaseContent(currentPhase)}
+        </div>
+      </div>
+      ${rosterHTML()}
+    </div>
+  </div>`;
+}
+
+/* ─── V03: Full Bleed ─── */
+function renderV03() {
+  const isBuzz = currentPhase === 'buzz_open';
+  const isScore = currentPhase === 'score_reveal';
+
+  let content;
+  if (isBuzz) {
+    content = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;padding:20px;">
+      <h2 style="font-family:var(--font-display);font-size:1.3rem;font-weight:800;color:var(--text-bright);margin-bottom:8px;">Hit the buzzer!</h2>
+      <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:16px;">Window closes in 0:08.</p>
+      <button style="width:100%;height:200px;border-radius:24px;border:none;background:var(--amber);color:#141414;font-family:var(--font-display);font-size:2.2rem;font-weight:900;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">BUZZ IN</button>
+    </div>`;
+  } else if (isScore) {
+    content = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;padding:20px;background:linear-gradient(180deg, transparent 0%, rgba(245,158,11,0.03) 100%);">
+      <span style="font-family:var(--font-display);font-size:4rem;font-weight:900;color:var(--amber);">#2</span>
+      <h2 style="font-family:var(--font-display);font-size:1.3rem;font-weight:700;margin-top:8px;">Sarah nailed it!</h2>
+      <p style="font-size:0.85rem;color:var(--text-dim);margin-top:4px;">25 points</p>
+      <div style="width:100%;max-width:280px;padding:14px;border-radius:12px;border:1px solid rgba(74,222,128,0.25);background:rgba(74,222,128,0.06);text-align:left;margin-top:16px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--sage);margin-bottom:4px;">Answer: 2012</div>
+        <div style="font-size:0.72rem;color:var(--text-dim);line-height:1.4;">Voyager 1 crossed the heliopause in August 2012.</div>
+      </div>
+    </div>`;
+  } else {
+    content = `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:60px 20px 20px;position:relative;z-index:2;">
+      ${getPhaseContent(currentPhase)}
+    </div>`;
+  }
+
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <!-- Overlay top bar -->
+    <div style="position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(to bottom, var(--bg) 50%, transparent);padding:38px 16px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:20px;height:20px;background:var(--amber);border-radius:5px;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="sparkles" style="width:12px;height:12px;color:#141414;"></i>
+          </div>
+          <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:700;">BuzzerMinds</span>
+        </div>
+        ${phaseBadge(currentPhase)}
+      </div>
+    </div>
+    ${content}
+    <!-- Bottom pill -->
+    <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:var(--surface);backdrop-filter:blur(16px);border:1px solid var(--border);">
+      <span class="swatch" style="background:var(--amber);width:8px;height:8px;"></span>
+      <span style="font-size:0.75rem;font-weight:600;">Sarah</span>
+      <span style="font-size:0.7rem;color:var(--text-dim);">25 pts</span>
+    </div>
+  </div>`;
+}
+
+/* ─── V04: Split Screen ─── */
+function renderV04() {
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <!-- Top 40%: Persistent info zone -->
+      <div style="height:40%;min-height:260px;padding:38px 16px 16px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg, var(--bg) 0%, rgba(30,30,30,0.3) 100%);">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <div style="width:24px;height:24px;background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="sparkles" style="width:14px;height:14px;color:#141414;"></i>
+          </div>
+          <span style="font-family:var(--font-display);font-size:0.82rem;font-weight:700;">BuzzerMinds</span>
+          <span style="margin-left:auto;">
+            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:rgba(74,222,128,0.12);color:var(--sage);font-size:0.65rem;font-weight:700;">
+              <span style="width:5px;height:5px;border-radius:50%;background:var(--sage);"></span>Live
+            </span>
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span class="swatch" style="background:var(--amber);width:14px;height:14px;"></span>
+          <span style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">Sarah</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display);font-size:1.5rem;font-weight:800;color:var(--amber);">25</div>
+            <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Points</div>
+          </div>
+          <div style="width:1px;height:28px;background:var(--border);"></div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display);font-size:1.5rem;font-weight:800;color:var(--text-bright);">#2</div>
+            <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;">Rank</div>
+          </div>
+          <div style="width:1px;height:28px;background:var(--border);"></div>
+          <div>
+            ${phaseBadge(currentPhase)}
+          </div>
+        </div>
+        <div style="font-family:var(--font-display);font-size:0.72rem;font-weight:600;color:var(--text-dim);background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:4px;display:inline-flex;align-self:flex-start;">Room: XKCD</div>
+      </div>
+      <!-- Gradient divider -->
+      <div style="height:2px;background:linear-gradient(90deg, transparent 0%, var(--border) 20%, var(--border) 80%, transparent 100%);"></div>
+      <!-- Bottom 60%: Interactive content -->
+      <div style="flex:1;overflow-y:auto;padding:8px 0;">
+        ${getPhaseContent(currentPhase)}
+        ${rosterHTML()}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── V05: Bottom Sheet ─── */
+function renderV05() {
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <!-- Condensed status bar -->
+      <div style="padding:38px 16px 12px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${phaseBadge(currentPhase)}
+          <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:700;color:var(--amber);">25 pts</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:rgba(74,222,128,0.12);color:var(--sage);font-size:0.65rem;font-weight:700;">
+            <span style="width:5px;height:5px;border-radius:50%;background:var(--sage);"></span>Live
+          </span>
+          <span style="font-family:var(--font-display);font-size:0.72rem;font-weight:700;color:var(--text-dim);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;">XKCD</span>
+        </div>
+      </div>
+      <!-- Spacer -->
+      <div style="flex:0 0 25%;"></div>
+      <!-- Bottom sheet -->
+      <div style="flex:1;background:var(--surface-solid);border-radius:20px 20px 0 0;border-top:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;">
+        <!-- Drag handle -->
+        <div style="display:flex;justify-content:center;padding:10px 0 4px;">
+          <div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.15);"></div>
+        </div>
+        <div style="flex:1;overflow-y:auto;">
+          ${getPhaseContent(currentPhase)}
+          ${rosterHTML()}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── V06: Tabbed Panels ─── */
+function renderV06() {
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      ${topBarHTML()}
+      <!-- Tab bar -->
+      <div style="display:flex;gap:0;padding:0 16px;margin-bottom:0;">
+        <button style="flex:1;padding:10px;border:none;background:rgba(245,158,11,0.08);color:var(--amber);font-family:var(--font-display);font-size:0.78rem;font-weight:700;cursor:pointer;border-radius:8px 0 0 0;border-bottom:2px solid var(--amber);display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> Game
+        </button>
+        <button style="flex:1;padding:10px;border:none;background:rgba(255,255,255,0.03);color:var(--text-dim);font-family:var(--font-display);font-size:0.78rem;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i data-lucide="users" style="width:14px;height:14px;"></i> Players
+        </button>
+        <button style="flex:1;padding:10px;border:none;background:rgba(255,255,255,0.03);color:var(--text-dim);font-family:var(--font-display);font-size:0.78rem;font-weight:600;cursor:pointer;border-radius:0 8px 0 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:6px;">
+          <i data-lucide="info" style="width:14px;height:14px;"></i> Info
+        </button>
+      </div>
+      <!-- Identity mini-bar -->
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 16px;border-bottom:1px solid var(--border);">
+        <span class="swatch" style="background:var(--amber);width:8px;height:8px;"></span>
+        <span style="font-size:0.78rem;font-weight:600;">Sarah</span>
+        <span style="font-size:0.72rem;color:var(--text-dim);">Player</span>
+        <span style="margin-left:auto;font-family:var(--font-display);font-size:0.72rem;font-weight:700;color:var(--amber);">25 pts</span>
+        ${phaseBadge(currentPhase)}
+      </div>
+      <!-- Content -->
+      <div style="flex:1;overflow-y:auto;">
+        ${getPhaseContent(currentPhase)}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── V07: Centered Focus ─── */
+function renderV07() {
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <!-- Minimal top -->
+      <div style="padding:38px 16px 4px;display:flex;justify-content:center;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:20px;height:20px;background:var(--amber);border-radius:5px;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="sparkles" style="width:12px;height:12px;color:#141414;"></i>
+          </div>
+          <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:700;">BuzzerMinds</span>
+        </div>
+      </div>
+      <!-- Floating phase badge centered -->
+      <div style="display:flex;justify-content:center;padding:12px 0 8px;">
+        ${phaseBadge(currentPhase)}
+      </div>
+      <!-- Centered content area with whitespace -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;text-align:center;">
+        ${getPhaseContent(currentPhase)}
+      </div>
+      <!-- Bottom info bar -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:8px 16px 20px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="swatch" style="background:var(--amber);width:8px;height:8px;"></span>
+          <span style="font-size:0.75rem;font-weight:600;">Sarah</span>
+        </div>
+        <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:700;color:var(--amber);">25 pts</span>
+        <span style="font-size:0.72rem;color:var(--text-dim);">XKCD</span>
+        <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.65rem;color:var(--sage);font-weight:600;">
+          <span style="width:4px;height:4px;border-radius:50%;background:var(--sage);"></span>Live
+        </span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── V08: Dashboard Compact ─── */
+function renderV08() {
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <!-- Compact top bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:38px 12px 6px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:20px;height:20px;background:var(--amber);border-radius:5px;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="sparkles" style="width:11px;height:11px;color:#141414;"></i>
+          </div>
+          <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:700;">BuzzerMinds</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;background:rgba(74,222,128,0.12);color:var(--sage);font-size:0.6rem;font-weight:700;">
+            <span style="width:4px;height:4px;border-radius:50%;background:var(--sage);"></span>Live
+          </span>
+          <span style="font-family:var(--font-display);font-size:0.68rem;font-weight:700;color:var(--text-dim);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:3px;">XKCD</span>
+        </div>
+      </div>
+      <!-- 2x2 stat mini-grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px 12px 8px;">
+        <div style="padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);">
+          <div style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Score</div>
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:800;color:var(--amber);">25 pts</div>
+        </div>
+        <div style="padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);">
+          <div style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Rank</div>
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:800;color:var(--text-bright);">#2 / 5</div>
+        </div>
+        <div style="padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);">
+          <div style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Phase</div>
+          <div style="margin-top:2px;">${phaseBadge(currentPhase)}</div>
+        </div>
+        <div style="padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);">
+          <div style="font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;">Player</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+            <span class="swatch" style="background:var(--amber);width:8px;height:8px;"></span>
+            <span style="font-size:0.78rem;font-weight:600;">Sarah</span>
+          </div>
+        </div>
+      </div>
+      <!-- Compact content area -->
+      <div style="flex:1;overflow-y:auto;padding:0 4px;">
+        <div style="padding:0 8px;">
+          ${getPhaseContent(currentPhase)}
+        </div>
+        ${rosterHTML()}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── V09: Cinematic ─── */
+function renderV09() {
+  const isBuzz = currentPhase === 'buzz_open';
+  const isScore = currentPhase === 'score_reveal';
+
+  let mainContent;
+  if (isBuzz) {
+    mainContent = `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 20px;gap:20px;">
+      <h2 style="font-family:var(--font-display);font-size:1.8rem;font-weight:900;letter-spacing:-0.02em;">Hit the buzzer!</h2>
+      <p style="font-size:0.88rem;color:var(--text-dim);">Window closes in 0:08</p>
+      <button style="width:100%;padding:56px 16px;border-radius:20px;border:none;background:var(--amber);color:#141414;font-family:var(--font-display);font-size:2.4rem;font-weight:900;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">BUZZ IN</button>
+    </div>`;
+  } else if (isScore) {
+    mainContent = `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px;">
+      <span style="font-family:var(--font-display);font-size:5rem;font-weight:900;color:var(--amber);line-height:1;">#2</span>
+      <h2 style="font-family:var(--font-display);font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;">Sarah nailed it!</h2>
+      <p style="font-size:0.9rem;color:var(--text-dim);">25 points</p>
+      <div style="width:100%;padding:16px;border-radius:14px;border:1px solid rgba(74,222,128,0.25);background:rgba(74,222,128,0.06);text-align:left;margin-top:8px;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--sage);margin-bottom:4px;">Answer: 2012</div>
+        <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.5;">Voyager 1 crossed the heliopause in August 2012.</div>
+      </div>
+    </div>`;
+  } else {
+    mainContent = `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 16px;">
+      ${getPhaseContent(currentPhase)}
+    </div>`;
+  }
+
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <!-- Ultra minimal top -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:38px 20px 4px;">
+        <span style="font-family:var(--font-display);font-size:0.72rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;">BuzzerMinds</span>
+        ${phaseBadge(currentPhase)}
+      </div>
+      ${mainContent}
+      <!-- Bottom minimal info -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 20px 20px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="swatch" style="background:var(--amber);width:10px;height:10px;"></span>
+          <span style="font-size:0.78rem;font-weight:600;">Sarah</span>
+        </div>
+        <span style="font-family:var(--font-display);font-size:0.85rem;font-weight:800;color:var(--amber);">25 pts</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── V10: Game HUD ─── */
+function renderV10() {
+  // Calculate progress position based on phase index
+  const phaseIndex = PHASES.findIndex(p => p.id === currentPhase);
+  const progressPct = ((phaseIndex + 1) / PHASES.length * 100).toFixed(0);
+
+  const playerDots = PLAYERS.map(p =>
+    `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <span class="swatch" style="background:${p.color};width:10px;height:10px;"></span>
+      <span style="font-size:0.55rem;color:var(--text-dim);font-weight:600;">${p.name.substring(0,3)}</span>
+    </div>`
+  ).join('');
+
+  return `<div style="min-height:100%;display:flex;flex-direction:column;position:relative;">
+    <div class="bg-lines"></div>
+    <div style="position:relative;z-index:1;flex:1;display:flex;flex-direction:column;">
+      <!-- Progress bar at very top -->
+      <div style="padding:30px 0 0;">
+        <div style="height:3px;background:rgba(255,255,255,0.06);position:relative;">
+          <div style="height:100%;width:${progressPct}%;background:var(--amber);border-radius:0 2px 2px 0;transition:width 0.3s;"></div>
+        </div>
+      </div>
+      <!-- HUD overlay corners -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 12px;">
+        <!-- Top-left: Score -->
+        <div style="padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);">
+          <div style="font-size:0.55rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;">Score</div>
+          <div style="font-family:var(--font-display);font-size:0.95rem;font-weight:800;color:var(--amber);">25</div>
+        </div>
+        <!-- Top-center: Phase -->
+        <div style="text-align:center;padding-top:4px;">
+          ${phaseBadge(currentPhase)}
+        </div>
+        <!-- Top-right: Timer -->
+        <div style="padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);text-align:right;">
+          <div style="font-size:0.55rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;">Room</div>
+          <div style="font-family:var(--font-display);font-size:0.82rem;font-weight:700;color:var(--text-bright);">XKCD</div>
+        </div>
+      </div>
+      <!-- Center content -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;overflow-y:auto;">
+        ${getPhaseContent(currentPhase)}
+      </div>
+      <!-- Bottom: Player avatars -->
+      <div style="display:flex;align-items:center;justify-content:space-around;padding:8px 20px 20px;border-top:1px solid var(--border);">
+        ${playerDots}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN RENDER
+   ═══════════════════════════════════════════════════════ */
+function render() {
+  const screen = document.getElementById('phoneScreen');
+  const renderers = {
+    1: renderV01, 2: renderV02, 3: renderV03, 4: renderV04, 5: renderV05,
+    6: renderV06, 7: renderV07, 8: renderV08, 9: renderV09, 10: renderV10,
+  };
+  screen.innerHTML = (renderers[currentVariation] || renderV01)();
+  lucide.createIcons();
+}
+
+function showVariation(n) {
+  currentVariation = n;
+  document.querySelectorAll('.selector-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === n - 1);
+  });
+  render();
+}
+
+function setPhase(phase, btn) {
+  currentPhase = phase;
+  document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  render();
+}
+
+// ─── Init ───
+render();
+</script>
+</body>
+</html>

@@ -75,5 +75,5 @@ def configure_logging(*, json_output: bool = True) -> None:
     root.addHandler(handler)
 
     # Silence noisy loggers
-    for logger_name in ("uvicorn.access", "httpx", "httpcore", "watchfiles"):
+    for logger_name in ("uvicorn.access", "uvicorn.error", "httpx", "httpcore", "watchfiles"):
         logging.getLogger(logger_name).setLevel(logging.WARNING)

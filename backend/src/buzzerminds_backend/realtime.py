@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import Any
 
 from fastapi import WebSocket
 
@@ -63,17 +65,42 @@ class RealtimeHub:
             if not self._subscriptions[room_code]:
                 self._subscriptions.pop(room_code, None)
 
+    async def _safe_send_text(self, sub: Subscription, text: str) -> Subscription | None:
+        """Send pre-serialized text to a subscriber. Returns the sub on failure (stale)."""
+        try:
+            await sub.websocket.send_text(text)
+            return None
+        except Exception:
+            return sub
+
     async def broadcast_room_state(self, room_code: str, room_state: RoomStateResponse) -> None:
         envelope = ApiEnvelope(type="room_state", payload=room_state).model_dump(mode="json")
+        # Pre-serialize JSON once instead of per-client
+        json_text = json.dumps(envelope)
+
         async with self._lock:
             subscribers = list(self._subscriptions.get(room_code, []))
+        if not subscribers:
+            return
 
-        stale: list[WebSocket] = []
-        for subscriber in subscribers:
-            try:
-                await subscriber.websocket.send_json(envelope)
-            except Exception:
-                stale.append(subscriber.websocket)
+        # Send to all subscribers concurrently
+        results = await asyncio.gather(
+            *(self._safe_send_text(sub, json_text) for sub in subscribers),
+            return_exceptions=True,
+        )
 
-        for websocket in stale:
-            await self.unregister(room_code, websocket)
+        # Clean up stale connections
+        for result in results:
+            if isinstance(result, Subscription) and result is not None:
+                await self.unregister(room_code, result.websocket)
+            elif isinstance(result, BaseException):
+                # gather with return_exceptions=True shouldn't reach here,
+                # but handle defensively
+                logger.warning("Unexpected error in broadcast gather: %s", result)
+
+    async def send_to_websocket(self, websocket: WebSocket, message: dict[str, Any]) -> None:
+        """Send a message to a single WebSocket (e.g. buzz_error to the caller)."""
+        try:
+            await websocket.send_json(message)
+        except Exception:
+            pass

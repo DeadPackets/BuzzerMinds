@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Player Full Bleed Demo (All Scenarios)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #141414;
+  --surface: rgba(30, 30, 30, 0.65);
+  --surface-solid: #1e1e1e;
+  --amber: #f59e0b;
+  --sage: #4ade80;
+  --rose: #fb7185;
+  --sky: #38bdf8;
+  --cream: #fef3c7;
+  --text-bright: #f5f5f5;
+  --text-dim: #737373;
+  --border: rgba(255,255,255,0.06);
+  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --radius: 14px;
+}
+
+html, body {
+  height: 100%;
+  background: #0a0a0a;
+  color: var(--text-bright);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Desktop Shell ---- */
+.desktop-shell { display: flex; height: 100vh; }
+
+.selector-panel {
+  width: 300px; min-width: 300px;
+  background: #111;
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+.selector-panel h1 {
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  color: var(--amber); margin-bottom: 2px;
+}
+.selector-panel .subtitle {
+  font-size: 0.7rem; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4;
+}
+.section-label {
+  font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+  padding: 10px 8px 4px; margin-top: 4px;
+}
+.selector-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--text-dim);
+  font-family: var(--font-body); font-size: 0.72rem; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; text-align: left; width: 100%;
+}
+.selector-btn:hover { background: rgba(255,255,255,0.04); color: var(--text-bright); }
+.selector-btn.active {
+  background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2);
+  color: var(--amber); font-weight: 600;
+}
+.selector-btn .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ---- Preview Area ---- */
+.preview-area {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(245,158,11,0.03) 0%, transparent 70%);
+  padding: 24px;
+}
+
+.scenario-label {
+  font-family: var(--font-display); font-size: 0.85rem; font-weight: 700;
+  color: var(--text-bright); margin-bottom: 6px; text-align: center;
+}
+.scenario-desc {
+  font-size: 0.7rem; color: var(--text-dim); margin-bottom: 14px; text-align: center;
+  max-width: 500px; line-height: 1.5;
+}
+
+/* ---- Phone Frame (iPhone 14 proportions) ---- */
+.phone-frame {
+  width: 390px; height: 844px;
+  background: var(--bg);
+  border-radius: 44px;
+  border: 3px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+/* Notch */
+.phone-notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 126px; height: 34px;
+  background: #000; border-radius: 0 0 20px 20px; z-index: 30;
+}
+.phone-notch::after {
+  content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.08);
+}
+
+/* Background lines */
+.bg-lines {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(45deg, rgba(245,158,11,0.025) 0px, rgba(245,158,11,0.025) 1px, transparent 1px, transparent 28px);
+}
+.wireframe-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+}
+
+/* ======================================================
+   FULL BLEED PLAYER LAYOUT (bm-pg-*)
+   ====================================================== */
+
+.pg {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  z-index: 1;
+}
+
+/* ---- Top bar (gradient fade) ---- */
+.pg-topbar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+  background: linear-gradient(to bottom, var(--bg) 50%, transparent);
+  padding: 48px 16px 24px;
+}
+.pg-topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pg-topbar-brand {
+  display: flex; align-items: center; gap: 6px;
+}
+.pg-topbar-icon {
+  width: 22px; height: 22px;
+  background: var(--amber); border-radius: 5px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 0.7rem; color: var(--bg); font-weight: 900;
+}
+.pg-topbar-wordmark {
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 700;
+  color: var(--text-bright);
+}
+.pg-phase-badge {
+  font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 3px 10px; border-radius: 6px;
+}
+.pg-phase-badge--amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+.pg-phase-badge--sage { background: rgba(74,222,128,0.12); color: var(--sage); }
+.pg-phase-badge--rose { background: rgba(251,113,133,0.12); color: var(--rose); }
+.pg-phase-badge--sky { background: rgba(56,189,248,0.12); color: var(--sky); }
+.pg-phase-badge--dim { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+/* ---- Info strip ---- */
+.pg-info-strip {
+  position: absolute; top: 84px; left: 16px; right: 16px; z-index: 18;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.7rem; color: var(--text-dim);
+}
+.pg-info-strip-tag { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---- Content area ---- */
+.pg-content {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 110px 20px 90px;
+  position: relative; z-index: 2;
+}
+
+/* ---- Bottom pill ---- */
+.pg-pill {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 20px;
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+.pg-pill-swatch {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.pg-pill-name {
+  font-size: 0.75rem; font-weight: 600; color: var(--text-bright);
+}
+.pg-pill-score {
+  font-size: 0.7rem; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Timer (top-right floating, 72px ring) ---- */
+.pg-timer {
+  position: absolute; top: 38px; right: 16px; z-index: 22;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.pg-timer-ring {
+  position: relative;
+  width: 72px; height: 72px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pg-timer-svg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.pg-timer-bg {
+  fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 4;
+}
+.pg-timer-fg {
+  fill: none; stroke: var(--amber); stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+}
+.pg-timer-value {
+  font-family: var(--font-display); font-weight: 900; font-size: 1.3rem;
+  font-variant-numeric: tabular-nums; color: var(--amber);
+  z-index: 2; position: relative; line-height: 1;
+}
+.pg-timer-label {
+  font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-dim); font-weight: 600; margin-top: 1px;
+}
+.pg-timer--warning .pg-timer-fg { stroke: var(--rose); }
+.pg-timer--warning .pg-timer-value {
+  color: var(--rose);
+  animation: pgTimerPulse 0.5s ease-in-out infinite;
+}
+.pg-timer--warning .pg-timer-ring {
+  animation: pgTimerShake 0.4s ease-in-out infinite;
+}
+@keyframes pgTimerPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.08); } }
+@keyframes pgTimerShake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-2px); } 75% { transform:translateX(2px); } }
+
+/* ==== UNIFIED Question + Buzz View (bm-pg-qb-*) ==== */
+.pg-qb {
+  width: 100%; max-width: 360px;
+  display: flex; flex-direction: column;
+  flex: 1;
+  padding-top: 16px;
+}
+.pg-qb-question {
+  flex: 1;
+  display: flex; align-items: flex-start;
+  font-size: 1.05rem; line-height: 1.6;
+  color: var(--text-bright);
+  padding-top: 8px;
+}
+.pg-qb-question-inner {
+  width: 100%;
+}
+.pg-qb-chunk { display: inline; }
+.pg-qb-chunk--visible { color: var(--text-bright); }
+.pg-qb-chunk--latest { color: var(--amber); }
+.pg-qb-chunk--hidden {
+  color: rgba(255,255,255,0.05);
+  filter: blur(10px);
+  user-select: none;
+}
+.pg-qb-cursor {
+  display: inline-block; width: 2px; height: 1em;
+  background: var(--amber);
+  animation: cursorBlink 0.8s ease-in-out infinite;
+  vertical-align: text-bottom; margin-left: 2px;
+}
+@keyframes cursorBlink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+/* Buzz button */
+.pg-qb-buzz-btn {
+  width: 100%; height: 160px;
+  border-radius: 24px; border: none;
+  background: var(--amber); color: var(--bg);
+  font-family: var(--font-display); font-size: 2rem;
+  font-weight: 900; cursor: pointer;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  transition: transform 0.1s, box-shadow 0.15s;
+  flex-shrink: 0; margin-top: 16px;
+}
+.pg-qb-buzz-btn:active { transform: scale(0.97); }
+
+/* Locked state */
+.pg-qb-buzz-btn--locked {
+  background: rgba(30,30,30,0.65); color: var(--text-dim);
+  border: 1px solid var(--border); cursor: default;
+  font-size: 1.4rem;
+}
+
+/* Celebration state (you buzzed!) */
+.pg-qb-buzz-btn--buzzed {
+  background: var(--sage); color: var(--bg);
+  cursor: default;
+  animation: buzzCelebrate 0.6s ease-in-out infinite alternate;
+}
+@keyframes buzzCelebrate {
+  0% { box-shadow: 0 0 20px rgba(74,222,128,0.3); }
+  100% { box-shadow: 0 0 40px rgba(74,222,128,0.5), 0 0 60px rgba(74,222,128,0.15); }
+}
+
+/* Someone else buzzed */
+.pg-qb-buzz-btn--other {
+  background: rgba(30,30,30,0.65); color: var(--text-dim);
+  border: 1px solid rgba(74,222,128,0.2); cursor: default;
+  font-size: 1.2rem;
+}
+
+.pg-qb-sub {
+  text-align: center; font-size: 0.72rem;
+  color: var(--text-dim); margin-top: 8px; flex-shrink: 0;
+}
+
+/* ==== Answering Form ==== */
+.pg-answer { width: 100%; max-width: 360px; }
+.pg-answer-prompt {
+  font-size: 0.92rem; color: var(--text-bright);
+  line-height: 1.5; margin-bottom: 12px;
+}
+.pg-answer-textarea {
+  width: 100%; min-height: 100px; border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(20,20,20,0.5); color: var(--text-bright);
+  font-size: 0.92rem; padding: 12px 14px; resize: none; outline: none;
+  font-family: var(--font-body);
+}
+.pg-answer-textarea::placeholder { color: var(--text-dim); }
+.pg-answer-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; margin-bottom: 12px;
+}
+.pg-answer-charcount { font-size: 0.72rem; color: var(--text-dim); }
+.pg-answer-submit {
+  width: 100%; padding: 14px; border-radius: 14px; border: none;
+  background: var(--amber); color: var(--bg);
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  cursor: pointer;
+}
+
+/* ==== Score Hero ==== */
+.pg-score-hero { text-align: center; max-width: 320px; }
+.pg-score-rank {
+  font-family: var(--font-display); font-size: 4rem; font-weight: 900;
+  color: var(--amber); line-height: 1;
+}
+.pg-score-headline {
+  font-family: var(--font-display); font-size: 1.3rem; font-weight: 700;
+  color: var(--text-bright); margin-top: 8px;
+}
+.pg-score-points { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
+.pg-score-answer {
+  width: 100%; padding: 14px; border-radius: 12px;
+  text-align: left; margin-top: 16px;
+}
+.pg-score-answer--correct {
+  border: 1px solid rgba(74,222,128,0.25); background: rgba(74,222,128,0.06);
+}
+.pg-score-answer--wrong {
+  border: 1px solid rgba(251,113,133,0.25); background: rgba(251,113,133,0.06);
+}
+.pg-score-answer-label { font-size: 0.78rem; font-weight: 700; margin-bottom: 4px; }
+.pg-score-answer-detail { font-size: 0.72rem; color: var(--text-dim); line-height: 1.4; }
+
+/* ==== Spectating ==== */
+.pg-spectate { text-align: center; max-width: 320px; }
+.pg-spectate-title {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
+  color: var(--text-bright); margin-bottom: 6px;
+}
+.pg-spectate-body { font-size: 0.85rem; color: var(--text-dim); line-height: 1.5; }
+
+/* ==== Grading / Adjudication ==== */
+.pg-grading { text-align: center; max-width: 320px; }
+.pg-grading-title {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
+  color: var(--text-bright); margin-bottom: 4px;
+}
+.pg-grading-body {
+  font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;
+  margin-bottom: 16px;
+}
+.pg-adj-buttons { display: flex; gap: 12px; width: 100%; }
+.pg-adj-btn {
+  flex: 1; padding: 14px; border-radius: 14px; border: none;
+  font-family: var(--font-display); font-size: 0.92rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.pg-adj-btn--accept { background: var(--sage); color: var(--bg); }
+.pg-adj-btn--reject {
+  background: rgba(255,255,255,0.06); color: var(--text-bright);
+  border: 1px solid var(--border);
+}
+
+/* ==== Centered message (loading, paused, fallback) ==== */
+.pg-center-msg { text-align: center; max-width: 320px; }
+.pg-center-msg-icon { margin-bottom: 12px; color: var(--text-dim); }
+.pg-center-msg-title {
+  font-family: var(--font-display); font-size: 1.1rem; font-weight: 700;
+  color: var(--text-bright); margin-bottom: 4px;
+}
+.pg-center-msg-body {
+  font-size: 0.82rem; color: var(--text-dim); line-height: 1.5;
+}
+
+/* ==== Finished ==== */
+.pg-finished { text-align: center; max-width: 320px; }
+.pg-finished-rank {
+  font-family: var(--font-display); font-size: 3.5rem; font-weight: 900;
+  color: var(--amber); line-height: 1;
+}
+.pg-finished-title {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+  color: var(--text-bright); margin-top: 8px;
+}
+.pg-finished-body {
+  font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; margin-bottom: 20px;
+}
+.pg-finished-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.pg-action-btn {
+  width: 100%; padding: 14px; border-radius: 14px; border: none;
+  font-family: var(--font-display); font-size: 0.92rem; font-weight: 700;
+  cursor: pointer; text-align: center;
+}
+.pg-action-btn--primary { background: var(--amber); color: var(--bg); }
+.pg-action-btn--secondary {
+  background: rgba(255,255,255,0.06); color: var(--text-bright);
+  border: 1px solid var(--border);
+}
+
+/* ==== Topic Voting (Bingo Grid) ==== */
+.pg-bingo-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  width: 100%; max-width: 360px;
+}
+.pg-bingo-tile {
+  padding: 14px 10px; border-radius: 12px;
+  background: rgba(30,30,30,0.5); border: 2px solid var(--border);
+  text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.pg-bingo-tile--selected {
+  border-color: rgba(245,158,11,0.4);
+  background: rgba(245,158,11,0.08);
+}
+.pg-bingo-tile-label {
+  font-size: 1.05rem; font-weight: 600; color: var(--text-bright);
+}
+.pg-bingo-tile-meta {
+  font-size: 0.6rem; color: var(--text-dim); margin-top: 4px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.pg-bingo-counter {
+  text-align: center; margin-bottom: 12px;
+  font-size: 0.75rem; color: var(--text-dim);
+}
+.pg-bingo-submit {
+  width: 100%; max-width: 360px;
+  padding: 14px; border-radius: 14px; border: none;
+  background: var(--amber); color: var(--bg);
+  font-family: var(--font-display); font-size: 0.92rem; font-weight: 700;
+  cursor: pointer; margin-top: 12px;
+}
+.pg-bingo-vip-row {
+  display: flex; gap: 8px; width: 100%; max-width: 360px; margin-top: 8px;
+}
+.pg-bingo-vip-btn {
+  flex: 1; padding: 10px; border-radius: 12px; border: none;
+  font-family: var(--font-display); font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.pg-bingo-vip-btn--reroll {
+  background: rgba(255,255,255,0.06); color: var(--text-bright);
+  border: 1px solid var(--border);
+}
+.pg-bingo-vip-btn--lock {
+  background: var(--sage); color: var(--bg);
+}
+
+/* ==== Bonus dots ==== */
+.pg-bonus-dots { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.pg-bonus-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ==== Error toast ==== */
+.pg-error {
+  position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+  z-index: 25; font-size: 0.78rem; font-weight: 600; color: var(--rose);
+  background: var(--surface); backdrop-filter: blur(16px);
+  padding: 6px 16px; border-radius: 12px;
+  border: 1px solid rgba(251,113,133,0.2);
+  max-width: 320px; text-align: center;
+}
+
+/* ==== Spinner animation ==== */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(245,158,11,0.2);
+  border-top-color: var(--amber);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+
+/* ==== Intro player ==== */
+.pg-intro { text-align: center; }
+.pg-intro-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(245,158,11,0.1); border: 2px solid rgba(245,158,11,0.25);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 1.8rem;
+}
+.pg-intro-title {
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 800;
+  color: var(--text-bright); margin-bottom: 6px;
+}
+.pg-intro-body { font-size: 0.82rem; color: var(--text-dim); line-height: 1.5; }
+
+/* ---- Live dot ---- */
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--sage);
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+</style>
+</head>
+<body>
+<div class="desktop-shell">
+  <!-- LEFT PANEL -->
+  <div class="selector-panel">
+    <h1>Player Full Bleed — All Scenarios</h1>
+    <p class="subtitle">Every state the player's phone can be in. Click each scenario to preview. Question + Buzz is unified.</p>
+
+    <div class="section-label">Pre-Game</div>
+    <button class="selector-btn active" data-scenario="intro" onclick="show('intro',this)">
+      <span class="dot" style="background:var(--amber)"></span>Intro
+    </button>
+    <button class="selector-btn" data-scenario="intro_vip" onclick="show('intro_vip',this)">
+      <span class="dot" style="background:var(--amber)"></span>Intro (VIP)
+    </button>
+    <button class="selector-btn" data-scenario="topic_voting" onclick="show('topic_voting',this)">
+      <span class="dot" style="background:var(--rose)"></span>Topic Voting
+    </button>
+    <button class="selector-btn" data-scenario="topic_voted" onclick="show('topic_voted',this)">
+      <span class="dot" style="background:var(--rose)"></span>Topic Voted
+    </button>
+    <button class="selector-btn" data-scenario="topics_locked" onclick="show('topics_locked',this)">
+      <span class="dot" style="background:var(--sage)"></span>Topics Locked
+    </button>
+
+    <div class="section-label">Question + Buzz (Unified)</div>
+    <button class="selector-btn" data-scenario="q_loading" onclick="show('q_loading',this)">
+      <span class="dot" style="background:var(--amber)"></span>Question Loading
+    </button>
+    <button class="selector-btn" data-scenario="reveal_early" onclick="show('reveal_early',this)">
+      <span class="dot" style="background:var(--amber)"></span>Reveal — Early (1/4)
+    </button>
+    <button class="selector-btn" data-scenario="reveal_mid" onclick="show('reveal_mid',this)">
+      <span class="dot" style="background:var(--amber)"></span>Reveal — Mid (3/4)
+    </button>
+    <button class="selector-btn" data-scenario="reveal_full" onclick="show('reveal_full',this)">
+      <span class="dot" style="background:var(--amber)"></span>Reveal — Complete
+    </button>
+    <button class="selector-btn" data-scenario="buzz_12" onclick="show('buzz_12',this)">
+      <span class="dot" style="background:var(--amber)"></span>Buzz Window — 12s
+    </button>
+    <button class="selector-btn" data-scenario="buzz_4" onclick="show('buzz_4',this)">
+      <span class="dot" style="background:var(--rose)"></span>Buzz Window — 4s Warning
+    </button>
+    <button class="selector-btn" data-scenario="locked_out" onclick="show('locked_out',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Locked Out
+    </button>
+    <button class="selector-btn" data-scenario="buzzed_reveal" onclick="show('buzzed_reveal',this)">
+      <span class="dot" style="background:var(--sage)"></span>You Buzzed During Reveal
+    </button>
+    <button class="selector-btn" data-scenario="buzzed_full" onclick="show('buzzed_full',this)">
+      <span class="dot" style="background:var(--sage)"></span>You Buzzed (Full Question)
+    </button>
+    <button class="selector-btn" data-scenario="someone_buzzed" onclick="show('someone_buzzed',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Someone Else Buzzed
+    </button>
+
+    <div class="section-label">Answering</div>
+    <button class="selector-btn" data-scenario="answering_18" onclick="show('answering_18',this)">
+      <span class="dot" style="background:var(--sage)"></span>Active — 18s
+    </button>
+    <button class="selector-btn" data-scenario="answering_4" onclick="show('answering_4',this)">
+      <span class="dot" style="background:var(--rose)"></span>Active — 4s Warning
+    </button>
+    <button class="selector-btn" data-scenario="spectating" onclick="show('spectating',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Spectating
+    </button>
+
+    <div class="section-label">Grading</div>
+    <button class="selector-btn" data-scenario="grading_auto" onclick="show('grading_auto',this)">
+      <span class="dot" style="background:var(--amber)"></span>Auto Grading
+    </button>
+    <button class="selector-btn" data-scenario="adj_voter" onclick="show('adj_voter',this)">
+      <span class="dot" style="background:var(--amber)"></span>Adjudication (Voter)
+    </button>
+    <button class="selector-btn" data-scenario="adj_non_voter" onclick="show('adj_non_voter',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Adjudication (Non-Voter)
+    </button>
+
+    <div class="section-label">Score Reveal</div>
+    <button class="selector-btn" data-scenario="score_correct" onclick="show('score_correct',this)">
+      <span class="dot" style="background:var(--sage)"></span>Correct — #1
+    </button>
+    <button class="selector-btn" data-scenario="score_wrong" onclick="show('score_wrong',this)">
+      <span class="dot" style="background:var(--rose)"></span>Wrong — #3
+    </button>
+    <button class="selector-btn" data-scenario="score_timeout" onclick="show('score_timeout',this)">
+      <span class="dot" style="background:var(--rose)"></span>Timeout
+    </button>
+
+    <div class="section-label">Bonus Chain</div>
+    <button class="selector-btn" data-scenario="bonus_loading" onclick="show('bonus_loading',this)">
+      <span class="dot" style="background:var(--sky)"></span>Loading
+    </button>
+    <button class="selector-btn" data-scenario="bonus_answering" onclick="show('bonus_answering',this)">
+      <span class="dot" style="background:var(--sky)"></span>Answering Q2/3
+    </button>
+    <button class="selector-btn" data-scenario="bonus_spectating" onclick="show('bonus_spectating',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Spectating
+    </button>
+
+    <div class="section-label">Other</div>
+    <button class="selector-btn" data-scenario="paused" onclick="show('paused',this)">
+      <span class="dot" style="background:var(--amber)"></span>Paused
+    </button>
+    <button class="selector-btn" data-scenario="finished_1" onclick="show('finished_1',this)">
+      <span class="dot" style="background:var(--sage)"></span>Finished — #1 VIP
+    </button>
+    <button class="selector-btn" data-scenario="finished_4" onclick="show('finished_4',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Finished — #4
+    </button>
+    <button class="selector-btn" data-scenario="error_toast" onclick="show('error_toast',this)">
+      <span class="dot" style="background:var(--rose)"></span>Error Toast
+    </button>
+    <button class="selector-btn" data-scenario="fallback" onclick="show('fallback',this)">
+      <span class="dot" style="background:var(--text-dim)"></span>Fallback
+    </button>
+  </div>
+
+  <!-- PREVIEW AREA -->
+  <div class="preview-area">
+    <div class="scenario-label" id="lbl">Introduction</div>
+    <div class="scenario-desc" id="desc">Player sees this while the intro narration plays on the display screen.</div>
+    <div class="phone-frame" id="phone">
+      <div class="phone-notch"></div>
+      <div class="bg-lines"></div>
+      <canvas class="wireframe-canvas" id="wf-canvas"></canvas>
+      <div class="pg" id="pg-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Mock Data ----
+const ME = { name: 'Jordan', color: '#4ade80', score: 280 };
+const QUESTION = "Which Soviet intelligence officer defected to the West in 1961 and revealed the existence of a mole inside MI6?";
+const CHUNKS = [
+  "Which Soviet intelligence officer",
+  "defected to the West in 1961",
+  "and revealed the existence of",
+  "a mole inside MI6?"
+];
+const ANSWER = "Anatoliy Golitsyn";
+const TOPIC = "Cold War Spies";
+
+const TOPICS = [
+  { id:'1', label:'Cold War Spies', votes:4, selected:true },
+  { id:'2', label:'Ancient Rome', votes:3, selected:true },
+  { id:'3', label:'Space Race', votes:3, selected:false },
+  { id:'4', label:'Quantum Physics', votes:2, selected:false },
+  { id:'5', label:"90s Hip-Hop", votes:2, selected:false },
+  { id:'6', label:'Ocean Biology', votes:1, selected:true },
+  { id:'7', label:'Greek Myths', votes:1, selected:false },
+  { id:'8', label:'Film Noir', votes:0, selected:false },
+];
+
+// ---- Helpers ----
+function topbarHTML(badgeText, badgeClass) {
+  return `
+    <div class="pg-topbar">
+      <div class="pg-topbar-inner">
+        <div class="pg-topbar-brand">
+          <div class="pg-topbar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .963L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
+          <span class="pg-topbar-wordmark">
+            <span style="color:var(--amber)">Buzzer</span><span style="color:var(--sage)">Minds</span>
+          </span>
+        </div>
+        <span class="pg-phase-badge ${badgeClass}">${badgeText}</span>
+      </div>
+    </div>`;
+}
+
+function infoStripHTML(round, topic) {
+  return `
+    <div class="pg-info-strip">
+      <span class="pg-info-strip-tag">${round}</span>
+      <span>/</span>
+      <span>${topic}</span>
+    </div>`;
+}
+
+function pillHTML(score) {
+  return `
+    <div class="pg-pill">
+      <div class="pg-pill-swatch" style="background:${ME.color}"></div>
+      <span class="pg-pill-name">${ME.name}</span>
+      <span class="pg-pill-score">${score ?? ME.score} pts</span>
+    </div>`;
+}
+
+function timerHTML(value, seconds, total, label, warning) {
+  const R = 30, C = 2 * Math.PI * R;
+  const offset = C * (1 - seconds/total);
+  const warnCls = warning ? 'pg-timer--warning' : '';
+  return `
+    <div class="pg-timer ${warnCls}">
+      <div class="pg-timer-ring">
+        <svg class="pg-timer-svg" viewBox="0 0 72 72">
+          <circle class="pg-timer-bg" cx="36" cy="36" r="${R}" />
+          <circle class="pg-timer-fg" cx="36" cy="36" r="${R}"
+            stroke-dasharray="${C}" stroke-dashoffset="${offset}" />
+        </svg>
+        <span class="pg-timer-value">${value}</span>
+      </div>
+      <span class="pg-timer-label">${label}</span>
+    </div>`;
+}
+
+function chunkHTML(visibleCount, latestIndex) {
+  return CHUNKS.map((c, i) => {
+    if (i < visibleCount && i === latestIndex) return `<span class="pg-qb-chunk pg-qb-chunk--latest">${c} </span>`;
+    if (i < visibleCount) return `<span class="pg-qb-chunk pg-qb-chunk--visible">${c} </span>`;
+    return `<span class="pg-qb-chunk pg-qb-chunk--hidden">${c} </span>`;
+  }).join('') + (visibleCount < CHUNKS.length ? '<span class="pg-qb-cursor"></span>' : '');
+}
+
+function fullQuestionHTML() {
+  return `<span class="pg-qb-chunk pg-qb-chunk--visible">${QUESTION}</span>`;
+}
+
+// ---- Scenario Definitions ----
+const SCENARIOS = {
+  intro: {
+    label: 'Introduction',
+    desc: 'Player sees this while the intro narration plays on the display screen.',
+    render: () => `
+      ${topbarHTML('INTRO', 'pg-phase-badge--amber')}
+      <div class="pg-content">
+        <div class="pg-intro">
+          <div class="pg-intro-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
+          <div class="pg-intro-title">Watch the Display!</div>
+          <div class="pg-intro-body">The host is introducing the game. Sit back and enjoy the show.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  intro_vip: {
+    label: 'Introduction (VIP)',
+    desc: 'VIP player can skip the intro narration.',
+    render: () => `
+      ${topbarHTML('INTRO', 'pg-phase-badge--amber')}
+      <div class="pg-content">
+        <div class="pg-intro">
+          <div class="pg-intro-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
+          <div class="pg-intro-title">Watch the Display!</div>
+          <div class="pg-intro-body">The host is introducing the game. Sit back and enjoy the show.</div>
+          <button class="pg-action-btn pg-action-btn--secondary" style="margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto">Skip Intro</button>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  topic_voting: {
+    label: 'Topic Voting',
+    desc: 'Player selects up to 3 topics from the pool. Two-column bingo grid layout.',
+    render: () => `
+      ${topbarHTML('TOPIC VOTING', 'pg-phase-badge--rose')}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-bingo-counter">Pick up to <strong style="color:var(--amber)">3</strong> topics &middot; <span style="color:var(--amber)">3 selected</span></div>
+        <div class="pg-bingo-grid">
+          ${TOPICS.map(t => `
+            <div class="pg-bingo-tile ${t.selected ? 'pg-bingo-tile--selected' : ''}">
+              <div class="pg-bingo-tile-label">${t.label}</div>
+              <div class="pg-bingo-tile-meta">${t.votes} votes</div>
+            </div>
+          `).join('')}
+        </div>
+        <button class="pg-bingo-submit">Submit Votes</button>
+      </div>
+      ${pillHTML()}`
+  },
+  topic_voted: {
+    label: 'Topic Voted',
+    desc: 'Player has submitted their topic votes. Waiting for others.',
+    render: () => `
+      ${topbarHTML('TOPIC VOTING', 'pg-phase-badge--rose')}
+      <div class="pg-content">
+        <div class="pg-center-msg">
+          <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <div class="pg-center-msg-title">Votes submitted!</div>
+          <div class="pg-center-msg-body">Waiting for other players to finish voting...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  topics_locked: {
+    label: 'Topics Locked',
+    desc: 'VIP locked the topic pool. Game is about to begin.',
+    render: () => `
+      ${topbarHTML('LOCKED', 'pg-phase-badge--sage')}
+      <div class="pg-content">
+        <div class="pg-center-msg">
+          <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="pg-center-msg-title">Topics locked!</div>
+          <div class="pg-center-msg-body">The game is about to begin. Get ready!</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  q_loading: {
+    label: 'Question Loading',
+    desc: 'AI is generating a question for the selected topic.',
+    render: () => `
+      ${topbarHTML('LOADING', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-center-msg">
+          <div class="spinner"></div>
+          <div class="pg-center-msg-title">Question incoming</div>
+          <div class="pg-center-msg-body">Topic: <span style="color:var(--amber)">${TOPIC}</span></div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+
+  // ========== UNIFIED QUESTION + BUZZ ==========
+
+  reveal_early: {
+    label: 'Reveal \u2014 Early (1/4)',
+    desc: 'Progressive reveal just started. Only 1 of 4 chunks visible. Buzz button is live \u2014 player can interrupt.',
+    render: () => `
+      ${topbarHTML('REVEALING', 'pg-phase-badge--rose')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${chunkHTML(1, 0)}</div></div>
+          <button class="pg-qb-buzz-btn">BUZZ IN</button>
+          <div class="pg-qb-sub">Interrupt the narrator...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  reveal_mid: {
+    label: 'Reveal \u2014 Mid (3/4)',
+    desc: '3 of 4 chunks visible. Latest chunk highlighted amber. One hidden chunk remains blurred.',
+    render: () => `
+      ${topbarHTML('REVEALING', 'pg-phase-badge--rose')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${chunkHTML(3, 2)}</div></div>
+          <button class="pg-qb-buzz-btn">BUZZ IN</button>
+          <div class="pg-qb-sub">Interrupt the narrator...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  reveal_full: {
+    label: 'Reveal \u2014 Complete',
+    desc: 'All chunks revealed. No timer yet \u2014 buzz window hasn\u2019t started. Button still active.',
+    render: () => `
+      ${topbarHTML('QUESTION READY', 'pg-phase-badge--rose')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn">BUZZ IN</button>
+          <div class="pg-qb-sub">Be the first to answer!</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  buzz_12: {
+    label: 'Buzz Window \u2014 12s',
+    desc: 'Full question visible. Countdown timer appears top-right. 12 seconds remaining.',
+    render: () => `
+      ${topbarHTML('BUZZ OPEN', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('12', 12, 15, 'Buzz', false)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn">BUZZ IN</button>
+          <div class="pg-qb-sub">Window closes in 0:12</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  buzz_4: {
+    label: 'Buzz Window \u2014 4s Warning',
+    desc: 'Timer under 5s triggers rose warning state. Urgent pulsing animation.',
+    render: () => `
+      ${topbarHTML('BUZZ OPEN', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('4', 4, 15, 'Buzz', true)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn">BUZZ IN</button>
+          <div class="pg-qb-sub" style="color:var(--rose)">Hurry! Window closes in 0:04</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  locked_out: {
+    label: 'Locked Out',
+    desc: 'Player was wrong previously and is locked out this round. Timer still visible, button disabled.',
+    render: () => `
+      ${topbarHTML('BUZZ OPEN', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('8', 8, 15, 'Buzz', false)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn pg-qb-buzz-btn--locked" disabled>LOCKED OUT</button>
+          <div class="pg-qb-sub">You answered incorrectly earlier</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  buzzed_reveal: {
+    label: 'You Buzzed During Reveal!',
+    desc: 'Player interrupted the narrator mid-reveal. Question frozen at partial state. 3s celebration.',
+    render: () => `
+      ${topbarHTML('BUZZED!', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${chunkHTML(2, 1)}</div></div>
+          <button class="pg-qb-buzz-btn pg-qb-buzz-btn--buzzed" disabled>YOU BUZZED IN!</button>
+          <div class="pg-qb-sub" style="color:var(--sage)">Get ready to answer...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  buzzed_full: {
+    label: 'You Buzzed (Full Question)',
+    desc: 'Player buzzed during the buzz window. Full question visible. 3s celebration before answer prompt.',
+    render: () => `
+      ${topbarHTML('BUZZED!', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn pg-qb-buzz-btn--buzzed" disabled>YOU BUZZED IN!</button>
+          <div class="pg-qb-sub" style="color:var(--sage)">Get ready to answer...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  someone_buzzed: {
+    label: 'Someone Else Buzzed',
+    desc: 'Another player buzzed first. Button becomes greyed out with sage border.',
+    render: () => `
+      ${topbarHTML('BUZZED!', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn pg-qb-buzz-btn--other" disabled>ALEX BUZZED IN</button>
+          <div class="pg-qb-sub">Waiting for their answer...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+
+  // ========== ANSWERING ==========
+
+  answering_18: {
+    label: 'Answering \u2014 18s',
+    desc: 'You buzzed and now have 18s to type your answer.',
+    render: () => `
+      ${topbarHTML('ANSWERING', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('18', 18, 20, 'Answer', false)}
+      <div class="pg-content">
+        <div class="pg-answer">
+          <div class="pg-answer-prompt">${QUESTION}</div>
+          <textarea class="pg-answer-textarea" placeholder="Type your answer...">Anatoliy Gol</textarea>
+          <div class="pg-answer-meta">
+            <span class="pg-answer-charcount">12 / 160</span>
+          </div>
+          <button class="pg-answer-submit">Submit Answer</button>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  answering_4: {
+    label: 'Answering \u2014 4s Warning',
+    desc: 'Timer is in warning state. Rose coloring and shake animation.',
+    render: () => `
+      ${topbarHTML('ANSWERING', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('4', 4, 20, 'Answer', true)}
+      <div class="pg-content">
+        <div class="pg-answer">
+          <div class="pg-answer-prompt">${QUESTION}</div>
+          <textarea class="pg-answer-textarea" placeholder="Type your answer...">Anatoliy Golitsyn</textarea>
+          <div class="pg-answer-meta">
+            <span class="pg-answer-charcount">18 / 160</span>
+          </div>
+          <button class="pg-answer-submit">Submit Answer</button>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  spectating: {
+    label: 'Spectating',
+    desc: 'Another player is answering. You watch and wait.',
+    render: () => `
+      ${topbarHTML('ANSWERING', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('14', 14, 20, 'Answer', false)}
+      <div class="pg-content">
+        <div class="pg-spectate">
+          <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div class="pg-spectate-title">Alex is answering...</div>
+          <div class="pg-spectate-body">Watch the display to see their progress.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+
+  // ========== GRADING ==========
+
+  grading_auto: {
+    label: 'Auto Grading',
+    desc: 'AI is checking the submitted answer.',
+    render: () => `
+      ${topbarHTML('GRADING', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-grading">
+          <div class="spinner"></div>
+          <div class="pg-grading-title">Checking the answer...</div>
+          <div class="pg-grading-body">The AI is evaluating the response.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  adj_voter: {
+    label: 'Adjudication (Voter)',
+    desc: 'AI was unsure. Players vote to accept or reject the answer.',
+    render: () => `
+      ${topbarHTML('ADJUDICATION', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-grading">
+          <div class="pg-grading-title">Is this answer correct?</div>
+          <div class="pg-grading-body">
+            <strong style="color:var(--text-bright)">Q:</strong> ${QUESTION}<br><br>
+            <strong style="color:var(--amber)">A:</strong> "${ANSWER}"
+          </div>
+          <div class="pg-adj-buttons">
+            <button class="pg-adj-btn pg-adj-btn--accept">Accept</button>
+            <button class="pg-adj-btn pg-adj-btn--reject">Reject</button>
+          </div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  adj_non_voter: {
+    label: 'Adjudication (Non-Voter)',
+    desc: 'You are the answerer, so you cannot vote on your own answer.',
+    render: () => `
+      ${topbarHTML('ADJUDICATION', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-spectate">
+          <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 2.5-2.5"/><path d="m11.5 8.5 3 3"/><path d="m17 3-2.5 2.5"/><path d="M18.5 5.5 20 7"/><path d="m2 12 7.586-7.586a2 2 0 0 1 2.828 0L22 14"/><path d="M7 17v5"/><path d="M17 17v5"/></svg></div>
+          <div class="pg-spectate-title">Players are voting...</div>
+          <div class="pg-spectate-body">The other players are deciding if your answer is correct.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+
+  // ========== SCORE REVEAL ==========
+
+  score_correct: {
+    label: 'Correct \u2014 #1',
+    desc: 'You answered correctly! Score hero with rank, headline, and correct answer box.',
+    render: () => `
+      ${topbarHTML('SCORE REVEAL', 'pg-phase-badge--sage')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-score-hero">
+          <div class="pg-score-rank">#1</div>
+          <div class="pg-score-headline">Nailed it!</div>
+          <div class="pg-score-points">+10 pts &middot; 290 total</div>
+          <div class="pg-score-answer pg-score-answer--correct">
+            <div class="pg-score-answer-label" style="color:var(--sage)">Correct: ${ANSWER}</div>
+            <div class="pg-score-answer-detail">Golitsyn defected in December 1961 and exposed Kim Philby as a Soviet double agent.</div>
+          </div>
+        </div>
+      </div>
+      ${pillHTML(290)}`
+  },
+  score_wrong: {
+    label: 'Wrong \u2014 #3',
+    desc: 'Incorrect answer during progressive mode. -5 penalty for wrong interruption.',
+    render: () => `
+      ${topbarHTML('SCORE REVEAL', 'pg-phase-badge--rose')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-score-hero">
+          <div class="pg-score-rank" style="color:var(--rose)">#3</div>
+          <div class="pg-score-headline">Not quite!</div>
+          <div class="pg-score-points" style="color:var(--rose)">-5 pts &middot; 275 total</div>
+          <div class="pg-score-answer pg-score-answer--wrong">
+            <div class="pg-score-answer-label" style="color:var(--rose)">Your answer: "Oleg Penkovsky"</div>
+            <div class="pg-score-answer-detail">Penkovsky was a GRU colonel who spied for the West, not a defector who exposed MI6 moles.</div>
+          </div>
+          <div class="pg-score-answer pg-score-answer--correct" style="margin-top:8px">
+            <div class="pg-score-answer-label" style="color:var(--sage)">Correct: ${ANSWER}</div>
+            <div class="pg-score-answer-detail">Golitsyn defected in December 1961 and exposed Kim Philby.</div>
+          </div>
+        </div>
+      </div>
+      ${pillHTML(275)}`
+  },
+  score_timeout: {
+    label: 'Timeout',
+    desc: 'Nobody buzzed in time. No score changes.',
+    render: () => `
+      ${topbarHTML('SCORE REVEAL', 'pg-phase-badge--rose')}
+      ${infoStripHTML('R2', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-score-hero">
+          <div class="pg-score-rank" style="color:var(--text-dim)">#2</div>
+          <div class="pg-score-headline">Time\u2019s up!</div>
+          <div class="pg-score-points">0 pts &middot; 280 total</div>
+          <div class="pg-score-answer pg-score-answer--correct" style="margin-top:16px">
+            <div class="pg-score-answer-label" style="color:var(--sage)">The answer was: ${ANSWER}</div>
+            <div class="pg-score-answer-detail">Nobody buzzed in before the timer ran out.</div>
+          </div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+
+  // ========== BONUS CHAIN ==========
+
+  bonus_loading: {
+    label: 'Bonus Loading',
+    desc: 'You earned a bonus round! Loading bonus questions.',
+    render: () => `
+      ${topbarHTML('BONUS CHAIN', 'pg-phase-badge--sky')}
+      ${infoStripHTML('R2 \u2014 Bonus', TOPIC)}
+      <div class="pg-content">
+        <div class="pg-center-msg">
+          <div class="spinner" style="border-top-color:var(--sky)"></div>
+          <div class="pg-center-msg-title">Bonus chain incoming!</div>
+          <div class="pg-center-msg-body">3 rapid-fire questions for extra points.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  bonus_answering: {
+    label: 'Bonus Answering Q2/3',
+    desc: 'Answering bonus question 2. Dot progress shows Q1 correct, Q2 active, Q3 pending.',
+    render: () => `
+      ${topbarHTML('BONUS CHAIN', 'pg-phase-badge--sky')}
+      ${infoStripHTML('R2 \u2014 Bonus Q2', TOPIC)}
+      ${timerHTML('8', 8, 10, 'Bonus', false)}
+      <div class="pg-content">
+        <div class="pg-answer">
+          <div class="pg-bonus-dots">
+            <div class="pg-bonus-dot" style="background:var(--sage)"></div>
+            <div class="pg-bonus-dot" style="background:var(--sky);animation:livePulse 1s infinite"></div>
+            <div class="pg-bonus-dot" style="background:rgba(255,255,255,0.15)"></div>
+          </div>
+          <div class="pg-answer-prompt">What was the codename of the British intelligence operation to intercept Soviet naval communications?</div>
+          <textarea class="pg-answer-textarea" placeholder="Type your answer..."></textarea>
+          <div class="pg-answer-meta">
+            <span class="pg-answer-charcount">0 / 160</span>
+          </div>
+          <button class="pg-answer-submit" style="background:var(--sky)">Submit Bonus Answer</button>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  bonus_spectating: {
+    label: 'Bonus Spectating',
+    desc: 'Another player is doing their bonus chain. You watch.',
+    render: () => `
+      ${topbarHTML('BONUS CHAIN', 'pg-phase-badge--sky')}
+      ${infoStripHTML('R2 \u2014 Bonus', TOPIC)}
+      ${timerHTML('6', 6, 10, 'Bonus', false)}
+      <div class="pg-content">
+        <div class="pg-spectate">
+          <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></div>
+          <div class="pg-spectate-title">Alex\u2019s bonus round</div>
+          <div class="pg-spectate-body">They\u2019re answering rapid-fire questions. Watch the display for the action.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+
+  // ========== OTHER ==========
+
+  paused: {
+    label: 'Paused',
+    desc: 'Game is paused. Waiting for VIP to reconnect.',
+    render: () => `
+      ${topbarHTML('PAUSED', 'pg-phase-badge--amber')}
+      <div class="pg-content">
+        <div class="pg-center-msg">
+          <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg></div>
+          <div class="pg-center-msg-title">Game Paused</div>
+          <div class="pg-center-msg-body">Waiting for VIP to reconnect...</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+  finished_1: {
+    label: 'Finished \u2014 #1 VIP',
+    desc: 'Game over! You won first place and are VIP. Can view summary or play again.',
+    render: () => `
+      ${topbarHTML('GAME OVER', 'pg-phase-badge--sage')}
+      <div class="pg-content">
+        <div class="pg-finished">
+          <div class="pg-finished-rank">#1</div>
+          <div class="pg-finished-title">Champion!</div>
+          <div class="pg-finished-body">You finished first with 340 points across 5 rounds.</div>
+          <div class="pg-finished-actions">
+            <button class="pg-action-btn pg-action-btn--primary">View Summary</button>
+            <button class="pg-action-btn pg-action-btn--secondary">Play Again</button>
+          </div>
+        </div>
+      </div>
+      ${pillHTML(340)}`
+  },
+  finished_4: {
+    label: 'Finished \u2014 #4',
+    desc: 'Game over. You finished 4th. Summary link available.',
+    render: () => `
+      ${topbarHTML('GAME OVER', 'pg-phase-badge--dim')}
+      <div class="pg-content">
+        <div class="pg-finished">
+          <div class="pg-finished-rank" style="color:var(--text-dim)">#4</div>
+          <div class="pg-finished-title">Good game!</div>
+          <div class="pg-finished-body">You finished 4th with 180 points.</div>
+          <div class="pg-finished-actions">
+            <button class="pg-action-btn pg-action-btn--secondary">View Summary</button>
+          </div>
+        </div>
+      </div>
+      ${pillHTML(180)}`
+  },
+  error_toast: {
+    label: 'Error Toast',
+    desc: 'An error occurred (e.g. "Buzz already locked"). Floating rose toast above bottom pill.',
+    render: () => `
+      ${topbarHTML('BUZZ OPEN', 'pg-phase-badge--amber')}
+      ${infoStripHTML('R2', TOPIC)}
+      ${timerHTML('6', 6, 15, 'Buzz', false)}
+      <div class="pg-content" style="justify-content:flex-start;padding-top:110px">
+        <div class="pg-qb">
+          <div class="pg-qb-question"><div class="pg-qb-question-inner">${fullQuestionHTML()}</div></div>
+          <button class="pg-qb-buzz-btn">BUZZ IN</button>
+          <div class="pg-qb-sub">Window closes in 0:06</div>
+        </div>
+      </div>
+      <div class="pg-error">Buzz already locked by another player</div>
+      ${pillHTML()}`
+  },
+  fallback: {
+    label: 'Fallback',
+    desc: 'Unknown or transitional state. Simple spinner with "Stand by" message.',
+    render: () => `
+      ${topbarHTML('...', 'pg-phase-badge--dim')}
+      <div class="pg-content">
+        <div class="pg-center-msg">
+          <div class="spinner" style="border-top-color:var(--text-dim)"></div>
+          <div class="pg-center-msg-title">Stand by...</div>
+          <div class="pg-center-msg-body">Waiting for the next phase.</div>
+        </div>
+      </div>
+      ${pillHTML()}`
+  },
+};
+
+// ---- Navigation ----
+let current = 'intro';
+
+function show(id, btn) {
+  current = id;
+  document.querySelectorAll('.selector-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  render(id);
+}
+
+function render(id) {
+  const s = SCENARIOS[id];
+  document.getElementById('lbl').textContent = s.label;
+  document.getElementById('desc').textContent = s.desc;
+  document.getElementById('pg-content').innerHTML = s.render();
+}
+
+// ---- Init ----
+render('intro');
+
+// ---- Three.js Wireframe Background ----
+(function initWireframe() {
+  const canvas = document.getElementById('wf-canvas');
+  const container = document.getElementById('phone');
+  if (!canvas || !container) return;
+
+  const rect = container.getBoundingClientRect();
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(rect.width, rect.height);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, rect.width / rect.height, 0.1, 100);
+  camera.position.z = 14;
+
+  const colors = [
+    new THREE.Color('#f59e0b'),
+    new THREE.Color('#4ade80'),
+    new THREE.Color('#fb7185'),
+  ];
+
+  const shapes = [];
+  for (let i = 0; i < 8; i++) {
+    const size = 0.4 + Math.random() * 1.2;
+    const geometry = new THREE.OctahedronGeometry(size, 0);
+    const wireframe = new THREE.WireframeGeometry(geometry);
+    const color = colors[i % 3];
+    const opacity = 0.1 + Math.random() * 0.06;
+    const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const line = new THREE.LineSegments(wireframe, material);
+    line.position.set(
+      (Math.random() - 0.5) * 20,
+      (Math.random() - 0.5) * 30,
+      (Math.random() - 0.5) * 8
+    );
+    const rs = {
+      x: (Math.random() - 0.5) * 0.004,
+      y: (Math.random() - 0.5) * 0.006,
+      z: (Math.random() - 0.5) * 0.003,
+    };
+    shapes.push({ mesh: line, rotSpeed: rs });
+    scene.add(line);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    for (const s of shapes) {
+      s.mesh.rotation.x += s.rotSpeed.x;
+      s.mesh.rotation.y += s.rotSpeed.y;
+      s.mesh.rotation.z += s.rotSpeed.z;
+    }
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>

@@ -415,3 +415,10 @@ export interface RoomEnvelope {
   type: "room_state";
   payload: RoomStateResponse;
 }
+
+export interface BuzzErrorEnvelope {
+  type: "buzz_error";
+  error: string;
+}
+
+export type WsMessage = RoomEnvelope | BuzzErrorEnvelope;

@@ -988,7 +988,12 @@ class RoomManager:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Spectators cannot buzz."
                 )
-            if room.phase != "buzz_open" or room.buzz_state is None:
+            buzz_allowed_phases = {
+                "buzz_open",
+                "question_reveal_progressive",
+                "question_reveal_full",
+            }
+            if room.phase not in buzz_allowed_phases or room.buzz_state is None:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Buzzing is not open."
                 )
@@ -1001,6 +1006,15 @@ class RoomManager:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Buzz already locked."
                 )
+            # If buzzing during reveal, record the interruption point
+            buzzed_during_reveal = room.phase in {
+                "question_reveal_progressive",
+                "question_reveal_full",
+            }
+            if buzzed_during_reveal and room.current_question:
+                room.current_question.question.interruption_index = (
+                    room.current_question.question.reveal_index
+                )
             room.buzz_state.status = "locked"
             room.buzz_state.winner_player_id = player.id
             room.buzz_state.winner_locked_at = utc_now()
@@ -1011,9 +1025,10 @@ class RoomManager:
                     "event": "buzz_in",
                     "room_code": room.code,
                     "player_id": player.id,
+                    "during_reveal": buzzed_during_reveal,
                 },
             )
-            # Phase stays "buzz_open" for 3-second celebration delay
+            # Phase stays as-is for 3-second celebration delay
             # advance_room_state will transition to "answering" after 3 seconds
             room.updated_at = utc_now()
             room_state = self.serialize_room(room)
@@ -1509,6 +1524,8 @@ class RoomManager:
             self.require_player(room, player_id, player_token)
 
     def advance_room_state(self, room: Room) -> None:
+        if room.phase == "finished":
+            return
         if room.async_work_in_progress:
             return
         now = utc_now()
@@ -1531,7 +1548,10 @@ class RoomManager:
         elif room.phase == "question_loading":
             self.begin_question_reveal(room)
         elif room.phase in {"question_reveal_progressive", "question_reveal_full"}:
-            self.maybe_complete_reveal(room)
+            # If someone buzzed during reveal, handle the celebration->answering
+            # transition instead of continuing reveal progression.
+            if not self.maybe_transition_buzz_winner(room):
+                self.maybe_complete_reveal(room)
         elif room.phase == "buzz_open":
             if not self.maybe_transition_buzz_winner(room):
                 self.maybe_expire_buzz(room)
@@ -1936,6 +1956,18 @@ class RoomManager:
             )
             room.current_question.reveal_completed_at = utc_now() + timedelta(
                 milliseconds=wait_ms or (len(room.current_question.question.prompt_chunks) * 2000)
+            )
+        # Create BuzzState early so players can buzz during reveal.
+        # The deadline is set generously here; open_buzz() will replace it
+        # with the actual no-buzz-window deadline once reveal completes.
+        if room.buzz_state is None:
+            room.buzz_state = BuzzState(
+                status="waiting",
+                opened_at=utc_now(),
+                deadline_at=room.current_question.reveal_completed_at
+                + timedelta(seconds=room.settings.no_buzz_window_seconds),
+                eligible_player_ids=self.active_player_ids(room),
+                locked_out_player_ids=[],
             )
 
     def maybe_complete_reveal(self, room: Room) -> None:
