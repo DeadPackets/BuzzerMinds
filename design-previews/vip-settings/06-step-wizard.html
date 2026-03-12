@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — 06 Step Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Settings card ── */
+  .settings-card {
+    width: 100%; max-width: 440px;
+    position: relative;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+
+  /* ── Decorative border frame ── */
+  .card-frame {
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .card-inner {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Top decorative strip ── */
+  .card-strip {
+    padding: 12px 16px;
+    background: rgba(245,158,11,0.06);
+    border-bottom: 1px solid rgba(245,158,11,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .card-strip-left {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--amber);
+  }
+  .card-strip-left i { width: 13px; height: 13px; }
+  .card-strip-right { display: flex; gap: 5px; }
+  .strip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* ── Header ── */
+  .card-header {
+    padding: 20px 20px 14px; text-align: center;
+    flex-shrink: 0;
+  }
+  .card-pre {
+    font-family: var(--font-display); font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-family: var(--font-display); font-weight: 900; font-size: 1.4rem;
+    letter-spacing: -0.02em; line-height: 1.1;
+    color: var(--text-bright);
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP PROGRESS INDICATOR
+  ═══════════════════════════════════════════ */
+  .step-progress {
+    padding: 0 20px 18px;
+    flex-shrink: 0;
+  }
+  .step-track {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    position: relative;
+  }
+  /* Connector line behind dots */
+  .step-connector {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    z-index: 0;
+  }
+  .step-connector-fill {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    height: 2px;
+    background: var(--sage);
+    z-index: 1;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0;
+  }
+
+  .step-node {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; z-index: 2; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .step-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.72rem;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  .step-dot i { width: 14px; height: 14px; }
+
+  /* States */
+  .step-node[data-state="upcoming"] .step-dot {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+    border: 2px solid rgba(255,255,255,0.08);
+  }
+  .step-node[data-state="active"] .step-dot {
+    background: var(--amber);
+    color: var(--bg);
+    border: 2px solid var(--amber);
+    transform: scale(1.15);
+  }
+  .step-node[data-state="completed"] .step-dot {
+    background: rgba(74,222,128,0.15);
+    color: var(--sage);
+    border: 2px solid rgba(74,222,128,0.3);
+  }
+
+  .step-label {
+    font-size: 0.56rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-dim);
+    transition: color 0.3s;
+    text-align: center;
+    max-width: 60px;
+    line-height: 1.3;
+  }
+  .step-node[data-state="active"] .step-label {
+    color: var(--amber);
+  }
+  .step-node[data-state="completed"] .step-label {
+    color: var(--sage);
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP CONTENT AREA
+  ═══════════════════════════════════════════ */
+  .step-viewport {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  .step-slider {
+    display: flex;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+  .step-panel {
+    min-width: 100%;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+
+  .step-panel-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0 14px;
+    font-family: var(--font-display); font-size: 0.95rem; font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+  .step-panel-header i { width: 18px; height: 18px; color: var(--amber); }
+
+  /* ── Ornament (in-panel divider) ── */
+  .ornament {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 0;
+    margin: 0;
+  }
+  .ornament-line { flex: 1; height: 1px; background: rgba(245,158,11,0.12); }
+  .ornament-diamond {
+    width: 5px; height: 5px; background: var(--amber);
+    transform: rotate(45deg); border-radius: 1px;
+  }
+
+  /* ── Fields ── */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 4px; }
+
+  .field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.04em; margin-bottom: 6px;
+  }
+  .field-label i { width: 12px; height: 12px; color: var(--amber); }
+  .field-label .field-hint {
+    margin-left: auto; font-weight: 400; font-size: 0.6rem; color: rgba(115,115,115,0.7);
+  }
+
+  /* ── Select dropdown ── */
+  .field-select-wrap {
+    position: relative;
+  }
+  .field-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .field-select {
+    width: 100%; padding: 11px 36px 11px 14px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.88rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .field-select:focus { border-color: rgba(245,158,11,0.4); }
+  .field-select option {
+    background: #1e1e1e; color: var(--text-bright);
+  }
+
+  /* ── Range slider ── */
+  .range-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    outline: none; cursor: pointer;
+    --fill: 50%;
+    background: linear-gradient(to right, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0.35) var(--fill), rgba(255,255,255,0.08) var(--fill), rgba(255,255,255,0.08) 100%);
+  }
+  .range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .range-slider::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .range-slider::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+  }
+  .range-slider::-moz-range-track {
+    height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .range-value {
+    min-width: 36px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.85rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 4px 8px;
+  }
+
+  /* ── Pill groups ── */
+  .pill-group {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .pill-option {
+    flex: 1; min-width: 0;
+    padding: 9px 12px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font-body); font-size: 0.78rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .pill-option:hover {
+    border-color: rgba(245,158,11,0.2);
+    color: var(--text-bright);
+  }
+  .pill-option.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber);
+    font-weight: 600;
+  }
+
+  /* ── 3-col pills ── */
+  .pill-group-3 {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .pill-group-3 .pill-option {
+    font-size: 0.7rem; padding: 8px 6px;
+  }
+
+  /* ── Toggle switch ── */
+  .toggles-row {
+    display: flex; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .toggle-item {
+    flex: 1; min-width: 90px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 14px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .toggle-item:hover {
+    border-color: rgba(255,255,255,0.1);
+  }
+  .toggle-item.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .toggle-item i {
+    width: 20px; height: 20px;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .toggle-item.active i { color: var(--amber); }
+  .toggle-label-text {
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .toggle-item.active .toggle-label-text { color: var(--text-bright); }
+  .toggle-switch {
+    width: 38px; height: 22px; border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .toggle-item.active .toggle-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .toggle-item.active .toggle-switch::after {
+    transform: translateX(16px);
+    background: var(--amber);
+  }
+
+  /* ═══════════════════════════════════════════
+     SUMMARY CARD (Step 4)
+  ═══════════════════════════════════════════ */
+  .summary-card {
+    margin-top: 16px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid rgba(245,158,11,0.12);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .summary-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.05);
+    border-bottom: 1px solid rgba(245,158,11,0.08);
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--amber);
+  }
+  .summary-header i { width: 12px; height: 12px; }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .summary-item {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    border-right: 1px solid rgba(255,255,255,0.03);
+  }
+  .summary-item:nth-child(2n) {
+    border-right: none;
+  }
+  .summary-item:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+  .summary-item-label {
+    font-size: 0.55rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 2px;
+  }
+  .summary-item-value {
+    font-family: var(--font-display); font-size: 0.78rem; font-weight: 600;
+    color: var(--text-bright);
+  }
+  .summary-item-value.amber { color: var(--amber); }
+  .summary-item-value.sage { color: var(--sage); }
+  .summary-item-value.sky { color: var(--sky); }
+
+  /* ═══════════════════════════════════════════
+     NAVIGATION BUTTONS
+  ═══════════════════════════════════════════ */
+  .nav-area {
+    padding: 16px 20px 20px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+  }
+  .nav-row {
+    display: flex; gap: 10px; align-items: center;
+  }
+  .nav-btn {
+    flex: 1; padding: 14px;
+    border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.92rem;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .nav-btn i { width: 16px; height: 16px; }
+
+  .nav-btn--back {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    color: var(--text-dim);
+    flex: 0.7;
+  }
+  .nav-btn--back:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: var(--text-bright);
+  }
+  .nav-btn--back:active {
+    transform: scale(0.97);
+  }
+  .nav-btn--back[data-hidden="true"] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .nav-btn--next {
+    background: var(--amber);
+    color: var(--bg);
+    border: 1.5px solid var(--amber);
+  }
+  .nav-btn--next:hover { filter: brightness(1.08); }
+  .nav-btn--next:active {
+    filter: brightness(0.95); transform: scale(0.97);
+  }
+
+  .nav-btn--start {
+    background: var(--sage);
+    color: var(--bg);
+    border: 1.5px solid var(--sage);
+  }
+  .nav-btn--start:hover { filter: brightness(1.08); }
+  .nav-btn--start:active {
+    filter: brightness(0.95); transform: scale(0.97);
+  }
+
+  .nav-step-label {
+    text-align: center; margin-top: 8px;
+    font-size: 0.6rem; color: var(--text-dim);
+    font-weight: 500; letter-spacing: 0.04em;
+  }
+
+  /* ── Conditional field hide ── */
+  .field--hidden {
+    display: none;
+  }
+
+  /* ── Animations ── */
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Small-screen tightening ── */
+  @media (max-width: 380px) {
+    .page { padding: 12px; }
+    .card-header { padding: 16px 16px 10px; }
+    .card-title { font-size: 1.2rem; }
+    .step-panel { padding: 0 16px; }
+    .nav-area { padding: 14px 16px 18px; }
+    .step-progress { padding: 0 14px 14px; }
+    .toggle-item { padding: 12px 8px; min-width: 80px; }
+    .pill-option { padding: 8px 8px; font-size: 0.72rem; }
+    .pill-group-3 .pill-option { font-size: 0.62rem; padding: 7px 4px; }
+    .field-select { font-size: 0.82rem; padding: 10px 32px 10px 12px; }
+    .range-value { font-size: 0.78rem; padding: 3px 6px; }
+    .step-label { font-size: 0.5rem; max-width: 52px; }
+    .step-dot { width: 24px; height: 24px; font-size: 0.64rem; }
+    .step-dot i { width: 12px; height: 12px; }
+    .summary-item { padding: 7px 10px; }
+    .summary-item-value { font-size: 0.7rem; }
+  }
+
+  /* ── Tall-screen breathing room ── */
+  @media (min-height: 750px) {
+    .card-header { padding: 24px 20px 16px; }
+    .card-title { font-size: 1.55rem; }
+    .field { margin-bottom: 18px; }
+    .nav-area { padding: 18px 24px 24px; }
+    .step-panel-header { padding: 6px 0 16px; }
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">06 — Step Wizard</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+  <div class="settings-card">
+    <div class="card-frame">
+      <div class="card-inner">
+
+        <!-- Top strip -->
+        <div class="card-strip">
+          <div class="card-strip-left"><i data-lucide="settings"></i> Game Settings</div>
+          <div class="card-strip-right">
+            <div class="strip-dot" style="background: var(--amber);"></div>
+            <div class="strip-dot" style="background: var(--sage);"></div>
+            <div class="strip-dot" style="background: var(--rose);"></div>
+          </div>
+        </div>
+
+        <!-- Header -->
+        <div class="card-header">
+          <div class="card-pre">VIP Controls</div>
+          <div class="card-title">Configure Your Match</div>
+        </div>
+
+        <!-- ═══ Step Progress Indicator ═══ -->
+        <div class="step-progress">
+          <div class="step-track">
+            <div class="step-connector"></div>
+            <div class="step-connector-fill" id="step-connector-fill"></div>
+
+            <div class="step-node" data-step="0" data-state="active">
+              <div class="step-dot"><span class="step-dot-content">1</span></div>
+              <div class="step-label">AI & Content</div>
+            </div>
+            <div class="step-node" data-step="1" data-state="upcoming">
+              <div class="step-dot"><span class="step-dot-content">2</span></div>
+              <div class="step-label">Game Rules</div>
+            </div>
+            <div class="step-node" data-step="2" data-state="upcoming">
+              <div class="step-dot"><span class="step-dot-content">3</span></div>
+              <div class="step-label">Timing</div>
+            </div>
+            <div class="step-node" data-step="3" data-state="upcoming">
+              <div class="step-dot"><span class="step-dot-content">4</span></div>
+              <div class="step-label">Audio & Review</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Step Panels ═══ -->
+        <div class="step-viewport">
+          <div class="step-slider" id="step-slider">
+
+            <!-- ── STEP 1: AI & Content ── -->
+            <div class="step-panel" data-panel="0">
+              <div class="step-panel-header">
+                <i data-lucide="cpu"></i> AI & Content
+              </div>
+
+              <!-- Model Preset -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="sparkles"></i> Model Preset
+                  <span class="field-hint">Affects question quality</span>
+                </div>
+                <div class="field-select-wrap">
+                  <select class="field-select" id="model-preset">
+                    <option value="gpt4o" selected>GPT-4o Standard</option>
+                    <option value="claude">Claude Sonnet</option>
+                    <option value="gemini">Gemini Flash</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Moderation -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="shield-check"></i> Moderation Mode
+                  <span class="field-hint">Content filtering</span>
+                </div>
+                <div class="pill-group" data-pill-group="moderation">
+                  <div class="pill-option" data-value="off">Off</div>
+                  <div class="pill-option active" data-value="light">Light</div>
+                  <div class="pill-option" data-value="family_safe">Family Safe</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── STEP 2: Game Rules ── -->
+            <div class="step-panel" data-panel="1">
+              <div class="step-panel-header">
+                <i data-lucide="trophy"></i> Game Rules
+              </div>
+
+              <!-- Topic Pool Size -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="library"></i> Topic Pool Size
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="topic-pool" min="3" max="12" value="6" data-display="topic-pool-val">
+                  <div class="range-value" id="topic-pool-val">6</div>
+                </div>
+              </div>
+
+              <!-- Rounds -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="repeat"></i> Rounds
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="rounds" min="2" max="10" value="5" data-display="rounds-val">
+                  <div class="range-value" id="rounds-val">5</div>
+                </div>
+              </div>
+
+              <!-- Reveal Mode -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="eye"></i> Reveal Mode
+                </div>
+                <div class="pill-group" data-pill-group="reveal">
+                  <div class="pill-option active" data-value="progressive">Progressive</div>
+                  <div class="pill-option" data-value="full">Full</div>
+                </div>
+              </div>
+
+              <!-- End Mode -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="flag"></i> End Mode
+                </div>
+                <div class="pill-group" data-pill-group="end-mode">
+                  <div class="pill-option active" data-value="rounds">Rounds</div>
+                  <div class="pill-option" data-value="timer">Timer</div>
+                </div>
+              </div>
+
+              <!-- Timer Minutes (conditional) -->
+              <div class="field field--hidden" id="timer-minutes-field">
+                <div class="field-label">
+                  <i data-lucide="clock"></i> Timer Minutes
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="timer-minutes" min="5" max="60" value="15" data-display="timer-minutes-val">
+                  <div class="range-value" id="timer-minutes-val">15</div>
+                </div>
+              </div>
+
+              <!-- Timer Expiry (conditional) -->
+              <div class="field field--hidden" id="timer-expiry-field">
+                <div class="field-label">
+                  <i data-lucide="alarm-clock-off"></i> When Timer Expires
+                </div>
+                <div class="pill-group pill-group-3" data-pill-group="timer-expiry">
+                  <div class="pill-option active" data-value="finish_round">Finish Round</div>
+                  <div class="pill-option" data-value="finish_main_only">Main Only</div>
+                  <div class="pill-option" data-value="stop_immediately">Stop Now</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── STEP 3: Timing ── -->
+            <div class="step-panel" data-panel="2">
+              <div class="step-panel-header">
+                <i data-lucide="timer"></i> Timing
+              </div>
+
+              <!-- Answer Time -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="message-circle"></i> Answer Time
+                  <span class="field-hint">seconds</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="answer-time" min="15" max="120" value="45" data-display="answer-time-val">
+                  <div class="range-value" id="answer-time-val">45</div>
+                </div>
+              </div>
+
+              <!-- No-Buzz Window -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="shield-off"></i> No-Buzz Window
+                  <span class="field-hint">seconds</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="no-buzz" min="0" max="10" value="3" data-display="no-buzz-val">
+                  <div class="range-value" id="no-buzz-val">3</div>
+                </div>
+              </div>
+
+              <!-- Bonus Time -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="zap"></i> Bonus Time
+                  <span class="field-hint">seconds</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="bonus-time" min="10" max="60" value="20" data-display="bonus-time-val">
+                  <div class="range-value" id="bonus-time-val">20</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── STEP 4: Audio & Review ── -->
+            <div class="step-panel" data-panel="3">
+              <div class="step-panel-header">
+                <i data-lucide="volume-2"></i> Audio & Review
+              </div>
+
+              <!-- Audio Toggles -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="music-2"></i> Audio Controls
+                </div>
+                <div class="toggles-row">
+                  <div class="toggle-item active" data-toggle="narration">
+                    <i data-lucide="mic"></i>
+                    <span class="toggle-label-text">Narration</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-item active" data-toggle="sfx">
+                    <i data-lucide="bell-ring"></i>
+                    <span class="toggle-label-text">SFX</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-item active" data-toggle="music">
+                    <i data-lucide="music"></i>
+                    <span class="toggle-label-text">Music</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Summary Card -->
+              <div class="summary-card" id="summary-card">
+                <div class="summary-header">
+                  <i data-lucide="clipboard-list"></i> Match Summary
+                </div>
+                <div class="summary-grid" id="summary-grid">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /step-slider -->
+        </div><!-- /step-viewport -->
+
+        <!-- ═══ Navigation ═══ -->
+        <div class="nav-area">
+          <div class="nav-row">
+            <button class="nav-btn nav-btn--back" id="btn-back" data-hidden="true">
+              <i data-lucide="arrow-left"></i> Back
+            </button>
+            <button class="nav-btn nav-btn--next" id="btn-next">
+              Next <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+          <div class="nav-step-label" id="nav-step-label">Step 1 of 4</div>
+        </div>
+
+      </div><!-- /card-inner -->
+    </div><!-- /card-frame -->
+  </div><!-- /settings-card -->
+</div><!-- /page -->
+
+<script>
+  // ── Lucide icons ──
+  lucide.createIcons();
+
+  // ═══════════════════════════════════════════
+  // WIZARD STATE
+  // ═══════════════════════════════════════════
+  const TOTAL_STEPS = 4;
+  let currentStep = 0;
+  let navigating = false;
+
+  const slider = document.getElementById('step-slider');
+  const nodes = document.querySelectorAll('.step-node');
+  const connectorFill = document.getElementById('step-connector-fill');
+  const btnBack = document.getElementById('btn-back');
+  const btnNext = document.getElementById('btn-next');
+  const navLabel = document.getElementById('nav-step-label');
+
+  function goToStep(target) {
+    if (target < 0 || target >= TOTAL_STEPS) return;
+    if (navigating) return;
+    navigating = true;
+    currentStep = target;
+    updateUI();
+    setTimeout(() => { navigating = false; }, 500);
+  }
+
+  function updateUI() {
+    // Slide the panels
+    slider.style.transform = `translateX(-${currentStep * 100}%)`;
+
+    // Update step nodes
+    nodes.forEach((node, i) => {
+      if (i < currentStep) {
+        node.dataset.state = 'completed';
+        node.querySelector('.step-dot-content').innerHTML = '';
+        // Insert checkmark icon
+        const dot = node.querySelector('.step-dot');
+        let icon = dot.querySelector('.check-icon');
+        if (!icon) {
+          icon = document.createElement('i');
+          icon.setAttribute('data-lucide', 'check');
+          icon.classList.add('check-icon');
+          dot.appendChild(icon);
+          lucide.createIcons({ nodes: [icon] });
+        }
+      } else if (i === currentStep) {
+        node.dataset.state = 'active';
+        node.querySelector('.step-dot-content').textContent = i + 1;
+        const dot = node.querySelector('.step-dot');
+        const icon = dot.querySelector('.check-icon');
+        if (icon) icon.remove();
+      } else {
+        node.dataset.state = 'upcoming';
+        node.querySelector('.step-dot-content').textContent = i + 1;
+        const dot = node.querySelector('.step-dot');
+        const icon = dot.querySelector('.check-icon');
+        if (icon) icon.remove();
+      }
+    });
+
+    // Connector fill width
+    const track = document.querySelector('.step-track');
+    const trackRect = track.getBoundingClientRect();
+    const firstDot = nodes[0].querySelector('.step-dot');
+    const lastDot = nodes[TOTAL_STEPS - 1].querySelector('.step-dot');
+    const totalWidth = lastDot.getBoundingClientRect().left + lastDot.getBoundingClientRect().width / 2
+                     - firstDot.getBoundingClientRect().left - firstDot.getBoundingClientRect().width / 2;
+
+    if (currentStep === 0) {
+      connectorFill.style.width = '0px';
+    } else {
+      const targetDot = nodes[currentStep].querySelector('.step-dot');
+      const fillWidth = targetDot.getBoundingClientRect().left + targetDot.getBoundingClientRect().width / 2
+                      - firstDot.getBoundingClientRect().left - firstDot.getBoundingClientRect().width / 2;
+      connectorFill.style.width = fillWidth + 'px';
+    }
+
+    // Back button visibility
+    btnBack.dataset.hidden = currentStep === 0 ? 'true' : 'false';
+
+    // Next button state
+    if (currentStep === TOTAL_STEPS - 1) {
+      btnNext.className = 'nav-btn nav-btn--start';
+      btnNext.innerHTML = '<i data-lucide="play"></i> Start Match';
+      lucide.createIcons({ nodes: [btnNext.querySelector('i')] });
+    } else {
+      btnNext.className = 'nav-btn nav-btn--next';
+      btnNext.innerHTML = 'Next <i data-lucide="arrow-right"></i>';
+      lucide.createIcons({ nodes: [btnNext.querySelector('i')] });
+    }
+
+    // Label
+    navLabel.textContent = `Step ${currentStep + 1} of ${TOTAL_STEPS}`;
+
+    // Build summary if on last step
+    if (currentStep === TOTAL_STEPS - 1) {
+      buildSummary();
+    }
+  }
+
+  // Navigation
+  btnNext.addEventListener('click', () => {
+    if (currentStep === TOTAL_STEPS - 1) {
+      // "Start Match" pressed — could trigger game start
+      btnNext.style.transform = 'scale(0.95)';
+      setTimeout(() => { btnNext.style.transform = ''; }, 150);
+      return;
+    }
+    goToStep(currentStep + 1);
+  });
+
+  btnBack.addEventListener('click', () => {
+    goToStep(currentStep - 1);
+  });
+
+  // Clicking step dots navigates (only to completed or current steps)
+  nodes.forEach(node => {
+    node.addEventListener('click', () => {
+      const step = parseInt(node.dataset.step);
+      if (step <= currentStep) {
+        goToStep(step);
+      }
+    });
+  });
+
+  // ═══════════════════════════════════════════
+  // RANGE SLIDERS
+  // ═══════════════════════════════════════════
+  document.querySelectorAll('.range-slider').forEach(s => {
+    const displayId = s.dataset.display;
+    const display = document.getElementById(displayId);
+
+    function update() {
+      if (display) display.textContent = s.value;
+      const min = parseFloat(s.min), max = parseFloat(s.max), val = parseFloat(s.value);
+      const pct = ((val - min) / (max - min)) * 100;
+      s.style.setProperty('--fill', pct + '%');
+    }
+
+    s.addEventListener('input', update);
+    update();
+  });
+
+  // ═══════════════════════════════════════════
+  // PILL GROUPS
+  // ═══════════════════════════════════════════
+  document.querySelectorAll('.pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.pill-option');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        // Conditional fields for end mode
+        if (group.dataset.pillGroup === 'end-mode') {
+          const isTimer = pill.dataset.value === 'timer';
+          const tmf = document.getElementById('timer-minutes-field');
+          const tef = document.getElementById('timer-expiry-field');
+          if (tmf) tmf.classList.toggle('field--hidden', !isTimer);
+          if (tef) tef.classList.toggle('field--hidden', !isTimer);
+        }
+      });
+    });
+  });
+
+  // ═══════════════════════════════════════════
+  // AUDIO TOGGLES
+  // ═══════════════════════════════════════════
+  document.querySelectorAll('.toggle-item').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+    });
+  });
+
+  // ═══════════════════════════════════════════
+  // SUMMARY BUILDER
+  // ═══════════════════════════════════════════
+  function getSelectedPill(groupName) {
+    const group = document.querySelector(`[data-pill-group="${groupName}"]`);
+    if (!group) return '—';
+    const active = group.querySelector('.pill-option.active');
+    return active ? active.textContent.trim() : '—';
+  }
+
+  function getSelectValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return '—';
+    return el.options[el.selectedIndex].text;
+  }
+
+  function getSliderValue(id, suffix) {
+    const el = document.getElementById(id);
+    if (!el) return '—';
+    return el.value + (suffix || '');
+  }
+
+  function isToggleOn(name) {
+    const el = document.querySelector(`[data-toggle="${name}"]`);
+    return el ? el.classList.contains('active') : false;
+  }
+
+  function buildSummary() {
+    const grid = document.getElementById('summary-grid');
+    const endMode = getSelectedPill('end-mode');
+    const isTimer = endMode === 'Timer';
+
+    const items = [
+      { label: 'Model', value: getSelectValue('model-preset'), cls: 'sky' },
+      { label: 'Moderation', value: getSelectedPill('moderation'), cls: '' },
+      { label: 'Topics', value: getSliderValue('topic-pool'), cls: 'amber' },
+      { label: 'Rounds', value: getSliderValue('rounds'), cls: 'amber' },
+      { label: 'Reveal', value: getSelectedPill('reveal'), cls: '' },
+      { label: 'End Mode', value: endMode, cls: '' },
+      { label: 'Answer', value: getSliderValue('answer-time', 's'), cls: 'amber' },
+      { label: 'No-Buzz', value: getSliderValue('no-buzz', 's'), cls: '' },
+      { label: 'Bonus', value: getSliderValue('bonus-time', 's'), cls: '' },
+      { label: 'Audio', value: [
+          isToggleOn('narration') ? 'Narr' : null,
+          isToggleOn('sfx') ? 'SFX' : null,
+          isToggleOn('music') ? 'Music' : null
+        ].filter(Boolean).join(', ') || 'None', cls: 'sage' },
+    ];
+
+    if (isTimer) {
+      items.splice(6, 0,
+        { label: 'Timer', value: getSliderValue('timer-minutes', ' min'), cls: 'amber' },
+        { label: 'Expiry', value: getSelectedPill('timer-expiry'), cls: '' }
+      );
+    }
+
+    grid.innerHTML = items.map(item => `
+      <div class="summary-item">
+        <div class="summary-item-label">${item.label}</div>
+        <div class="summary-item-value ${item.cls}">${item.value}</div>
+      </div>
+    `).join('');
+  }
+
+  // ═══════════════════════════════════════════
+  // THREE.JS WIREFRAME BACKGROUND
+  // ═══════════════════════════════════════════
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+
+  // ── Init ──
+  updateUI();
+</script>
+</body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — 05 Single Scroll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Settings card ── */
+  .settings-card {
+    width: 100%; max-width: 440px;
+    position: relative;
+    margin: 16px 0;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+
+  /* ── Decorative border frame ── */
+  .card-frame {
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .card-inner {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+  }
+
+  /* ── Top decorative strip ── */
+  .card-strip {
+    padding: 12px 16px;
+    background: rgba(245,158,11,0.06);
+    border-bottom: 1px solid rgba(245,158,11,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-strip-left {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--amber);
+  }
+  .card-strip-left i { width: 13px; height: 13px; }
+  .card-strip-right { display: flex; gap: 5px; }
+  .strip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* ── Header ── */
+  .card-header {
+    padding: 22px 20px 16px; text-align: center;
+  }
+  .card-pre {
+    font-family: var(--font-display); font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .card-title {
+    font-family: var(--font-display); font-weight: 900; font-size: 1.5rem;
+    letter-spacing: -0.02em; line-height: 1.1;
+    color: var(--text-bright);
+  }
+  .card-desc {
+    margin-top: 10px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.5;
+  }
+
+  /* ── Decorative divider ── */
+  .ornament {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 20px;
+    margin: 0;
+  }
+  .ornament-line { flex: 1; height: 1px; background: rgba(245,158,11,0.12); }
+  .ornament-diamond {
+    width: 7px; height: 7px; background: var(--amber);
+    transform: rotate(45deg); border-radius: 1px;
+  }
+
+  /* ── Sections ── */
+  .settings-body {
+    padding: 0;
+  }
+
+  .section {
+    padding: 0 20px;
+  }
+
+  .section-header {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 0 10px;
+    font-family: var(--font-display); font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+    background: rgba(30,30,30,0.85);
+    backdrop-filter: blur(12px);
+    margin: 0 -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .section-header i { width: 13px; height: 13px; color: var(--amber); }
+
+  .section-content {
+    padding: 4px 0 8px;
+  }
+
+  /* ── Fields ── */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 6px; }
+
+  .field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.04em; margin-bottom: 6px;
+  }
+  .field-label i { width: 12px; height: 12px; color: var(--amber); }
+  .field-label .field-hint {
+    margin-left: auto; font-weight: 400; font-size: 0.6rem; color: rgba(115,115,115,0.7);
+  }
+
+  /* ── Select dropdown ── */
+  .field-select-wrap {
+    position: relative;
+  }
+  .field-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .field-select {
+    width: 100%; padding: 11px 36px 11px 14px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.88rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .field-select:focus { border-color: rgba(245,158,11,0.4); }
+  .field-select option {
+    background: #1e1e1e; color: var(--text-bright);
+  }
+
+  /* ── Range slider ── */
+  .range-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    outline: none; cursor: pointer;
+  }
+  .range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .range-slider::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .range-slider::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+  }
+  .range-slider::-moz-range-track {
+    height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .range-value {
+    min-width: 36px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.85rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 4px 8px;
+  }
+
+  /* ── Radio pills (for reveal mode, end mode, timer expiry) ── */
+  .pill-group {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .pill-option {
+    flex: 1; min-width: 0;
+    padding: 9px 12px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font-body); font-size: 0.78rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .pill-option:hover {
+    border-color: rgba(245,158,11,0.2);
+    color: var(--text-bright);
+  }
+  .pill-option.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber);
+    font-weight: 600;
+  }
+
+  /* ── Toggle switch ── */
+  .toggles-row {
+    display: flex; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .toggle-item {
+    flex: 1; min-width: 90px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 14px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .toggle-item:hover {
+    border-color: rgba(255,255,255,0.1);
+  }
+  .toggle-item.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .toggle-item i {
+    width: 20px; height: 20px;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .toggle-item.active i { color: var(--amber); }
+  .toggle-label {
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .toggle-item.active .toggle-label { color: var(--text-bright); }
+  .toggle-switch {
+    width: 38px; height: 22px; border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    transition: background 0.25s;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .toggle-item.active .toggle-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .toggle-item.active .toggle-switch::after {
+    transform: translateX(16px);
+    background: var(--amber);
+  }
+
+  /* ── Timer expiry pills - 3 column tight ── */
+  .pill-group-3 {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .pill-group-3 .pill-option {
+    font-size: 0.7rem; padding: 8px 6px;
+  }
+
+  /* ── Submit area ── */
+  .submit-area {
+    padding: 16px 20px 20px;
+  }
+
+  .start-btn {
+    width: 100%; padding: 15px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .start-btn:hover { filter: brightness(1.08); }
+  .start-btn:active { filter: brightness(0.95); transform: scale(0.98); }
+  .start-btn i { width: 18px; height: 18px; }
+  .start-btn:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    filter: saturate(0.5);
+  }
+
+  .blockers {
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: center;
+  }
+  .blocker-item {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; color: var(--rose);
+    font-weight: 500;
+  }
+  .blocker-item i { width: 12px; height: 12px; }
+
+  /* ── Animations ── */
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Section stagger ── */
+  .section[data-section="1"] { animation: fadeUp 0.4s 0.1s both; }
+  .section[data-section="2"] { animation: fadeUp 0.4s 0.2s both; }
+  .section[data-section="3"] { animation: fadeUp 0.4s 0.3s both; }
+  .section[data-section="4"] { animation: fadeUp 0.4s 0.4s both; }
+  .section[data-section="5"] { animation: fadeUp 0.4s 0.5s both; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Range fill (JS-driven) ── */
+  .range-slider {
+    --fill: 50%;
+    background: linear-gradient(to right, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0.35) var(--fill), rgba(255,255,255,0.08) var(--fill), rgba(255,255,255,0.08) 100%);
+  }
+
+  /* ── Small-screen tightening ── */
+  @media (max-width: 380px) {
+    .page { padding: 12px; }
+    .card-header { padding: 18px 16px 14px; }
+    .card-title { font-size: 1.3rem; }
+    .section { padding: 0 16px; }
+    .section-header { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+    .ornament { padding: 4px 16px; }
+    .submit-area { padding: 14px 16px 18px; }
+    .toggle-item { padding: 12px 8px; min-width: 80px; }
+    .pill-option { padding: 8px 8px; font-size: 0.72rem; }
+    .pill-group-3 .pill-option { font-size: 0.62rem; padding: 7px 4px; }
+    .field-select { font-size: 0.82rem; padding: 10px 32px 10px 12px; }
+    .range-value { font-size: 0.78rem; padding: 3px 6px; }
+  }
+
+  /* ── Tall-screen breathing room ── */
+  @media (min-height: 750px) {
+    .card-header { padding: 26px 20px 18px; }
+    .card-title { font-size: 1.65rem; }
+    .section-content { padding: 6px 0 10px; }
+    .field { margin-bottom: 16px; }
+    .submit-area { padding: 18px 24px 24px; }
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">05 — Single Scroll</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+  <div class="settings-card">
+    <div class="card-frame">
+      <div class="card-inner">
+
+        <!-- Top strip -->
+        <div class="card-strip">
+          <div class="card-strip-left"><i data-lucide="settings"></i> Game Settings</div>
+          <div class="card-strip-right">
+            <div class="strip-dot" style="background: var(--amber);"></div>
+            <div class="strip-dot" style="background: var(--sage);"></div>
+            <div class="strip-dot" style="background: var(--rose);"></div>
+          </div>
+        </div>
+
+        <!-- Header -->
+        <div class="card-header">
+          <div class="card-pre">VIP Controls</div>
+          <div class="card-title">Configure Your Match</div>
+          <p class="card-desc">Adjust the settings below or just hit start to play with defaults.</p>
+        </div>
+
+        <div class="settings-body">
+
+          <!-- ═══ Section 1: AI Model ═══ -->
+          <div class="ornament">
+            <div class="ornament-line"></div>
+            <div class="ornament-diamond"></div>
+            <div class="ornament-line"></div>
+          </div>
+
+          <div class="section" data-section="1">
+            <div class="section-header">
+              <i data-lucide="cpu"></i> AI Model
+            </div>
+            <div class="section-content">
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="sparkles"></i> Model Preset
+                  <span class="field-hint">Affects question quality</span>
+                </div>
+                <div class="field-select-wrap">
+                  <select class="field-select" id="model-preset">
+                    <option value="balanced" selected>Balanced — Fast & accurate</option>
+                    <option value="creative">Creative — Unique questions</option>
+                    <option value="precise">Precise — Factually strict</option>
+                    <option value="experimental">Experimental — Cutting edge</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ Section 2: Game Rules ═══ -->
+          <div class="ornament">
+            <div class="ornament-line"></div>
+            <div class="ornament-diamond"></div>
+            <div class="ornament-line"></div>
+          </div>
+
+          <div class="section" data-section="2">
+            <div class="section-header">
+              <i data-lucide="trophy"></i> Game Rules
+            </div>
+            <div class="section-content">
+
+              <!-- Topic Pool -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="library"></i> Topic Pool Size
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="topic-pool" min="3" max="12" value="6" data-display="topic-pool-val">
+                  <div class="range-value" id="topic-pool-val">6</div>
+                </div>
+              </div>
+
+              <!-- Rounds -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="repeat"></i> Rounds
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="rounds" min="1" max="20" value="5" data-display="rounds-val">
+                  <div class="range-value" id="rounds-val">5</div>
+                </div>
+              </div>
+
+              <!-- Reveal Mode -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="eye"></i> Question Reveal
+                </div>
+                <div class="pill-group" data-pill-group="reveal">
+                  <div class="pill-option active" data-value="progressive">Progressive</div>
+                  <div class="pill-option" data-value="full">Full</div>
+                </div>
+              </div>
+
+              <!-- End Mode -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="flag"></i> Game Ends By
+                </div>
+                <div class="pill-group" data-pill-group="end-mode">
+                  <div class="pill-option active" data-value="rounds">Rounds</div>
+                  <div class="pill-option" data-value="timer">Timer</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ═══ Section 3: Timing ═══ -->
+          <div class="ornament">
+            <div class="ornament-line"></div>
+            <div class="ornament-diamond"></div>
+            <div class="ornament-line"></div>
+          </div>
+
+          <div class="section" data-section="3">
+            <div class="section-header">
+              <i data-lucide="timer"></i> Timing
+            </div>
+            <div class="section-content">
+
+              <!-- Timer Minutes -->
+              <div class="field" id="timer-minutes-field">
+                <div class="field-label">
+                  <i data-lucide="clock"></i> Game Timer
+                  <span class="field-hint">minutes</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="timer-minutes" min="5" max="60" value="15" data-display="timer-minutes-val">
+                  <div class="range-value" id="timer-minutes-val">15</div>
+                </div>
+              </div>
+
+              <!-- Answer Time -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="message-circle"></i> Answer Time
+                  <span class="field-hint">seconds</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="answer-time" min="10" max="60" value="30" data-display="answer-time-val">
+                  <div class="range-value" id="answer-time-val">30</div>
+                </div>
+              </div>
+
+              <!-- No-buzz Window -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="shield-off"></i> No-Buzz Window
+                  <span class="field-hint">seconds</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="no-buzz" min="0" max="10" value="3" data-display="no-buzz-val">
+                  <div class="range-value" id="no-buzz-val">3</div>
+                </div>
+              </div>
+
+              <!-- Bonus Time -->
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="zap"></i> Bonus Time
+                  <span class="field-hint">seconds</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" class="range-slider" id="bonus-time" min="5" max="30" value="15" data-display="bonus-time-val">
+                  <div class="range-value" id="bonus-time-val">15</div>
+                </div>
+              </div>
+
+              <!-- Timer Expiry -->
+              <div class="field" id="timer-expiry-field">
+                <div class="field-label">
+                  <i data-lucide="alarm-clock-off"></i> When Timer Expires
+                </div>
+                <div class="pill-group pill-group-3" data-pill-group="timer-expiry">
+                  <div class="pill-option active" data-value="finish_round">Finish Round</div>
+                  <div class="pill-option" data-value="finish_main_only">Main Only</div>
+                  <div class="pill-option" data-value="stop_immediately">Stop Now</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ═══ Section 4: Content ═══ -->
+          <div class="ornament">
+            <div class="ornament-line"></div>
+            <div class="ornament-diamond"></div>
+            <div class="ornament-line"></div>
+          </div>
+
+          <div class="section" data-section="4">
+            <div class="section-header">
+              <i data-lucide="shield-check"></i> Content
+            </div>
+            <div class="section-content">
+              <div class="field">
+                <div class="field-label">
+                  <i data-lucide="filter"></i> Moderation
+                  <span class="field-hint">Content filtering level</span>
+                </div>
+                <div class="field-select-wrap">
+                  <select class="field-select" id="moderation">
+                    <option value="off">Off — Anything goes</option>
+                    <option value="light" selected>Light — Mild filtering</option>
+                    <option value="family_safe">Family Safe — Strict</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ Section 5: Audio ═══ -->
+          <div class="ornament">
+            <div class="ornament-line"></div>
+            <div class="ornament-diamond"></div>
+            <div class="ornament-line"></div>
+          </div>
+
+          <div class="section" data-section="5">
+            <div class="section-header">
+              <i data-lucide="volume-2"></i> Audio
+            </div>
+            <div class="section-content">
+              <div class="field">
+                <div class="toggles-row">
+                  <div class="toggle-item active" data-toggle="narration">
+                    <i data-lucide="mic"></i>
+                    <span class="toggle-label">Narration</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-item active" data-toggle="sfx">
+                    <i data-lucide="bell-ring"></i>
+                    <span class="toggle-label">SFX</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                  <div class="toggle-item active" data-toggle="music">
+                    <i data-lucide="music"></i>
+                    <span class="toggle-label">Music</span>
+                    <div class="toggle-switch"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /settings-body -->
+
+        <!-- Submit area -->
+        <div class="ornament" style="margin-top: 4px;">
+          <div class="ornament-line"></div>
+          <div class="ornament-diamond"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <div class="submit-area">
+          <button class="start-btn" id="start-btn">
+            <i data-lucide="play"></i> Start Match
+          </button>
+          <div class="blockers" id="blockers">
+            <div class="blocker-item">
+              <i data-lucide="alert-circle"></i>
+              Need at least 2 players to start
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /card-inner -->
+    </div><!-- /card-frame -->
+  </div><!-- /settings-card -->
+</div><!-- /page -->
+
+<script>
+  // ── Lucide icons ──
+  lucide.createIcons();
+
+  // ── Range sliders ──
+  document.querySelectorAll('.range-slider').forEach(slider => {
+    const displayId = slider.dataset.display;
+    const display = document.getElementById(displayId);
+
+    function updateSlider() {
+      if (display) display.textContent = slider.value;
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+      const val = parseFloat(slider.value);
+      const pct = ((val - min) / (max - min)) * 100;
+      slider.style.setProperty('--fill', pct + '%');
+    }
+
+    slider.addEventListener('input', updateSlider);
+    updateSlider(); // init
+  });
+
+  // ── Pill groups ──
+  document.querySelectorAll('.pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.pill-option');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        // Show/hide timer-related fields based on end mode
+        if (group.dataset.pillGroup === 'end-mode') {
+          const isTimer = pill.dataset.value === 'timer';
+          const timerField = document.getElementById('timer-minutes-field');
+          const expiryField = document.getElementById('timer-expiry-field');
+          if (timerField) {
+            timerField.style.display = isTimer ? '' : 'none';
+            timerField.style.opacity = isTimer ? '1' : '0';
+          }
+          if (expiryField) {
+            expiryField.style.display = isTimer ? '' : 'none';
+            expiryField.style.opacity = isTimer ? '1' : '0';
+          }
+        }
+      });
+    });
+  });
+
+  // Init: hide timer fields if end mode is "rounds"
+  (function initEndMode() {
+    const endGroup = document.querySelector('[data-pill-group="end-mode"]');
+    if (!endGroup) return;
+    const active = endGroup.querySelector('.pill-option.active');
+    if (active && active.dataset.value === 'rounds') {
+      const tf = document.getElementById('timer-minutes-field');
+      const ef = document.getElementById('timer-expiry-field');
+      if (tf) { tf.style.display = 'none'; tf.style.opacity = '0'; }
+      if (ef) { ef.style.display = 'none'; ef.style.opacity = '0'; }
+    }
+  })();
+
+  // ── Audio toggles ──
+  document.querySelectorAll('.toggle-item').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+    });
+  });
+
+  // ── Start button ripple ──
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      startBtn.style.transform = 'scale(0.96)';
+      setTimeout(() => { startBtn.style.transform = ''; }, 150);
+    });
+  }
+
+  // ── Three.js wireframe octahedrons ──
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

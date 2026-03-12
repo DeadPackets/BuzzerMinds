@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Wireframe Center Theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #13091f;
+    --surface: rgba(19,9,31,0.6);
+    --violet: #8b5cf6;
+    --teal: #14b8a6;
+    --coral: #f97066;
+    --cream: #fef3c7;
+    --text-bright: #ede9fe;
+    --text-dim: #7c6f9e;
+    --border-subtle: rgba(139,92,246,0.12);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg);
+    color: var(--text-bright);
+    overflow-x: hidden;
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(60deg, rgba(139,92,246,0.04) 25%, transparent 25%, transparent 75%, rgba(139,92,246,0.04) 75%),
+      linear-gradient(120deg, rgba(139,92,246,0.04) 25%, transparent 25%, transparent 75%, rgba(139,92,246,0.04) 75%);
+    background-size: 60px 35px;
+  }
+
+  #three-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 100;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: rgba(19,9,31,0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 14px;
+    border-radius: 6px;
+  }
+
+  /* ── Main lobby grid ── */
+  .lobby {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 100px 1fr;
+    gap: 24px;
+    padding: 40px 64px;
+    min-height: 100vh;
+    align-items: center;
+  }
+
+  /* ── LEFT COLUMN ── */
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 36px;
+    animation: popIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+
+  .logo {
+    font-family: 'Archivo', sans-serif;
+    font-size: 4rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .logo .buzzer { color: var(--violet); }
+  .logo .minds { color: var(--teal); }
+
+  /* Room code block */
+  .room-code-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: popIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+  }
+
+  .room-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+  .room-label i { width: 16px; height: 16px; color: var(--violet); }
+
+  .room-chars {
+    display: flex;
+    gap: 10px;
+  }
+
+  .room-char {
+    width: 100px;
+    height: 112px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Archivo', sans-serif;
+    font-size: 7rem;
+    font-weight: 900;
+    color: #fff;
+    background: var(--surface);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(139,92,246,0.18);
+    border-radius: 14px;
+    line-height: 1;
+    animation: charWave 3s ease-in-out infinite;
+  }
+  .room-char:nth-child(1) { animation-delay: 0s; }
+  .room-char:nth-child(2) { animation-delay: 0.12s; }
+  .room-char:nth-child(3) { animation-delay: 0.24s; }
+  .room-char:nth-child(4) { animation-delay: 0.36s; }
+  .room-char:nth-child(5) { animation-delay: 0.48s; }
+  .room-char:nth-child(6) { animation-delay: 0.6s; }
+
+  @keyframes charWave {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .join-url {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: 0.01em;
+  }
+
+  /* ── CENTER COLUMN — settings strip ── */
+  .center-strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    height: 100%;
+    position: relative;
+  }
+
+  /* Spine — dashed vertical line behind cards */
+  .center-strip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 0%;
+    border-left: 1px dashed rgba(124,111,158,0.25);
+    animation: spineGrow 1.2s cubic-bezier(0.16,1,0.3,1) 0.4s forwards;
+    z-index: 0;
+  }
+
+  @keyframes spineGrow {
+    from { height: 0%; }
+    to { height: 100%; }
+  }
+
+  .strip-item-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .strip-connector {
+    width: 1px;
+    height: 16px;
+    background: rgba(124,111,158,0.18);
+  }
+
+  .strip-card {
+    width: 90px;
+    padding: 14px 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    position: relative;
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+    animation: stripSlideIn 0.55s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  .strip-card:nth-child(1) .strip-card,
+  .strip-item-wrapper:nth-child(1) .strip-card { animation-delay: 0.6s; }
+  .strip-item-wrapper:nth-child(2) .strip-card { animation-delay: 0.75s; }
+  .strip-item-wrapper:nth-child(3) .strip-card { animation-delay: 0.9s; }
+  .strip-item-wrapper:nth-child(4) .strip-card { animation-delay: 1.05s; }
+
+  @keyframes stripSlideIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.92); }
+    60% { opacity: 1; transform: translateY(-4px) scale(1.03); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .strip-card.border-violet { border-top: 4px solid var(--violet); }
+  .strip-card.border-teal { border-top: 4px solid var(--teal); }
+  .strip-card.border-coral { border-top: 4px solid var(--coral); }
+  .strip-card.border-cream { border-top: 4px solid var(--cream); }
+
+  .strip-card i {
+    width: 24px;
+    height: 24px;
+  }
+  .strip-card.border-violet i { color: var(--violet); }
+  .strip-card.border-teal i { color: var(--teal); }
+  .strip-card.border-coral i { color: var(--coral); }
+  .strip-card.border-cream i { color: var(--cream); }
+
+  .strip-value {
+    font-family: 'Archivo', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    line-height: 1.2;
+  }
+
+  .strip-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+
+  /* ── RIGHT COLUMN ── */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 28px;
+    animation: popIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+  }
+
+  /* QR Block */
+  .qr-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(20,184,166,0.22);
+    border-radius: 18px;
+    padding: 24px 28px 18px;
+    animation: popIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.25s both;
+  }
+
+  .qr-placeholder {
+    width: 220px;
+    height: 220px;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Generate a fake QR pattern */
+  .qr-placeholder canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .qr-scan-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .qr-scan-text i { width: 16px; height: 16px; color: var(--teal); }
+
+  /* Players block */
+  .players-block {
+    background: var(--surface);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(249,112,102,0.2);
+    border-radius: 18px;
+    padding: 20px 24px;
+    width: 100%;
+    max-width: 340px;
+    animation: popIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.35s both;
+  }
+
+  .players-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .players-title {
+    font-family: 'Archivo', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .players-title i { width: 16px; height: 16px; color: var(--coral); }
+
+  .players-count {
+    font-family: 'Archivo', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--coral);
+  }
+
+  .players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--text-bright);
+    opacity: 0;
+    animation: playerFadeIn 0.4s ease forwards;
+  }
+  .player-row:nth-child(1) { animation-delay: 0.5s; }
+  .player-row:nth-child(2) { animation-delay: 0.6s; }
+  .player-row:nth-child(3) { animation-delay: 0.7s; }
+  .player-row:nth-child(4) { animation-delay: 0.8s; }
+  .player-row:nth-child(5) { animation-delay: 0.9s; }
+
+  @keyframes playerFadeIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .player-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-violet { background: var(--violet); }
+  .dot-teal { background: var(--teal); }
+  .dot-coral { background: var(--coral); }
+  .dot-cream { background: var(--cream); }
+
+  .vip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #b8860b;
+    background: rgba(254,243,199,0.15);
+    border: 1px solid rgba(254,243,199,0.3);
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 4px;
+  }
+  .vip-badge i { width: 12px; height: 12px; color: #d4a843; }
+
+  /* Status block */
+  .status-block {
+    background: var(--surface);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: popIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.45s both;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .status-text {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  /* ── Generic animations ── */
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+<div class="theme-label">02e — Wireframe Center</div>
+
+<div class="lobby">
+
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+    <div class="logo">
+      <span class="buzzer">Buzzer</span><span class="minds">Minds</span>
+    </div>
+
+    <div class="room-code-block">
+      <div class="room-label">
+        <i data-lucide="hash"></i>
+        Room Code
+      </div>
+      <div class="room-chars">
+        <div class="room-char">X</div>
+        <div class="room-char">7</div>
+        <div class="room-char">K</div>
+        <div class="room-char">Q</div>
+        <div class="room-char">9</div>
+        <div class="room-char">M</div>
+      </div>
+      <div class="join-url">join.buzzerminds.com</div>
+    </div>
+  </div>
+
+  <!-- CENTER COLUMN — SETTINGS STRIP -->
+  <div class="center-strip">
+    <div class="strip-item-wrapper">
+      <div class="strip-card border-violet">
+        <i data-lucide="book-open"></i>
+        <span class="strip-value">Science</span>
+        <span class="strip-label">Topic</span>
+      </div>
+    </div>
+    <div class="strip-connector"></div>
+    <div class="strip-item-wrapper">
+      <div class="strip-card border-teal">
+        <i data-lucide="gauge"></i>
+        <span class="strip-value">Medium</span>
+        <span class="strip-label">Diff</span>
+      </div>
+    </div>
+    <div class="strip-connector"></div>
+    <div class="strip-item-wrapper">
+      <div class="strip-card border-coral">
+        <i data-lucide="list-ordered"></i>
+        <span class="strip-value">10</span>
+        <span class="strip-label">Qs</span>
+      </div>
+    </div>
+    <div class="strip-connector"></div>
+    <div class="strip-item-wrapper">
+      <div class="strip-card border-cream">
+        <i data-lucide="timer"></i>
+        <span class="strip-value">30s</span>
+        <span class="strip-label">Time</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-col">
+    <div class="qr-block">
+      <div class="qr-placeholder">
+        <canvas id="qr-canvas" width="220" height="220"></canvas>
+      </div>
+      <div class="qr-scan-text">
+        <i data-lucide="scan-line"></i>
+        Scan to join
+      </div>
+    </div>
+
+    <div class="players-block">
+      <div class="players-header">
+        <span class="players-title"><i data-lucide="users"></i> Players</span>
+        <span class="players-count">5 / 8</span>
+      </div>
+      <div class="players-list">
+        <div class="player-row">
+          <span class="player-dot dot-violet"></span>
+          Alex
+          <span class="vip-badge"><i data-lucide="crown"></i> VIP</span>
+        </div>
+        <div class="player-row">
+          <span class="player-dot dot-teal"></span>
+          Jordan
+        </div>
+        <div class="player-row">
+          <span class="player-dot dot-coral"></span>
+          Sam
+        </div>
+        <div class="player-row">
+          <span class="player-dot dot-cream"></span>
+          Taylor
+        </div>
+        <div class="player-row">
+          <span class="player-dot dot-violet"></span>
+          Morgan
+        </div>
+      </div>
+    </div>
+
+    <div class="status-block">
+      <span class="status-dot"></span>
+      <span class="status-text">Waiting for players...</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Lucide Icons ──
+lucide.createIcons();
+
+// ── Fake QR Code ──
+(function generateQR() {
+  const canvas = document.getElementById('qr-canvas');
+  const ctx = canvas.getContext('2d');
+  const size = 220;
+  const cellSize = 8;
+  const gridCount = Math.floor(size / cellSize);
+  const margin = 2;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#13091f';
+
+  // Corner finder patterns
+  function drawFinder(ox, oy) {
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (r === 0 || r === 6 || c === 0 || c === 6 ||
+            (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
+          ctx.fillRect((ox + c) * cellSize, (oy + r) * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+  }
+  drawFinder(margin, margin);
+  drawFinder(gridCount - 7 - margin, margin);
+  drawFinder(margin, gridCount - 7 - margin);
+
+  // Random data cells
+  const seed = 42;
+  let s = seed;
+  function rand() { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; }
+
+  for (let r = margin; r < gridCount - margin; r++) {
+    for (let c = margin; c < gridCount - margin; c++) {
+      const inFinder1 = r < margin + 8 && c < margin + 8;
+      const inFinder2 = r < margin + 8 && c > gridCount - margin - 9;
+      const inFinder3 = r > gridCount - margin - 9 && c < margin + 8;
+      if (inFinder1 || inFinder2 || inFinder3) continue;
+      if (rand() > 0.55) {
+        ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+})();
+
+// ── Three.js wireframe shapes ──
+(function initThree() {
+  const canvas = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 18;
+
+  const colors = [
+    { hex: 0x8b5cf6, opacity: 0.12 }, // violet
+    { hex: 0x14b8a6, opacity: 0.13 }, // teal
+    { hex: 0xf97066, opacity: 0.10 }, // coral
+  ];
+
+  const shapes = [];
+
+  function createWireframe(geometry, color, opacity, x, y, z, scale) {
+    const wireGeo = new THREE.WireframeGeometry(geometry);
+    const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity });
+    const lines = new THREE.LineSegments(wireGeo, mat);
+    lines.position.set(x, y, z);
+    lines.scale.setScalar(scale);
+    lines.userData = {
+      rotSpeed: { x: (Math.random() - 0.5) * 0.004, y: (Math.random() - 0.5) * 0.004, z: (Math.random() - 0.5) * 0.002 },
+      driftSpeed: { x: (Math.random() - 0.5) * 0.003, y: (Math.random() - 0.5) * 0.002 },
+      originX: x,
+      originY: y,
+    };
+    scene.add(lines);
+    shapes.push(lines);
+    return lines;
+  }
+
+  // 4 Dodecahedrons
+  createWireframe(new THREE.DodecahedronGeometry(1.2, 0), colors[0].hex, 0.12, -10, 5, -4, 1.8);
+  createWireframe(new THREE.DodecahedronGeometry(1.0, 0), colors[1].hex, 0.14, 9, -4, -6, 1.5);
+  createWireframe(new THREE.DodecahedronGeometry(0.8, 0), colors[2].hex, 0.11, -5, -6, -3, 2.0);
+  createWireframe(new THREE.DodecahedronGeometry(1.1, 0), colors[0].hex, 0.10, 7, 6, -5, 1.3);
+
+  // 3 Icosahedrons
+  createWireframe(new THREE.IcosahedronGeometry(1.0, 0), colors[1].hex, 0.15, 12, 2, -5, 1.6);
+  createWireframe(new THREE.IcosahedronGeometry(0.9, 0), colors[2].hex, 0.13, -8, -2, -7, 1.4);
+  createWireframe(new THREE.IcosahedronGeometry(1.3, 0), colors[0].hex, 0.11, 0, 7, -8, 1.2);
+
+  // 3 Octahedrons
+  createWireframe(new THREE.OctahedronGeometry(1.0, 0), colors[2].hex, 0.16, -12, 0, -4, 1.7);
+  createWireframe(new THREE.OctahedronGeometry(0.7, 0), colors[1].hex, 0.12, 5, -7, -6, 1.9);
+  createWireframe(new THREE.OctahedronGeometry(1.1, 0), colors[0].hex, 0.14, -3, 4, -5, 1.0);
+
+  let time = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.01;
+
+    shapes.forEach(s => {
+      s.rotation.x += s.userData.rotSpeed.x;
+      s.rotation.y += s.userData.rotSpeed.y;
+      s.rotation.z += s.userData.rotSpeed.z;
+      s.position.x = s.userData.originX + Math.sin(time * 0.5 + s.userData.originX) * 0.6;
+      s.position.y = s.userData.originY + Math.cos(time * 0.4 + s.userData.originY) * 0.4;
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds Layout Concepts — Containerless</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0f1117; color: #e8e6f0; min-height: 100vh; padding: 40px; }
+  h1 { font-size: 2rem; font-weight: 900; margin-bottom: 8px; }
+  h1 span { color: #7c6ef6; }
+  .subtitle { color: #6b6e7b; font-size: 1rem; margin-bottom: 32px; font-weight: 500; max-width: 700px; line-height: 1.6; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  a.card {
+    background: rgba(26,29,39,0.5); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 24px; text-decoration: none; color: inherit;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  a.card:hover { border-color: #7c6ef6; transform: translateY(-2px); }
+  .card h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+  .card h2 .letter { color: #7c6ef6; }
+  .card p { color: #6b6e7b; font-size: 0.9rem; line-height: 1.5; }
+  .tag { display: inline-block; margin-top: 12px; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(124,110,246,0.15); color: #7c6ef6; }
+</style>
+</head>
+<body>
+  <h1>Buzzer<span>Minds</span> — Containerless Layouts</h1>
+  <p class="subtitle">All layouts are containerless — elements float directly on the animated background. Only the QR code has a white card (required for scanning). Click any card to view full-screen.</p>
+
+  <div class="grid">
+    <a class="card" href="A-cascading-falls.html">
+      <h2><span class="letter">A</span> Cascading Falls</h2>
+      <p>Elements cascade down the screen alternating left/right alignment. Logo top-left, code center-left, players right-aligned, settings bottom-left. Waterfall reading flow.</p>
+      <span class="tag">Zigzag Flow</span>
+    </a>
+    <a class="card" href="B-center-gravity.html">
+      <h2><span class="letter">B</span> Center Gravity</h2>
+      <p>Massive room code in dead center. Everything else orbits around it — logo top-left, QR top-right, players bottom-center, settings bottom-left. Radial pull.</p>
+      <span class="tag">Absolute Positioned</span>
+    </a>
+    <a class="card" href="C-split-towers.html">
+      <h2><span class="letter">C</span> Split Towers</h2>
+      <p>Two vertical columns with 100px gap between them. Left: Logo + Code + Settings. Right: QR + Players + Status. Background breathes through the center gap.</p>
+      <span class="tag">Two Columns</span>
+    </a>
+    <a class="card" href="D-scattered-atoms.html">
+      <h2><span class="letter">D</span> Scattered Atoms</h2>
+      <p>Every element is its own floating atom — individual code characters spread across the center, individual player pills, individual setting tags. Slight rotations. Maximum background.</p>
+      <span class="tag">Fully Ungrouped</span>
+    </a>
+    <a class="card" href="E-headline-news.html">
+      <h2><span class="letter">E</span> Headline News</h2>
+      <p>Pure typography — no containers at all. Code is the giant headline, URL is subheadline, players are inline bylines separated by slashes, settings are metadata. QR floats in right margin.</p>
+      <span class="tag">Typography Only</span>
+    </a>
+    <a class="card" href="F-l-frame.html">
+      <h2><span class="letter">F</span> L-Frame</h2>
+      <p>Content forms an L-shape. Top bar: Logo + Code + QR spanning full width. Left sidebar: Settings stacked vertically. Bottom-right open area fills with player pills.</p>
+      <span class="tag">L-Shaped</span>
+    </a>
+    <a class="card" href="G-diagonal-drift.html">
+      <h2><span class="letter">G</span> Diagonal Drift</h2>
+      <p>Elements flow diagonally, each row indented further right. Logo at 0%, code at 8%, QR+players at 16%, settings at 24%. Staircase creates dynamic energy, background fills upper-right.</p>
+      <span class="tag">Diagonal Staircase</span>
+    </a>
+    <a class="card" href="H-arena-ring.html">
+      <h2><span class="letter">H</span> Arena Ring</h2>
+      <p>Players positioned as individual pills scattered in a ring around the central room code. Like an arena where players surround the action. QR and settings at edges.</p>
+      <span class="tag">Circular Layout</span>
+    </a>
+    <a class="card" href="I-cinematic-wide.html">
+      <h2><span class="letter">I</span> Cinematic Wide</h2>
+      <p>Everything in a narrow horizontal band across the center. Top and bottom thirds are pure background. Movie title sequence feel — code is the title, everything else is credits-style below.</p>
+      <span class="tag">Center Band</span>
+    </a>
+    <a class="card" href="J-horizon-line.html">
+      <h2><span class="letter">J</span> Horizon Line</h2>
+      <p>A subtle horizon line at 42% divides the screen. Giant code floats above. Logo and URL sit on the line. Players and settings live below. QR in upper-left. Landscape feel.</p>
+      <span class="tag">Split Horizon</span>
+    </a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 09 Compact Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text-bright); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 20px;
+  }
+
+  /* ── Ultra-compact card ── */
+  .compact-card {
+    width: 100%; max-width: 380px;
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+
+  /* ── Header row ── */
+  .card-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .card-top-left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(245,158,11,0.12);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark i { width: 18px; height: 18px; color: var(--amber); }
+  .logo-text {
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+  }
+  .logo-text .a { color: var(--amber); }
+  .logo-text .s { color: var(--sage); }
+  .code-badge {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.85rem;
+    color: var(--amber); letter-spacing: 0.04em;
+  }
+
+  /* ── Inline fields ── */
+  .fields { display: flex; flex-direction: column; gap: 12px; }
+
+  .inline-field {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: border-color 0.2s;
+  }
+  .inline-field:focus-within { border-color: var(--sage); }
+
+  .field-icon {
+    width: 18px; height: 18px; flex-shrink: 0;
+  }
+  .field-icon.amber { color: var(--amber); }
+  .field-icon.sage { color: var(--sage); }
+  .field-icon.sky { color: var(--sky); }
+
+  .inline-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text-bright); font-size: 0.95rem; font-weight: 500;
+  }
+  .inline-input::placeholder { color: var(--text-dim); font-weight: 400; }
+  textarea.inline-input {
+    resize: none; min-height: 48px; line-height: 1.4;
+    font-family: var(--font-body);
+  }
+
+  /* ── Color row (compact) ── */
+  .color-compact {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .color-compact-label {
+    font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .color-dots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cdot {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .cdot:hover { transform: scale(1.15); }
+  .cdot.active { border-color: var(--text-bright); transform: scale(1.2); }
+
+  /* ── Submit ── */
+  .submit-btn {
+    width: 100%; padding: 14px; margin-top: 16px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn i { width: 18px; height: 18px; }
+
+  .foot-note {
+    margin-top: 12px; text-align: center;
+    font-size: 0.7rem; color: var(--text-dim);
+  }
+  .foot-note strong { color: var(--sage); font-weight: 600; }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">09 — Compact Stack</div>
+<div class="bg-pattern"></div>
+
+<div class="page">
+  <div class="compact-card">
+    <div class="card-top">
+      <div class="card-top-left">
+        <div class="logo-mark"><i data-lucide="zap"></i></div>
+        <div class="logo-text"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+      </div>
+      <div class="code-badge">X7KQ9W</div>
+    </div>
+
+    <div class="fields">
+      <div class="inline-field">
+        <i data-lucide="user" class="field-icon amber"></i>
+        <input type="text" class="inline-input" placeholder="Display name" maxlength="40">
+      </div>
+
+      <div class="color-compact">
+        <i data-lucide="palette" class="field-icon sage" style="width:18px;height:18px;"></i>
+        <div class="color-dots">
+          <div class="cdot active" style="background:#22d3ee;"></div>
+          <div class="cdot" style="background:#f59e0b;"></div>
+          <div class="cdot" style="background:#4ade80;"></div>
+          <div class="cdot" style="background:#fb7185;"></div>
+          <div class="cdot" style="background:#a78bfa;"></div>
+          <div class="cdot" style="background:#f472b6;"></div>
+          <div class="cdot" style="background:#fbbf24;"></div>
+          <div class="cdot" style="background:#34d399;"></div>
+        </div>
+      </div>
+
+      <div class="inline-field" style="align-items: flex-start; padding-top: 14px;">
+        <i data-lucide="brain" class="field-icon sky" style="margin-top:2px;"></i>
+        <textarea class="inline-input" placeholder="Your expertise: movies, science..." maxlength="250"></textarea>
+      </div>
+    </div>
+
+    <button class="submit-btn"><i data-lucide="arrow-right"></i> Enter Room</button>
+    <div class="foot-note">First player becomes <strong>VIP</strong></div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  document.querySelectorAll('.cdot').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.cdot').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

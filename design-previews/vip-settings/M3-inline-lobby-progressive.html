@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — M3 Inline Lobby + Progressive Expand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px,
+      transparent 1px, transparent 30px
+    );
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Settings card ── */
+  .settings-card {
+    width: 100%; max-width: 440px;
+    position: relative;
+    margin: 16px 0;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Card frame (Party Invite double-border) ── */
+  .card-frame {
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .card-inner {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+  }
+
+  /* ══════════════════════════════════════════════════
+     1. COMPACT LOBBY STRIP
+     ══════════════════════════════════════════════════ */
+  .lobby-strip {
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .lobby-left {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--sage);
+    position: relative; flex-shrink: 0;
+  }
+  .pulse-dot::after {
+    content: '';
+    position: absolute; inset: -3px;
+    border-radius: 50%;
+    background: rgba(74,222,128,0.3);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.6); opacity: 0; }
+  }
+  .lobby-players {
+    font-family: var(--font-body); font-size: 0.78rem; font-weight: 600;
+    color: var(--text-dim);
+  }
+  .lobby-center {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.95rem;
+    letter-spacing: 0.12em; color: var(--amber);
+  }
+  .lobby-right {
+    display: flex; align-items: center;
+  }
+  .avatar-stack {
+    display: flex; align-items: center;
+  }
+  .avatar-circle {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid rgba(20,20,20,0.8);
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .avatar-circle:not(:first-child) { margin-left: -8px; }
+  .avatar-circle:hover { transform: scale(1.2); z-index: 2; }
+
+  /* ══════════════════════════════════════════════════
+     ORNAMENT DIVIDER
+     ══════════════════════════════════════════════════ */
+  .ornament {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 20px;
+  }
+  .ornament-line { flex: 1; height: 1px; background: rgba(245,158,11,0.12); }
+  .ornament-diamond {
+    width: 7px; height: 7px; background: var(--amber);
+    transform: rotate(45deg); border-radius: 1px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     2A. QUICK SETUP (always visible)
+     ══════════════════════════════════════════════════ */
+  .quick-setup {
+    padding: 18px 20px 8px;
+  }
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    letter-spacing: -0.01em; color: var(--text-bright);
+    margin-bottom: 18px;
+  }
+  .section-title i { width: 18px; height: 18px; color: var(--amber); }
+
+  /* ── Model segmented pill bar ── */
+  .model-pills {
+    display: flex; gap: 0;
+    background: rgba(20,20,20,0.6);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 18px;
+  }
+  .model-pill {
+    flex: 1; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none; outline: none;
+    font-family: var(--font-display); font-size: 0.85rem; font-weight: 700;
+    color: var(--text-dim);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+  }
+  .model-pill:hover { color: var(--text-bright); }
+  .model-pill:active { transform: scale(0.96); }
+  .model-pill.active {
+    background: rgba(245,158,11,0.18);
+    color: var(--amber);
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .model-pill:not(.active) { border: 1px solid transparent; }
+
+  /* ── Rounds stepper row ── */
+  .rounds-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    margin-bottom: 18px;
+  }
+  .rounds-label {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.9rem;
+    color: var(--text-bright);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rounds-label i { width: 16px; height: 16px; color: var(--amber); }
+  .stepper {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .stepper-btn {
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    background: rgba(20,20,20,0.5);
+    border-radius: 50%;
+    color: var(--text-dim);
+    cursor: pointer; outline: none;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .stepper-btn i { width: 20px; height: 20px; }
+  .stepper-btn:hover { color: var(--amber); border-color: rgba(245,158,11,0.3); }
+  .stepper-btn:active { transform: scale(0.9); }
+  .stepper-value {
+    font-family: var(--font-display); font-weight: 900; font-size: 1.8rem;
+    color: var(--amber); min-width: 36px; text-align: center;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    line-height: 1;
+  }
+  .stepper-value.bump { transform: scale(1.2); }
+
+  /* ── Difficulty cards ── */
+  .difficulty-group {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 18px;
+  }
+  .diff-label {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.9rem;
+    color: var(--text-bright);
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .diff-label i { width: 16px; height: 16px; color: var(--amber); }
+  .diff-card {
+    height: 56px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 16px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+  }
+  .diff-card:hover { border-color: rgba(255,255,255,0.1); }
+  .diff-card:active { transform: scale(0.98); }
+  .diff-card[data-diff="casual"]  { border-left-color: var(--sage); }
+  .diff-card[data-diff="standard"]{ border-left-color: var(--amber); }
+  .diff-card[data-diff="intense"] { border-left-color: var(--rose); }
+
+  .diff-card .diff-text { flex: 1; }
+  .diff-card .diff-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+    color: var(--text-bright); line-height: 1.2;
+  }
+  .diff-card .diff-sub {
+    font-size: 0.65rem; color: var(--text-dim); font-weight: 500; line-height: 1.3;
+  }
+  .diff-radio {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .diff-radio-inner {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: transparent;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    transform: scale(0);
+  }
+
+  /* Active difficulty card states */
+  .diff-card[data-diff="casual"].active {
+    background: rgba(74,222,128,0.04);
+    border-color: rgba(74,222,128,0.2);
+    border-left-color: var(--sage);
+  }
+  .diff-card[data-diff="casual"].active .diff-radio { border-color: var(--sage); }
+  .diff-card[data-diff="casual"].active .diff-radio-inner { background: var(--sage); transform: scale(1); }
+  .diff-card[data-diff="casual"].active .diff-name { color: var(--sage); }
+
+  .diff-card[data-diff="standard"].active {
+    background: rgba(245,158,11,0.04);
+    border-color: rgba(245,158,11,0.2);
+    border-left-color: var(--amber);
+  }
+  .diff-card[data-diff="standard"].active .diff-radio { border-color: var(--amber); }
+  .diff-card[data-diff="standard"].active .diff-radio-inner { background: var(--amber); transform: scale(1); }
+  .diff-card[data-diff="standard"].active .diff-name { color: var(--amber); }
+
+  .diff-card[data-diff="intense"].active {
+    background: rgba(251,113,133,0.04);
+    border-color: rgba(251,113,133,0.2);
+    border-left-color: var(--rose);
+  }
+  .diff-card[data-diff="intense"].active .diff-radio { border-color: var(--rose); }
+  .diff-card[data-diff="intense"].active .diff-radio-inner { background: var(--rose); transform: scale(1); }
+  .diff-card[data-diff="intense"].active .diff-name { color: var(--rose); }
+
+  /* ── Audio row ── */
+  .audio-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    margin-bottom: 6px;
+  }
+  .audio-row:hover { border-color: rgba(255,255,255,0.1); }
+  .audio-row.active {
+    border-color: rgba(245,158,11,0.2);
+    background: rgba(245,158,11,0.03);
+  }
+  .audio-row-left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .audio-row-left i { width: 18px; height: 18px; color: var(--text-dim); transition: color 0.2s; }
+  .audio-row.active .audio-row-left i { color: var(--amber); }
+  .audio-row-label {
+    font-family: var(--font-display); font-weight: 600; font-size: 0.88rem;
+    color: var(--text-dim); transition: color 0.2s;
+  }
+  .audio-row.active .audio-row-label { color: var(--text-bright); }
+
+  /* ── Toggle switch ── */
+  .toggle-switch {
+    width: 46px; height: 26px; border-radius: 13px;
+    background: rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+  }
+  .active .toggle-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .active .toggle-switch::after {
+    transform: translateX(20px);
+    background: var(--amber);
+  }
+
+  /* Small toggle variant for nested accordions */
+  .toggle-sm {
+    width: 38px; height: 22px; border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+  .toggle-sm::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+  }
+  .toggle-sm.active {
+    background: rgba(245,158,11,0.3);
+  }
+  .toggle-sm.active::after {
+    transform: translateX(16px);
+    background: var(--amber);
+  }
+
+  /* ══════════════════════════════════════════════════
+     2B. FINE-TUNE (progressive disclosure)
+     ══════════════════════════════════════════════════ */
+
+  /* Outer details: Fine-tune Settings */
+  .finetune-details {
+    border: none; outline: none;
+    margin: 0 20px 6px;
+  }
+  .finetune-details > summary {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    background: rgba(20,20,20,0.4);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: all 0.2s;
+  }
+  .finetune-details > summary::-webkit-details-marker { display: none; }
+  .finetune-details > summary::marker { display: none; content: ''; }
+  .finetune-details > summary:hover {
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(20,20,20,0.6);
+  }
+  .finetune-details[open] > summary {
+    border-color: rgba(245,158,11,0.15);
+    background: rgba(245,158,11,0.03);
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid rgba(245,158,11,0.08);
+  }
+  .finetune-summary-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(245,158,11,0.08);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .finetune-summary-icon i { width: 16px; height: 16px; color: var(--amber); }
+  .finetune-summary-text {
+    flex: 1;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .finetune-details[open] .finetune-summary-text { color: var(--text-bright); }
+  .finetune-chevron {
+    width: 18px; height: 18px; color: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    flex-shrink: 0;
+  }
+  .finetune-details[open] .finetune-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Fine-tune inner content wrapper */
+  .finetune-content {
+    background: rgba(20,20,20,0.25);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 8px 0;
+    animation: slideDown 0.3s ease forwards;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Mini accordion (nested details) ── */
+  .mini-accordion {
+    border: none; outline: none;
+    margin: 0 12px 4px;
+  }
+  .mini-accordion:last-child { margin-bottom: 0; }
+  .mini-accordion > summary {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    list-style: none;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .mini-accordion > summary::-webkit-details-marker { display: none; }
+  .mini-accordion > summary::marker { display: none; content: ''; }
+  .mini-accordion > summary:hover { background: rgba(255,255,255,0.03); }
+  .mini-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .mini-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.78rem;
+    color: var(--text-bright);
+  }
+  .mini-summary-vals {
+    flex: 1; text-align: right;
+    font-size: 0.62rem; font-weight: 500; color: var(--text-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 0 4px;
+  }
+  .mini-chevron {
+    width: 14px; height: 14px; color: var(--text-dim);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+  }
+  .mini-accordion[open] .mini-chevron { transform: rotate(180deg); }
+
+  /* Mini accordion content */
+  .mini-content {
+    padding: 4px 12px 12px;
+    animation: miniSlide 0.25s ease forwards;
+  }
+  @keyframes miniSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Field controls inside mini accordions ── */
+  .ft-field { margin-bottom: 12px; }
+  .ft-field:last-child { margin-bottom: 0; }
+  .ft-field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.03em; margin-bottom: 6px;
+  }
+  .ft-field-label i { width: 12px; height: 12px; color: var(--amber); }
+
+  /* ── Select ── */
+  .ft-select-wrap { position: relative; }
+  .ft-select-wrap::after {
+    content: '';
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .ft-select {
+    width: 100%; padding: 10px 32px 10px 12px;
+    background: rgba(20,20,20,0.6); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.82rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .ft-select:focus { border-color: rgba(245,158,11,0.4); }
+  .ft-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* ── Range slider ── */
+  .ft-range-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ft-range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(
+      to right,
+      var(--amber) 0%, var(--amber) var(--fill, 50%),
+      rgba(255,255,255,0.08) var(--fill, 50%), rgba(255,255,255,0.08) 100%
+    );
+    outline: none; cursor: pointer;
+  }
+  .ft-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .ft-range-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .ft-range-slider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .ft-range-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+  .ft-range-slider::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+  .ft-range-value {
+    min-width: 32px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.78rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 6px; padding: 3px 6px;
+  }
+
+  /* ── Pill groups in fine-tune ── */
+  .ft-pill-group {
+    display: flex; gap: 6px;
+  }
+  .ft-pill {
+    flex: 1;
+    padding: 8px 8px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-body); font-size: 0.74rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .ft-pill:hover { border-color: rgba(245,158,11,0.2); color: var(--text-bright); }
+  .ft-pill.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber); font-weight: 600;
+  }
+
+  /* ── Toggle row in audio mini accordion ── */
+  .ft-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ft-toggle-row:last-child { border-bottom: none; }
+  .ft-toggle-info {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ft-toggle-info i { width: 14px; height: 14px; color: var(--text-dim); transition: color 0.2s; }
+  .ft-toggle-info.active i { color: var(--amber); }
+  .ft-toggle-name {
+    font-size: 0.78rem; font-weight: 600; color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .ft-toggle-info.active .ft-toggle-name { color: var(--text-bright); }
+
+  /* ── Conditional fields ── */
+  .conditional-field {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .conditional-field.visible {
+    display: block;
+    opacity: 1;
+  }
+
+  /* ══════════════════════════════════════════════════
+     3. START MATCH (bottom of card)
+     ══════════════════════════════════════════════════ */
+  .cta-area {
+    padding: 10px 20px 20px;
+  }
+  .start-btn {
+    width: 100%; padding: 16px 0;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--amber);
+    border: none; border-radius: 14px;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    letter-spacing: 0.02em; color: #141414;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative; overflow: hidden;
+  }
+  .start-btn i { width: 20px; height: 20px; }
+  .start-btn:hover { opacity: 0.92; }
+  .start-btn:active { transform: scale(0.97); }
+
+  .blocker-text {
+    text-align: center;
+    padding: 6px 20px 0;
+    font-size: 0.62rem; color: rgba(251,113,133,0.7);
+    line-height: 1.4;
+    display: none;
+  }
+
+  /* ── Stagger animation ── */
+  .stagger-in > * {
+    animation: staggerFade 0.4s ease forwards;
+    opacity: 0;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.04s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.16s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.20s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.24s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.28s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.32s; }
+  @keyframes staggerFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Mini accordion divider ── */
+  .mini-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">M3 — Progressive Expand</div>
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+  <div class="settings-card">
+    <div class="card-frame">
+      <div class="card-inner">
+
+        <!-- ═══════════════════════════════════════════
+             1. COMPACT LOBBY STRIP
+             ═══════════════════════════════════════════ -->
+        <div class="lobby-strip">
+          <div class="lobby-left">
+            <div class="pulse-dot"></div>
+            <span class="lobby-players">4 players</span>
+          </div>
+          <div class="lobby-center">X7KQ9W</div>
+          <div class="lobby-right">
+            <div class="avatar-stack">
+              <div class="avatar-circle" style="background: var(--sage);"></div>
+              <div class="avatar-circle" style="background: var(--amber);"></div>
+              <div class="avatar-circle" style="background: var(--sky);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════
+             2A. QUICK SETUP
+             ═══════════════════════════════════════════ -->
+        <div class="quick-setup stagger-in">
+
+          <div class="section-title">
+            <i data-lucide="sparkles"></i>
+            Quick Setup
+          </div>
+
+          <!-- Model pill bar -->
+          <div class="model-pills" id="model-pills">
+            <button class="model-pill active" data-model="gpt4o">GPT-4o</button>
+            <button class="model-pill" data-model="claude">Claude</button>
+            <button class="model-pill" data-model="gemini">Gemini</button>
+          </div>
+
+          <!-- Rounds stepper -->
+          <div class="rounds-row">
+            <div class="rounds-label">
+              <i data-lucide="repeat"></i>
+              Rounds
+            </div>
+            <div class="stepper">
+              <button class="stepper-btn" id="rounds-minus">
+                <i data-lucide="minus-circle"></i>
+              </button>
+              <div class="stepper-value" id="rounds-value">5</div>
+              <button class="stepper-btn" id="rounds-plus">
+                <i data-lucide="plus-circle"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Difficulty cards -->
+          <div class="diff-label">
+            <i data-lucide="gauge"></i>
+            Difficulty
+          </div>
+          <div class="difficulty-group" id="diff-group">
+            <div class="diff-card" data-diff="casual">
+              <div class="diff-text">
+                <div class="diff-name">Casual</div>
+                <div class="diff-sub">Long timers, relaxed pace</div>
+              </div>
+              <div class="diff-radio"><div class="diff-radio-inner"></div></div>
+            </div>
+            <div class="diff-card active" data-diff="standard">
+              <div class="diff-text">
+                <div class="diff-name">Standard</div>
+                <div class="diff-sub">Balanced gameplay</div>
+              </div>
+              <div class="diff-radio"><div class="diff-radio-inner"></div></div>
+            </div>
+            <div class="diff-card" data-diff="intense">
+              <div class="diff-text">
+                <div class="diff-name">Intense</div>
+                <div class="diff-sub">Quick answers, tight windows</div>
+              </div>
+              <div class="diff-radio"><div class="diff-radio-inner"></div></div>
+            </div>
+          </div>
+
+          <!-- Audio toggle row -->
+          <div class="audio-row active" id="audio-master">
+            <div class="audio-row-left">
+              <i data-lucide="volume-2" id="audio-icon"></i>
+              <span class="audio-row-label" id="audio-label">Game Audio</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+
+        </div><!-- /quick-setup -->
+
+        <!-- ═══════════════════════════════════════════
+             DIAMOND ORNAMENT DIVIDER
+             ═══════════════════════════════════════════ -->
+        <div class="ornament" style="padding: 10px 20px;">
+          <div class="ornament-line"></div>
+          <div class="ornament-diamond"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════
+             2B. FINE-TUNE (progressive disclosure)
+             ═══════════════════════════════════════════ -->
+        <details class="finetune-details" id="finetune-details">
+          <summary>
+            <div class="finetune-summary-icon">
+              <i data-lucide="wrench"></i>
+            </div>
+            <span class="finetune-summary-text">Fine-tune Settings</span>
+            <i data-lucide="chevron-down" class="finetune-chevron"></i>
+          </summary>
+
+          <div class="finetune-content">
+
+            <!-- ── Content ── -->
+            <details class="mini-accordion" id="mini-content">
+              <summary>
+                <div class="mini-dot" style="background: var(--sky);"></div>
+                <span class="mini-name">Content</span>
+                <span class="mini-summary-vals" id="content-summary">Light · 6 topics</span>
+                <i data-lucide="chevron-down" class="mini-chevron"></i>
+              </summary>
+              <div class="mini-content">
+                <div class="ft-field">
+                  <div class="ft-field-label"><i data-lucide="shield"></i> Moderation</div>
+                  <div class="ft-select-wrap">
+                    <select class="ft-select" id="ft-moderation">
+                      <option value="off">Off</option>
+                      <option value="light" selected>Light</option>
+                      <option value="family">Family Safe</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="ft-field">
+                  <div class="ft-field-label">
+                    <i data-lucide="book-open"></i> Topic Pool
+                    <span style="margin-left:auto; font-weight:400; font-size:0.6rem; color:rgba(115,115,115,0.7);" id="topic-hint">6</span>
+                  </div>
+                  <div class="ft-range-row">
+                    <input type="range" class="ft-range-slider" min="3" max="12" value="6" id="ft-topics">
+                    <div class="ft-range-value" id="ft-topics-val">6</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div class="mini-divider"></div>
+
+            <!-- ── Rules ── -->
+            <details class="mini-accordion" id="mini-rules">
+              <summary>
+                <div class="mini-dot" style="background: var(--amber);"></div>
+                <span class="mini-name">Rules</span>
+                <span class="mini-summary-vals" id="rules-summary">After Each · By Rounds</span>
+                <i data-lucide="chevron-down" class="mini-chevron"></i>
+              </summary>
+              <div class="mini-content">
+                <div class="ft-field">
+                  <div class="ft-field-label"><i data-lucide="eye"></i> Reveal Mode</div>
+                  <div class="ft-select-wrap">
+                    <select class="ft-select" id="ft-reveal">
+                      <option value="after-each" selected>After Each Question</option>
+                      <option value="end-of-round">End of Round</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="ft-field">
+                  <div class="ft-field-label"><i data-lucide="flag"></i> End Mode</div>
+                  <div class="ft-pill-group" data-pill-group="end-mode" id="ft-end-mode">
+                    <div class="ft-pill active" data-value="rounds">By Rounds</div>
+                    <div class="ft-pill" data-value="timer">By Timer</div>
+                  </div>
+                </div>
+                <div class="ft-field conditional-field" id="ft-timer-minutes-field">
+                  <div class="ft-field-label">
+                    <i data-lucide="clock"></i> Timer Minutes
+                    <span style="margin-left:auto; font-weight:400; font-size:0.6rem; color:rgba(115,115,115,0.7);" id="timer-min-hint">10</span>
+                  </div>
+                  <div class="ft-range-row">
+                    <input type="range" class="ft-range-slider" min="3" max="30" value="10" id="ft-timer-min">
+                    <div class="ft-range-value" id="ft-timer-min-val">10</div>
+                  </div>
+                </div>
+                <div class="ft-field conditional-field" id="ft-timer-expiry-field">
+                  <div class="ft-field-label"><i data-lucide="alert-triangle"></i> Timer Expiry</div>
+                  <div class="ft-select-wrap">
+                    <select class="ft-select" id="ft-timer-expiry">
+                      <option value="finish-round" selected>Finish Round</option>
+                      <option value="immediate">Immediate End</option>
+                      <option value="sudden-death">Sudden Death</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div class="mini-divider"></div>
+
+            <!-- ── Timing ── -->
+            <details class="mini-accordion" id="mini-timing">
+              <summary>
+                <div class="mini-dot" style="background: var(--sage);"></div>
+                <span class="mini-name">Timing</span>
+                <span class="mini-summary-vals" id="timing-summary">45s · 3s no-buzz · 20s bonus</span>
+                <i data-lucide="chevron-down" class="mini-chevron"></i>
+              </summary>
+              <div class="mini-content">
+                <div class="ft-field">
+                  <div class="ft-field-label">
+                    <i data-lucide="hourglass"></i> Answer Time
+                    <span style="margin-left:auto; font-weight:400; font-size:0.6rem; color:rgba(115,115,115,0.7);" id="answer-hint">45s</span>
+                  </div>
+                  <div class="ft-range-row">
+                    <input type="range" class="ft-range-slider" min="15" max="120" value="45" step="5" id="ft-answer">
+                    <div class="ft-range-value" id="ft-answer-val">45s</div>
+                  </div>
+                </div>
+                <div class="ft-field">
+                  <div class="ft-field-label">
+                    <i data-lucide="shield-off"></i> No-Buzz Window
+                    <span style="margin-left:auto; font-weight:400; font-size:0.6rem; color:rgba(115,115,115,0.7);" id="nobuzz-hint">3s</span>
+                  </div>
+                  <div class="ft-range-row">
+                    <input type="range" class="ft-range-slider" min="0" max="10" value="3" id="ft-nobuzz">
+                    <div class="ft-range-value" id="ft-nobuzz-val">3s</div>
+                  </div>
+                </div>
+                <div class="ft-field">
+                  <div class="ft-field-label">
+                    <i data-lucide="trophy"></i> Bonus Time
+                    <span style="margin-left:auto; font-weight:400; font-size:0.6rem; color:rgba(115,115,115,0.7);" id="bonus-hint">20s</span>
+                  </div>
+                  <div class="ft-range-row">
+                    <input type="range" class="ft-range-slider" min="10" max="60" value="20" step="5" id="ft-bonus">
+                    <div class="ft-range-value" id="ft-bonus-val">20s</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <div class="mini-divider"></div>
+
+            <!-- ── Audio ── -->
+            <details class="mini-accordion" id="mini-audio">
+              <summary>
+                <div class="mini-dot" style="background: var(--rose);"></div>
+                <span class="mini-name">Audio</span>
+                <span class="mini-summary-vals" id="audio-summary">All on</span>
+                <i data-lucide="chevron-down" class="mini-chevron"></i>
+              </summary>
+              <div class="mini-content">
+                <div class="ft-toggle-row">
+                  <div class="ft-toggle-info active" data-audio="narration">
+                    <i data-lucide="mic"></i>
+                    <span class="ft-toggle-name">Narration</span>
+                  </div>
+                  <div class="toggle-sm active" data-audio-toggle="narration"></div>
+                </div>
+                <div class="ft-toggle-row">
+                  <div class="ft-toggle-info active" data-audio="sfx">
+                    <i data-lucide="bell-ring"></i>
+                    <span class="ft-toggle-name">SFX</span>
+                  </div>
+                  <div class="toggle-sm active" data-audio-toggle="sfx"></div>
+                </div>
+                <div class="ft-toggle-row">
+                  <div class="ft-toggle-info active" data-audio="music">
+                    <i data-lucide="music"></i>
+                    <span class="ft-toggle-name">Music</span>
+                  </div>
+                  <div class="toggle-sm active" data-audio-toggle="music"></div>
+                </div>
+              </div>
+            </details>
+
+          </div><!-- /finetune-content -->
+        </details><!-- /finetune-details -->
+
+        <!-- ═══════════════════════════════════════════
+             3. START MATCH
+             ═══════════════════════════════════════════ -->
+        <div class="ornament" style="padding: 10px 20px;">
+          <div class="ornament-line"></div>
+          <div class="ornament-diamond"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <div class="cta-area">
+          <button class="start-btn" id="start-btn">
+            <i data-lucide="play"></i>
+            Start Match
+          </button>
+          <div class="blocker-text" id="blocker-text">
+            Waiting for at least 2 players to join...
+          </div>
+        </div>
+
+      </div><!-- /card-inner -->
+    </div><!-- /card-frame -->
+  </div><!-- /settings-card -->
+</div><!-- /page -->
+
+<script>
+  // ── Lucide icons ──
+  lucide.createIcons();
+
+  // ══════════════════════════════════════════════════
+  // Model pill bar
+  // ══════════════════════════════════════════════════
+  const modelPills = document.querySelectorAll('#model-pills .model-pill');
+  modelPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      modelPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Rounds stepper
+  // ══════════════════════════════════════════════════
+  let roundsValue = 5;
+  const roundsDisplay = document.getElementById('rounds-value');
+  const roundsMinus = document.getElementById('rounds-minus');
+  const roundsPlus = document.getElementById('rounds-plus');
+
+  function updateRounds(val) {
+    roundsValue = Math.max(1, Math.min(20, val));
+    roundsDisplay.textContent = roundsValue;
+    roundsDisplay.classList.add('bump');
+    setTimeout(() => roundsDisplay.classList.remove('bump'), 200);
+  }
+  roundsMinus.addEventListener('click', () => updateRounds(roundsValue - 1));
+  roundsPlus.addEventListener('click', () => updateRounds(roundsValue + 1));
+
+  // ══════════════════════════════════════════════════
+  // Difficulty cards (radio-style)
+  // ══════════════════════════════════════════════════
+  const diffGroup = document.getElementById('diff-group');
+  const diffCards = diffGroup.querySelectorAll('.diff-card');
+  diffCards.forEach(card => {
+    card.addEventListener('click', () => {
+      diffCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Audio master toggle
+  // ══════════════════════════════════════════════════
+  const audioMaster = document.getElementById('audio-master');
+  const audioIcon = document.getElementById('audio-icon');
+  const audioLabel = document.getElementById('audio-label');
+
+  audioMaster.addEventListener('click', () => {
+    const isActive = audioMaster.classList.toggle('active');
+    audioIcon.setAttribute('data-lucide', isActive ? 'volume-2' : 'volume-x');
+    audioLabel.textContent = isActive ? 'Game Audio' : 'Audio Off';
+    lucide.createIcons();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Range sliders (fine-tune)
+  // ══════════════════════════════════════════════════
+  function updateSlider(slider, suffix) {
+    const s = suffix || '';
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    const val = parseFloat(slider.value);
+    const pct = ((val - min) / (max - min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+
+    // Update associated value display
+    const valEl = document.getElementById(slider.id + '-val');
+    const hintEl = document.getElementById(slider.id.replace('ft-', '') + '-hint');
+    if (valEl) valEl.textContent = val + s;
+    if (hintEl) hintEl.textContent = val + s;
+  }
+
+  // Topic pool slider
+  const ftTopics = document.getElementById('ft-topics');
+  ftTopics.addEventListener('input', () => {
+    updateSlider(ftTopics, '');
+    updateContentSummary();
+  });
+  updateSlider(ftTopics, '');
+
+  // Answer time slider
+  const ftAnswer = document.getElementById('ft-answer');
+  ftAnswer.addEventListener('input', () => {
+    updateSlider(ftAnswer, 's');
+    updateTimingSummary();
+  });
+  updateSlider(ftAnswer, 's');
+
+  // No-buzz window slider
+  const ftNobuzz = document.getElementById('ft-nobuzz');
+  ftNobuzz.addEventListener('input', () => {
+    updateSlider(ftNobuzz, 's');
+    updateTimingSummary();
+  });
+  updateSlider(ftNobuzz, 's');
+
+  // Bonus time slider
+  const ftBonus = document.getElementById('ft-bonus');
+  ftBonus.addEventListener('input', () => {
+    updateSlider(ftBonus, 's');
+    updateTimingSummary();
+  });
+  updateSlider(ftBonus, 's');
+
+  // Timer minutes slider
+  const ftTimerMin = document.getElementById('ft-timer-min');
+  ftTimerMin.addEventListener('input', () => {
+    updateSlider(ftTimerMin, '');
+    // Update hint
+    document.getElementById('timer-min-hint').textContent = ftTimerMin.value;
+    document.getElementById('ft-timer-min-val').textContent = ftTimerMin.value;
+  });
+  updateSlider(ftTimerMin, '');
+
+  // ══════════════════════════════════════════════════
+  // Pill groups (end mode)
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.ft-pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.ft-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        // End mode conditional fields
+        if (group.dataset.pillGroup === 'end-mode') {
+          const isTimer = pill.dataset.value === 'timer';
+          const timerField = document.getElementById('ft-timer-minutes-field');
+          const expiryField = document.getElementById('ft-timer-expiry-field');
+          timerField.classList.toggle('visible', isTimer);
+          expiryField.classList.toggle('visible', isTimer);
+          updateRulesSummary();
+        }
+      });
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Audio toggles (fine-tune nested)
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.toggle-sm[data-audio-toggle]').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const key = toggle.dataset.audioToggle;
+      const isActive = toggle.classList.toggle('active');
+      const info = document.querySelector(`.ft-toggle-info[data-audio="${key}"]`);
+      if (info) info.classList.toggle('active', isActive);
+      updateAudioSummary();
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Summary value updaters
+  // ══════════════════════════════════════════════════
+  function updateContentSummary() {
+    const mod = document.getElementById('ft-moderation');
+    const topics = ftTopics.value;
+    document.getElementById('content-summary').textContent =
+      mod.options[mod.selectedIndex].text + ' · ' + topics + ' topics';
+  }
+  document.getElementById('ft-moderation').addEventListener('change', updateContentSummary);
+
+  function updateRulesSummary() {
+    const reveal = document.getElementById('ft-reveal');
+    const endMode = document.querySelector('#ft-end-mode .ft-pill.active');
+    const revealText = reveal.selectedIndex === 0 ? 'After Each' : 'End of Round';
+    const endText = endMode ? endMode.textContent : 'By Rounds';
+    document.getElementById('rules-summary').textContent = revealText + ' · ' + endText;
+  }
+  document.getElementById('ft-reveal').addEventListener('change', updateRulesSummary);
+
+  function updateTimingSummary() {
+    document.getElementById('timing-summary').textContent =
+      ftAnswer.value + 's · ' + ftNobuzz.value + 's no-buzz · ' + ftBonus.value + 's bonus';
+  }
+
+  function updateAudioSummary() {
+    const toggles = document.querySelectorAll('.toggle-sm[data-audio-toggle]');
+    const activeNames = [];
+    toggles.forEach(t => {
+      if (t.classList.contains('active')) {
+        activeNames.push(t.dataset.audioToggle.charAt(0).toUpperCase() + t.dataset.audioToggle.slice(1));
+      }
+    });
+    const summary = document.getElementById('audio-summary');
+    if (activeNames.length === 3) {
+      summary.textContent = 'All on';
+    } else if (activeNames.length === 0) {
+      summary.textContent = 'All off';
+    } else {
+      summary.textContent = activeNames.join(', ');
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // Start button
+  // ══════════════════════════════════════════════════
+  const startBtn = document.getElementById('start-btn');
+  startBtn.addEventListener('click', () => {
+    startBtn.style.transform = 'scale(0.96)';
+    setTimeout(() => { startBtn.style.transform = ''; }, 150);
+  });
+
+  // ══════════════════════════════════════════════════
+  // Three.js wireframe octahedrons
+  // ══════════════════════════════════════════════════
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

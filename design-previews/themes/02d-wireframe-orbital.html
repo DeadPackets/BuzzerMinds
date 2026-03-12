@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BuzzerMinds — Wireframe Orbital</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1a1a;
+  --surface:rgba(15,26,26,0.6);
+  --lime:#a3e635;
+  --pink:#f472b6;
+  --sky:#38bdf8;
+  --orange:#fb923c;
+  --text:#ecfdf5;
+  --dim:#6b8a8a;
+}
+body{background:var(--bg);color:var(--text);font-family:'Quicksand',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
+
+/* CSS grid background */
+.grid-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(rgba(163,230,53,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(163,230,53,0.04) 1px, transparent 1px);
+  background-size:60px 60px;
+}
+
+/* Three.js canvas */
+#wireframe-bg{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* Theme label */
+.theme-label{
+  position:fixed;top:16px;right:20px;
+  font-size:.7rem;font-weight:700;color:var(--dim);
+  background:var(--surface);backdrop-filter:blur(10px);
+  border:1px solid rgba(163,230,53,0.12);border-radius:8px;
+  padding:5px 14px;z-index:100;
+  letter-spacing:.5px;text-transform:uppercase;
+  font-family:'Quicksand',sans-serif;
+}
+
+/* Layout */
+.lobby{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:80px;
+  padding:40px 64px;
+  min-height:100vh;
+  align-items:center;
+  position:relative;
+  z-index:2;
+}
+
+.left-tower{display:flex;flex-direction:column;align-items:flex-start;gap:36px}
+.right-tower{display:flex;flex-direction:column;align-items:flex-end;gap:28px}
+
+/* Pop-in animation */
+@keyframes popIn{
+  0%{opacity:0;transform:translateY(28px) scale(0.9)}
+  55%{opacity:1;transform:translateY(-8px) scale(1.03)}
+  78%{transform:translateY(3px) scale(0.99)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+.pop{opacity:0;animation:popIn .55s cubic-bezier(.34,1.56,.64,1) forwards}
+.pop-d1{animation-delay:.05s}
+.pop-d2{animation-delay:.14s}
+.pop-d3{animation-delay:.24s}
+.pop-d4{animation-delay:.34s}
+.pop-d5{animation-delay:.44s}
+
+/* Logo */
+.logo{font-family:'Lilita One',sans-serif;font-size:4.2rem;line-height:1.1;letter-spacing:-1px}
+.logo .lime{color:var(--lime)}
+.logo .pink{color:var(--pink)}
+
+/* Room code block */
+.code-block{width:100%}
+.code-label{
+  font-size:.85rem;color:var(--dim);font-weight:700;
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;
+  text-transform:uppercase;letter-spacing:1.5px;
+}
+.code-label i{width:16px;height:16px}
+
+.code-row{display:flex;gap:12px;margin-bottom:18px}
+
+@keyframes charWave{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+.code-ch{
+  font-family:'Lilita One',sans-serif;
+  font-size:7.5rem;
+  color:#fff;
+  background:rgba(15,26,26,0.5);
+  backdrop-filter:blur(8px);
+  border:2px solid rgba(163,230,53,0.18);
+  border-radius:16px;
+  width:110px;height:124px;
+  display:flex;align-items:center;justify-content:center;
+  line-height:1;
+  animation:charWave 2.8s ease-in-out infinite;
+}
+.code-ch:nth-child(1){animation-delay:0s}
+.code-ch:nth-child(2){animation-delay:.15s}
+.code-ch:nth-child(3){animation-delay:.3s}
+.code-ch:nth-child(4){animation-delay:.45s}
+.code-ch:nth-child(5){animation-delay:.6s}
+.code-ch:nth-child(6){animation-delay:.75s}
+
+.join-url{font-size:1.1rem;color:var(--dim);font-weight:600}
+.join-url b{color:var(--lime);font-weight:700}
+
+/* ===== QR + ORBITAL SETTINGS ===== */
+.qr-orbital{
+  position:relative;
+  width:420px;
+  height:420px;
+}
+
+/* SVG connector lines */
+.orbital-lines{
+  position:absolute;
+  inset:0;
+  width:100%;height:100%;
+  z-index:0;
+  pointer-events:none;
+}
+.orbital-lines line{
+  stroke:var(--dim);
+  stroke-width:1;
+  stroke-dasharray:6 4;
+  opacity:0.4;
+}
+
+@keyframes marchingAnts{
+  to{stroke-dashoffset:-40}
+}
+.orbital-lines line{
+  animation:marchingAnts 4s linear infinite;
+}
+@keyframes orbitRingSpin{
+  to{stroke-dashoffset:-60}
+}
+.orbital-lines circle{
+  animation:orbitRingSpin 12s linear infinite;
+}
+
+/* QR center */
+.qr-center{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:200px;height:200px;
+  z-index:2;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:8px;
+}
+.qr{
+  width:180px;height:180px;
+  background:#fff;
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Lilita One',sans-serif;font-weight:400;
+  color:var(--bg);font-size:1rem;
+}
+.scan-text{
+  font-size:.8rem;color:var(--dim);font-weight:600;
+  display:flex;align-items:center;gap:6px;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.scan-text i{width:14px;height:14px}
+
+/* Orbital tags */
+.orbital-tag{
+  position:absolute;
+  z-index:3;
+  background:rgba(15,26,26,0.7);
+  backdrop-filter:blur(12px);
+  border-radius:12px;
+  padding:12px 16px;
+  display:flex;flex-direction:column;
+  align-items:center;gap:4px;
+  border:1.5px solid transparent;
+  min-width:100px;
+  text-align:center;
+  cursor:default;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.orbital-tag:hover{transform:scale(1.06) !important}
+
+.orbital-tag .tag-icon{width:20px;height:20px;margin-bottom:2px}
+.orbital-tag .tag-value{font-size:1rem;font-weight:700;color:var(--text);line-height:1.2}
+.orbital-tag .tag-label{font-size:.65rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.8px}
+
+/* Orbital tag positions */
+.orbital-tag.top-left{
+  top:0;left:0;
+  transform:rotate(-5deg);
+  border-color:var(--lime);
+}
+.orbital-tag.top-left .tag-icon{color:var(--lime)}
+
+.orbital-tag.top-right{
+  top:0;right:0;
+  transform:rotate(3deg);
+  border-color:var(--sky);
+}
+.orbital-tag.top-right .tag-icon{color:var(--sky)}
+
+.orbital-tag.bottom-left{
+  bottom:0;left:0;
+  transform:rotate(-3deg);
+  border-color:var(--pink);
+}
+.orbital-tag.bottom-left .tag-icon{color:var(--pink)}
+
+.orbital-tag.bottom-right{
+  bottom:0;right:0;
+  transform:rotate(5deg);
+  border-color:var(--orange);
+}
+.orbital-tag.bottom-right .tag-icon{color:var(--orange)}
+
+/* Breathing animations — individual per tag to preserve rotation */
+@keyframes breatheTL{
+  0%,100%{transform:rotate(-5deg) scale(1)}
+  50%{transform:rotate(-5deg) scale(1.04)}
+}
+@keyframes breatheTR{
+  0%,100%{transform:rotate(3deg) scale(1)}
+  50%{transform:rotate(3deg) scale(1.04)}
+}
+@keyframes breatheBL{
+  0%,100%{transform:rotate(-3deg) scale(1)}
+  50%{transform:rotate(-3deg) scale(1.04)}
+}
+@keyframes breatheBR{
+  0%,100%{transform:rotate(5deg) scale(1)}
+  50%{transform:rotate(5deg) scale(1.04)}
+}
+.orbital-tag.top-left{animation:breatheTL 3s ease-in-out infinite;animation-delay:0s}
+.orbital-tag.top-right{animation:breatheTR 3s ease-in-out infinite;animation-delay:.75s}
+.orbital-tag.bottom-left{animation:breatheBL 3s ease-in-out infinite;animation-delay:1.5s}
+.orbital-tag.bottom-right{animation:breatheBR 3s ease-in-out infinite;animation-delay:2.25s}
+
+/* Players block */
+.players-block{
+  background:var(--surface);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(244,114,182,0.25);
+  border-radius:18px;
+  padding:26px;
+  width:100%;
+  max-width:400px;
+}
+.players-label{
+  font-size:.85rem;color:var(--dim);font-weight:700;
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;
+  text-transform:uppercase;letter-spacing:1.2px;
+}
+.players-label i{width:18px;height:18px}
+
+.player-list{display:flex;flex-direction:column;gap:5px}
+
+.player{
+  padding:12px 20px;
+  border-radius:40px;
+  font-size:1.15rem;font-weight:700;
+  display:flex;align-items:center;gap:12px;
+  transition:background .2s;
+}
+.player:nth-child(odd){background:rgba(15,26,26,0.45)}
+.player:hover{background:rgba(163,230,53,0.06)}
+
+.dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.player:nth-child(1) .dot{background:var(--lime)}
+.player:nth-child(2) .dot{background:var(--sky)}
+.player:nth-child(3) .dot{background:var(--pink)}
+.player:nth-child(4) .dot{background:var(--orange)}
+.player:nth-child(5) .dot{background:var(--lime)}
+
+.vip{
+  font-size:.7rem;font-weight:800;
+  color:var(--orange);
+  background:rgba(251,146,60,0.12);
+  padding:3px 10px;border-radius:8px;
+  margin-left:auto;
+  display:flex;align-items:center;gap:5px;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.vip i{width:13px;height:13px;color:var(--orange)}
+
+/* Status */
+.status{
+  font-size:.95rem;color:var(--dim);font-weight:600;
+  text-align:right;
+  padding:14px 24px;
+  background:var(--surface);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(107,138,138,0.15);
+  border-radius:14px;
+  width:100%;
+  max-width:400px;
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<canvas id="wireframe-bg"></canvas>
+<div class="theme-label">Wireframe Orbital</div>
+
+<div class="lobby">
+  <div class="left-tower">
+    <div class="logo pop pop-d1"><span class="lime">Buzzer</span><span class="pink">Minds</span></div>
+
+    <div class="code-block pop pop-d2">
+      <div class="code-label"><i data-lucide="hash"></i> Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+      <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+    </div>
+  </div>
+
+  <div class="right-tower">
+    <div class="qr-orbital pop pop-d3">
+      <!-- SVG connector lines from tags to QR center -->
+      <svg class="orbital-lines" viewBox="0 0 420 420" fill="none">
+        <!-- Orbital ring around QR -->
+        <circle cx="210" cy="210" r="150" stroke="var(--dim)" stroke-width="0.5" stroke-dasharray="4 6" opacity="0.3" fill="none"/>
+        <!-- top-left tag center (~55,40) to QR center (210,210) -->
+        <line x1="60" y1="50" x2="165" y2="165" />
+        <!-- top-right tag center (~365,40) to QR center -->
+        <line x1="360" y1="50" x2="255" y2="165" />
+        <!-- bottom-left tag center (~55,380) to QR center -->
+        <line x1="60" y1="370" x2="165" y2="255" />
+        <!-- bottom-right tag center (~365,380) to QR center -->
+        <line x1="360" y1="370" x2="255" y2="255" />
+      </svg>
+
+      <!-- Center QR -->
+      <div class="qr-center">
+        <div class="qr">QR CODE</div>
+        <div class="scan-text"><i data-lucide="scan-line"></i> Scan to join</div>
+      </div>
+
+      <!-- Orbital settings tags -->
+      <div class="orbital-tag top-left">
+        <i data-lucide="book-open" class="tag-icon"></i>
+        <div class="tag-value">Science</div>
+        <div class="tag-label">Topic</div>
+      </div>
+
+      <div class="orbital-tag top-right">
+        <i data-lucide="gauge" class="tag-icon"></i>
+        <div class="tag-value">Medium</div>
+        <div class="tag-label">Difficulty</div>
+      </div>
+
+      <div class="orbital-tag bottom-left">
+        <i data-lucide="list-ordered" class="tag-icon"></i>
+        <div class="tag-value">10</div>
+        <div class="tag-label">Questions</div>
+      </div>
+
+      <div class="orbital-tag bottom-right">
+        <i data-lucide="timer" class="tag-icon"></i>
+        <div class="tag-value">30s</div>
+        <div class="tag-label">Time</div>
+      </div>
+    </div>
+
+    <div class="players-block pop pop-d4">
+      <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+      <div class="player-list">
+        <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+        <div class="player"><span class="dot"></span> BrainiacBee</div>
+        <div class="player"><span class="dot"></span> QuizWhiz42</div>
+        <div class="player"><span class="dot"></span> TriviaKing</div>
+        <div class="player"><span class="dot"></span> NerdHerd99</div>
+      </div>
+    </div>
+
+    <div class="status pop pop-d5">Waiting for VIP to start...</div>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+
+// Three.js wireframe torus knots background
+(function(){
+  const canvas = document.getElementById('wireframe-bg');
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.z = 16;
+
+  const colors = [0xa3e635, 0xf472b6, 0x38bdf8];
+  const shapes = [];
+  const count = 8;
+
+  for(let i=0; i<count; i++){
+    const radius = 0.6 + Math.random()*1.0;
+    const tube = 0.15 + Math.random()*0.2;
+    const geo = new THREE.TorusKnotGeometry(radius, tube, 64, 8, 2, 3);
+    const wireGeo = new THREE.WireframeGeometry(geo);
+    const opacity = 0.10 + Math.random()*0.06;
+    const mat = new THREE.LineBasicMaterial({
+      color: colors[i % colors.length],
+      transparent: true,
+      opacity: opacity
+    });
+    const mesh = new THREE.LineSegments(wireGeo, mat);
+    mesh.position.x = (Math.random()-0.5)*24;
+    mesh.position.y = (Math.random()-0.5)*16;
+    mesh.position.z = (Math.random()-0.5)*8 - 3;
+    mesh.rotation.x = Math.random()*Math.PI;
+    mesh.rotation.y = Math.random()*Math.PI;
+    mesh.userData = {
+      rotSpeedX: (Math.random()-0.5)*0.002,
+      rotSpeedY: (Math.random()-0.5)*0.003,
+      rotSpeedZ: (Math.random()-0.5)*0.0015,
+      origX: mesh.position.x,
+      origY: mesh.position.y,
+      driftPhase: Math.random()*Math.PI*2
+    };
+    scene.add(mesh);
+    shapes.push(mesh);
+  }
+
+  let time = 0;
+  function animate(){
+    requestAnimationFrame(animate);
+    time += 0.006;
+    shapes.forEach(s=>{
+      s.rotation.x += s.userData.rotSpeedX;
+      s.rotation.y += s.userData.rotSpeedY;
+      s.rotation.z += s.userData.rotSpeedZ;
+      s.position.x = s.userData.origX + Math.sin(time + s.userData.driftPhase)*2.5;
+      s.position.y = s.userData.origY + Math.cos(time*0.7 + s.userData.driftPhase)*1.8;
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+</body>
+</html>

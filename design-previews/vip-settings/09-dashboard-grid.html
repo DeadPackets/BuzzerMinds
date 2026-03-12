@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — 09 Dashboard Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7; --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Grid container ── */
+  .grid-container {
+    width: 100%; max-width: 440px;
+    margin-top: 16px;
+  }
+
+  .grid-header {
+    text-align: center;
+    margin-bottom: 18px;
+    animation: fadeIn 0.5s ease forwards;
+    opacity: 0;
+  }
+  .grid-header-pre {
+    font-family: var(--font-display); font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .grid-header-title {
+    font-family: var(--font-display); font-weight: 900; font-size: 1.4rem;
+    letter-spacing: -0.02em; line-height: 1.1; color: var(--text-bright);
+  }
+  .grid-header-desc {
+    margin-top: 8px; font-size: 0.75rem; color: var(--text-dim); line-height: 1.5;
+  }
+
+  /* ── Dashboard grid ── */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── Tile base ── */
+  .tile {
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color 0.25s, background 0.25s, transform 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: tileFadeIn 0.45s ease forwards;
+  }
+  .tile:active {
+    transform: scale(0.97);
+  }
+  .tile:hover {
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .tile.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* ── Tile content layout ── */
+  .tile-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .tile-icon {
+    width: 18px; height: 18px; color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .tile-label {
+    font-family: var(--font-body);
+    font-size: 0.62rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .tile-value {
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 1.6rem;
+    line-height: 1.1;
+    color: var(--text-bright);
+    transition: color 0.2s;
+  }
+  .tile-value .unit {
+    font-size: 0.8rem; font-weight: 600;
+    color: var(--text-dim); margin-left: 1px;
+  }
+  .tile-value-sub {
+    font-family: var(--font-body);
+    font-size: 0.65rem; font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ── Model tile (full width, special layout) ── */
+  .tile-model .tile-model-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tile-model .tile-model-icon-wrap {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .tile-model .tile-model-icon-wrap i {
+    width: 20px; height: 20px; color: var(--amber);
+  }
+  .tile-model .tile-model-info {
+    flex: 1; min-width: 0;
+  }
+  .tile-model .tile-model-name {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.1rem;
+    color: var(--text-bright); line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tile-model .tile-model-desc {
+    font-size: 0.65rem; color: var(--text-dim); margin-top: 1px;
+  }
+  .tile-model .tile-chevron {
+    width: 16px; height: 16px; color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* ── Pill display (for reveal mode, end mode) ── */
+  .tile-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: var(--font-display); font-size: 0.78rem; font-weight: 700;
+    color: var(--text-bright);
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+
+  /* ── Dim tile ── */
+  .tile.dim {
+    opacity: 0.45;
+  }
+  .tile.dim .tile-value,
+  .tile.dim .tile-pill {
+    color: var(--text-dim);
+  }
+
+  /* ── Editing state ── */
+  .tile.editing {
+    border-color: rgba(245,158,11,0.4);
+    background: rgba(30,30,30,0.85);
+    z-index: 5;
+  }
+  .tile.editing .tile-icon { color: var(--amber); }
+  .tile.editing .tile-label { color: var(--amber); }
+
+  .tile-editor {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(245,158,11,0.15);
+  }
+  .tile.editing .tile-editor {
+    display: block;
+    animation: editorSlide 0.3s ease forwards;
+  }
+
+  @keyframes editorSlide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Range slider (within tile editor) ── */
+  .editor-range-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .editor-range {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    outline: none; cursor: pointer;
+    --fill: 50%;
+    background: linear-gradient(to right, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0.35) var(--fill), rgba(255,255,255,0.08) var(--fill), rgba(255,255,255,0.08) 100%);
+  }
+  .editor-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .editor-range::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .editor-range::-moz-range-track {
+    height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .editor-range-label {
+    font-family: var(--font-body); font-size: 0.6rem; font-weight: 500;
+    color: var(--text-dim); margin-top: 6px;
+    display: flex; justify-content: space-between;
+  }
+
+  /* ── Pill selector (within tile editor) ── */
+  .editor-pills {
+    display: flex; gap: 6px;
+  }
+  .editor-pill {
+    flex: 1; padding: 8px 6px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-body); font-size: 0.7rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .editor-pill:hover { border-color: rgba(245,158,11,0.2); color: var(--text-bright); }
+  .editor-pill.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber); font-weight: 600;
+  }
+
+  /* ── Select dropdown (within tile editor) ── */
+  .editor-select-wrap { position: relative; }
+  .editor-select-wrap::after {
+    content: '';
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .editor-select {
+    width: 100%; padding: 9px 32px 9px 12px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.8rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .editor-select:focus { border-color: rgba(245,158,11,0.4); }
+  .editor-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* ── Segmented control (moderation) ── */
+  .segmented-control {
+    display: flex; gap: 0;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+    margin-top: 8px;
+  }
+  .segment-btn {
+    flex: 1; padding: 8px 6px;
+    border: none; background: none;
+    font-family: var(--font-body); font-size: 0.72rem; font-weight: 600;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; border-radius: 8px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .segment-btn:hover { color: var(--text-bright); }
+  .segment-btn.active {
+    background: rgba(245,158,11,0.12);
+    color: var(--amber);
+  }
+
+  /* ── Audio toggles (inline in tile) ── */
+  .audio-toggles {
+    display: flex; gap: 8px; margin-top: 6px;
+  }
+  .audio-toggle {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 10px 6px;
+    background: rgba(20,20,20,0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .audio-toggle:hover { border-color: rgba(255,255,255,0.1); }
+  .audio-toggle.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .audio-toggle i {
+    width: 16px; height: 16px; color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .audio-toggle.active i { color: var(--amber); }
+  .audio-toggle-label {
+    font-size: 0.58rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-dim); transition: color 0.2s;
+  }
+  .audio-toggle.active .audio-toggle-label { color: var(--text-bright); }
+  .audio-toggle-switch {
+    width: 30px; height: 16px; border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    position: relative; transition: background 0.25s;
+  }
+  .audio-toggle-switch::after {
+    content: '';
+    position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .audio-toggle.active .audio-toggle-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .audio-toggle.active .audio-toggle-switch::after {
+    transform: translateX(14px);
+    background: var(--amber);
+  }
+
+  /* ── Submit area ── */
+  .submit-area {
+    width: 100%; max-width: 440px;
+    margin-top: 16px;
+    opacity: 0;
+    animation: fadeIn 0.5s 1s ease forwards;
+  }
+
+  .start-btn {
+    width: 100%; padding: 15px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .start-btn:hover { filter: brightness(1.08); }
+  .start-btn:active { filter: brightness(0.95); transform: scale(0.98); }
+  .start-btn i { width: 18px; height: 18px; }
+  .start-btn:disabled {
+    opacity: 0.5; cursor: not-allowed; filter: saturate(0.5);
+  }
+
+  .blockers {
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: center;
+  }
+  .blocker-item {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; color: var(--rose); font-weight: 500;
+  }
+  .blocker-item i { width: 12px; height: 12px; }
+
+  /* ── Staggered tile animations ── */
+  @keyframes tileFadeIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .tile:nth-child(1) { animation-delay: 0.05s; }
+  .tile:nth-child(2) { animation-delay: 0.1s; }
+  .tile:nth-child(3) { animation-delay: 0.15s; }
+  .tile:nth-child(4) { animation-delay: 0.2s; }
+  .tile:nth-child(5) { animation-delay: 0.25s; }
+  .tile:nth-child(6) { animation-delay: 0.3s; }
+  .tile:nth-child(7) { animation-delay: 0.35s; }
+  .tile:nth-child(8) { animation-delay: 0.4s; }
+  .tile:nth-child(9) { animation-delay: 0.45s; }
+  .tile:nth-child(10) { animation-delay: 0.5s; }
+  .tile:nth-child(11) { animation-delay: 0.55s; }
+  .tile:nth-child(12) { animation-delay: 0.6s; }
+  .tile:nth-child(13) { animation-delay: 0.65s; }
+
+  /* ── Small-screen tightening ── */
+  @media (max-width: 380px) {
+    .page { padding: 12px; }
+    .grid-header-title { font-size: 1.2rem; }
+    .tile { padding: 12px; }
+    .tile-value { font-size: 1.4rem; }
+    .tile-model .tile-model-name { font-size: 0.95rem; }
+    .dashboard-grid { gap: 8px; }
+    .audio-toggle { padding: 8px 4px; }
+    .audio-toggle-label { font-size: 0.52rem; }
+    .segment-btn { font-size: 0.65rem; padding: 7px 4px; }
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">09 — Dashboard Grid</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="grid-container">
+    <div class="grid-header">
+      <div class="grid-header-pre">VIP Controls</div>
+      <div class="grid-header-title">Match Settings</div>
+      <p class="grid-header-desc">Tap any tile to edit. Tap again to collapse.</p>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <!-- ═══ Row 1: Model (full width) ═══ -->
+      <div class="tile full-width tile-model" data-tile="model">
+        <div class="tile-top">
+          <span class="tile-label">AI Model</span>
+          <i data-lucide="chevron-right" class="tile-chevron"></i>
+        </div>
+        <div class="tile-model-row">
+          <div class="tile-model-icon-wrap">
+            <i data-lucide="brain"></i>
+          </div>
+          <div class="tile-model-info">
+            <div class="tile-model-name">GPT-4o Standard</div>
+            <div class="tile-model-desc">Balanced — fast & accurate</div>
+          </div>
+        </div>
+        <div class="tile-editor">
+          <div class="editor-select-wrap">
+            <select class="editor-select" id="model-select">
+              <option value="balanced" selected>GPT-4o Standard — Balanced</option>
+              <option value="creative">GPT-4o Creative — Unique questions</option>
+              <option value="precise">GPT-4o Precise — Factually strict</option>
+              <option value="experimental">GPT-4o Experimental — Cutting edge</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Row 2: Topics + Rounds ═══ -->
+      <div class="tile" data-tile="topics">
+        <div class="tile-top">
+          <i data-lucide="library" class="tile-icon"></i>
+          <span class="tile-label">Topics</span>
+        </div>
+        <div class="tile-value" id="topics-display">6</div>
+        <div class="tile-value-sub">topic pool</div>
+        <div class="tile-editor">
+          <div class="editor-range-row">
+            <input type="range" class="editor-range" id="topics-range" min="3" max="12" value="6">
+          </div>
+          <div class="editor-range-label">
+            <span>3</span><span>12</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile editing" data-tile="rounds">
+        <div class="tile-top">
+          <i data-lucide="repeat" class="tile-icon"></i>
+          <span class="tile-label">Rounds</span>
+        </div>
+        <div class="tile-value" id="rounds-display">5</div>
+        <div class="tile-value-sub">per match</div>
+        <div class="tile-editor">
+          <div class="editor-range-row">
+            <input type="range" class="editor-range" id="rounds-range" min="1" max="20" value="5">
+          </div>
+          <div class="editor-range-label">
+            <span>1</span><span>20</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Row 3: Reveal + End Mode ═══ -->
+      <div class="tile" data-tile="reveal">
+        <div class="tile-top">
+          <i data-lucide="eye" class="tile-icon"></i>
+          <span class="tile-label">Reveal</span>
+        </div>
+        <div class="tile-pill">Progressive</div>
+        <div class="tile-editor">
+          <div class="editor-pills" data-pill-group="reveal">
+            <div class="editor-pill active" data-value="progressive">Progressive</div>
+            <div class="editor-pill" data-value="full">Full</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile" data-tile="end-mode">
+        <div class="tile-top">
+          <i data-lucide="flag" class="tile-icon"></i>
+          <span class="tile-label">End Mode</span>
+        </div>
+        <div class="tile-pill">Rounds</div>
+        <div class="tile-editor">
+          <div class="editor-pills" data-pill-group="end-mode">
+            <div class="editor-pill active" data-value="rounds">Rounds</div>
+            <div class="editor-pill" data-value="timer">Timer</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Row 4: Answer Time + No-Buzz ═══ -->
+      <div class="tile" data-tile="answer">
+        <div class="tile-top">
+          <i data-lucide="message-circle" class="tile-icon"></i>
+          <span class="tile-label">Answer</span>
+        </div>
+        <div class="tile-value">45<span class="unit">s</span></div>
+        <div class="tile-value-sub">per question</div>
+        <div class="tile-editor">
+          <div class="editor-range-row">
+            <input type="range" class="editor-range" id="answer-range" min="10" max="60" value="45">
+          </div>
+          <div class="editor-range-label">
+            <span>10s</span><span>60s</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile" data-tile="nobuzz">
+        <div class="tile-top">
+          <i data-lucide="shield-off" class="tile-icon"></i>
+          <span class="tile-label">No-Buzz</span>
+        </div>
+        <div class="tile-value">3<span class="unit">s</span></div>
+        <div class="tile-value-sub">read window</div>
+        <div class="tile-editor">
+          <div class="editor-range-row">
+            <input type="range" class="editor-range" id="nobuzz-range" min="0" max="10" value="3">
+          </div>
+          <div class="editor-range-label">
+            <span>0s</span><span>10s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Row 5: Bonus + Timer ═══ -->
+      <div class="tile" data-tile="bonus">
+        <div class="tile-top">
+          <i data-lucide="zap" class="tile-icon"></i>
+          <span class="tile-label">Bonus</span>
+        </div>
+        <div class="tile-value">20<span class="unit">s</span></div>
+        <div class="tile-value-sub">bonus round</div>
+        <div class="tile-editor">
+          <div class="editor-range-row">
+            <input type="range" class="editor-range" id="bonus-range" min="5" max="30" value="20">
+          </div>
+          <div class="editor-range-label">
+            <span>5s</span><span>30s</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile dim" data-tile="timer" id="timer-tile">
+        <div class="tile-top">
+          <i data-lucide="clock" class="tile-icon"></i>
+          <span class="tile-label">Timer</span>
+        </div>
+        <div class="tile-value">20<span class="unit">m</span></div>
+        <div class="tile-value-sub">game length</div>
+        <div class="tile-editor">
+          <div class="editor-range-row">
+            <input type="range" class="editor-range" id="timer-range" min="5" max="60" value="20">
+          </div>
+          <div class="editor-range-label">
+            <span>5m</span><span>60m</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Row 6: Timer Expiry (full width, hidden when end mode is rounds) ═══ -->
+      <div class="tile full-width" data-tile="timer-expiry" id="timer-expiry-tile" style="display: none;">
+        <div class="tile-top">
+          <i data-lucide="alarm-clock-off" class="tile-icon"></i>
+          <span class="tile-label">When Timer Expires</span>
+        </div>
+        <div class="tile-pill" id="timer-expiry-display">Finish Round</div>
+        <div class="tile-editor">
+          <div class="editor-pills" data-pill-group="timer-expiry">
+            <div class="editor-pill active" data-value="finish_round">Finish Round</div>
+            <div class="editor-pill" data-value="finish_main_only">Main Only</div>
+            <div class="editor-pill" data-value="stop_immediately">Stop Now</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Row 7: Moderation (full width) ═══ -->
+      <div class="tile full-width" data-tile="moderation">
+        <div class="tile-top">
+          <i data-lucide="shield-check" class="tile-icon"></i>
+          <span class="tile-label">Moderation</span>
+        </div>
+        <div class="segmented-control" id="moderation-control">
+          <button class="segment-btn active" data-value="off">Off</button>
+          <button class="segment-btn" data-value="light">Light</button>
+          <button class="segment-btn" data-value="family">Family</button>
+        </div>
+      </div>
+
+      <!-- ═══ Row 8: Audio (full width) ═══ -->
+      <div class="tile full-width" data-tile="audio">
+        <div class="tile-top">
+          <i data-lucide="volume-2" class="tile-icon"></i>
+          <span class="tile-label">Audio</span>
+        </div>
+        <div class="audio-toggles">
+          <div class="audio-toggle active" data-audio="narration">
+            <i data-lucide="mic"></i>
+            <span class="audio-toggle-label">Narrate</span>
+            <div class="audio-toggle-switch"></div>
+          </div>
+          <div class="audio-toggle active" data-audio="sfx">
+            <i data-lucide="bell-ring"></i>
+            <span class="audio-toggle-label">SFX</span>
+            <div class="audio-toggle-switch"></div>
+          </div>
+          <div class="audio-toggle active" data-audio="music">
+            <i data-lucide="music"></i>
+            <span class="audio-toggle-label">Music</span>
+            <div class="audio-toggle-switch"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard-grid -->
+  </div><!-- /grid-container -->
+
+  <!-- Submit area -->
+  <div class="submit-area">
+    <button class="start-btn" id="start-btn" disabled>
+      <i data-lucide="play"></i> Start Match
+    </button>
+    <div class="blockers" id="blockers">
+      <div class="blocker-item">
+        <i data-lucide="alert-circle"></i>
+        Need at least 2 players to start
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  // ── Lucide icons ──
+  lucide.createIcons();
+
+  // ── State ──
+  const state = {
+    model: 'balanced',
+    topics: 6,
+    rounds: 5,
+    reveal: 'progressive',
+    endMode: 'rounds',
+    answer: 45,
+    nobuzz: 3,
+    bonus: 20,
+    timer: 20,
+    timerExpiry: 'finish_round',
+    moderation: 'off',
+    narration: true,
+    sfx: true,
+    music: true
+  };
+
+  // ── Tile editing toggle ──
+  document.querySelectorAll('.tile').forEach(tile => {
+    tile.addEventListener('click', (e) => {
+      // Don't toggle if clicking inside an interactive element
+      if (e.target.closest('.editor-range, .editor-pill, .editor-select, .segment-btn, .audio-toggle')) return;
+
+      const tileName = tile.dataset.tile;
+
+      // Moderation and audio tiles don't expand (they have inline controls)
+      if (tileName === 'moderation' || tileName === 'audio') return;
+
+      // Timer tile is non-interactive when dimmed (end mode = rounds)
+      if (tileName === 'timer' && state.endMode === 'rounds') return;
+      if (tileName === 'timer-expiry' && state.endMode === 'rounds') return;
+
+      const wasEditing = tile.classList.contains('editing');
+
+      // Close all other editing tiles
+      document.querySelectorAll('.tile.editing').forEach(t => {
+        if (t !== tile) t.classList.remove('editing');
+      });
+
+      tile.classList.toggle('editing', !wasEditing);
+    });
+  });
+
+  // ── Range sliders ──
+  function initRange(rangeId, displayId, stateKey, suffix) {
+    const range = document.getElementById(rangeId);
+    if (!range) return;
+    const display = document.getElementById(displayId);
+
+    function update() {
+      const val = parseInt(range.value);
+      state[stateKey] = val;
+
+      if (display) {
+        if (suffix) {
+          display.innerHTML = val + '<span class="unit">' + suffix + '</span>';
+        } else {
+          display.textContent = val;
+        }
+      }
+
+      // Update fill
+      const min = parseFloat(range.min);
+      const max = parseFloat(range.max);
+      const pct = ((val - min) / (max - min)) * 100;
+      range.style.setProperty('--fill', pct + '%');
+    }
+
+    range.addEventListener('input', update);
+    update();
+  }
+
+  initRange('topics-range', 'topics-display', 'topics', null);
+  initRange('rounds-range', 'rounds-display', 'rounds', null);
+  initRange('answer-range', null, 'answer', null);
+  initRange('nobuzz-range', null, 'nobuzz', null);
+  initRange('bonus-range', null, 'bonus', null);
+  initRange('timer-range', null, 'timer', null);
+
+  // Update tile values for answer, nobuzz, bonus, timer on range input
+  document.getElementById('answer-range')?.addEventListener('input', function() {
+    const tile = this.closest('.tile');
+    tile.querySelector('.tile-value').innerHTML = this.value + '<span class="unit">s</span>';
+  });
+  document.getElementById('nobuzz-range')?.addEventListener('input', function() {
+    const tile = this.closest('.tile');
+    tile.querySelector('.tile-value').innerHTML = this.value + '<span class="unit">s</span>';
+  });
+  document.getElementById('bonus-range')?.addEventListener('input', function() {
+    const tile = this.closest('.tile');
+    tile.querySelector('.tile-value').innerHTML = this.value + '<span class="unit">s</span>';
+  });
+  document.getElementById('timer-range')?.addEventListener('input', function() {
+    const tile = this.closest('.tile');
+    tile.querySelector('.tile-value').innerHTML = this.value + '<span class="unit">m</span>';
+  });
+
+  // ── Pill groups ──
+  document.querySelectorAll('.editor-pills').forEach(group => {
+    const pills = group.querySelectorAll('.editor-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        const groupName = group.dataset.pillGroup;
+        const value = pill.dataset.value;
+
+        // Update the tile's pill display
+        const tile = group.closest('.tile');
+        const pillDisplay = tile.querySelector('.tile-pill');
+        if (pillDisplay) pillDisplay.textContent = pill.textContent;
+
+        // Handle end mode changes
+        if (groupName === 'end-mode') {
+          state.endMode = value;
+          const isTimer = value === 'timer';
+          const timerTile = document.getElementById('timer-tile');
+          const expiryTile = document.getElementById('timer-expiry-tile');
+
+          if (timerTile) {
+            timerTile.classList.toggle('dim', !isTimer);
+          }
+          if (expiryTile) {
+            expiryTile.style.display = isTimer ? '' : 'none';
+            if (isTimer) {
+              // Re-trigger animation
+              expiryTile.style.animation = 'none';
+              expiryTile.offsetHeight;
+              expiryTile.style.animation = 'tileFadeIn 0.45s ease forwards';
+            }
+          }
+        }
+
+        if (groupName === 'reveal') state.reveal = value;
+        if (groupName === 'timer-expiry') {
+          state.timerExpiry = value;
+          const expiryDisplay = document.getElementById('timer-expiry-display');
+          if (expiryDisplay) expiryDisplay.textContent = pill.textContent;
+        }
+      });
+    });
+  });
+
+  // ── Model select ──
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', (e) => {
+      e.stopPropagation();
+      state.model = modelSelect.value;
+      const tile = modelSelect.closest('.tile');
+      const nameEl = tile.querySelector('.tile-model-name');
+      const descEl = tile.querySelector('.tile-model-desc');
+      const opt = modelSelect.options[modelSelect.selectedIndex];
+      const parts = opt.textContent.split(' — ');
+      if (nameEl) nameEl.textContent = parts[0];
+      if (descEl) descEl.textContent = parts[1] || '';
+    });
+    modelSelect.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  // ── Segmented control (moderation) ──
+  document.querySelectorAll('.segment-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.moderation = btn.dataset.value;
+    });
+  });
+
+  // ── Audio toggles ──
+  document.querySelectorAll('.audio-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle.classList.toggle('active');
+      const key = toggle.dataset.audio;
+      state[key] = toggle.classList.contains('active');
+    });
+  });
+
+  // ── Start button ──
+  const startBtn = document.getElementById('start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      startBtn.style.transform = 'scale(0.96)';
+      setTimeout(() => { startBtn.style.transform = ''; }, 150);
+    });
+  }
+
+  // ── Three.js wireframe octahedrons ──
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

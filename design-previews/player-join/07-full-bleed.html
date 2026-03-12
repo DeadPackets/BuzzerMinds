@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 07 Full Bleed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text-bright); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 48px 24px 28px;
+    animation: fadeDown 0.4s ease;
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .header-logo { font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; }
+  .header-logo .a { color: var(--amber); }
+  .header-logo .s { color: var(--sage); }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.7rem; font-weight: 600; color: var(--sage);
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--sage);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .header h1 {
+    font-family: var(--font-display); font-weight: 900; font-size: 2.2rem;
+    letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 6px;
+  }
+  .header h1 .code {
+    color: var(--amber);
+  }
+  .header p {
+    font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;
+  }
+
+  /* ── Form area (no card, edge-to-edge) ── */
+  .form-area {
+    flex: 1; padding: 0 24px;
+    display: flex; flex-direction: column; gap: 0;
+    animation: fadeUp 0.4s ease 0.1s both;
+  }
+
+  .divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 24px;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-text {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--text-dim);
+  }
+
+  .field { margin-bottom: 22px; }
+
+  .field-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .field-icon {
+    width: 20px; height: 20px; flex-shrink: 0;
+  }
+  .field-icon.amber { color: var(--amber); }
+  .field-icon.sage { color: var(--sage); }
+  .field-icon.sky { color: var(--sky); }
+
+  .field-label {
+    font-size: 0.95rem; font-weight: 600; color: var(--text-bright);
+  }
+  .field-hint {
+    font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px;
+    padding-left: 32px;
+  }
+
+  .field-input {
+    width: 100%; padding: 16px 18px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-bright);
+    font-size: 1.05rem; font-weight: 500; outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: var(--sage); }
+  .field-input::placeholder { color: var(--text-dim); font-weight: 400; font-size: 0.95rem; }
+  textarea.field-input { resize: none; min-height: 80px; line-height: 1.5; font-family: var(--font-body); font-size: 1rem; }
+
+  /* ── Color pills ── */
+  .color-pills {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .cpill {
+    width: 44px; height: 44px; border-radius: 12px;
+    border: 2px solid transparent; cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .cpill:hover { transform: scale(1.08); }
+  .cpill.active { border-color: var(--text-bright); }
+
+  .char-count { text-align: right; font-size: 0.7rem; color: var(--text-dim); margin-top: 6px; }
+
+  /* ── Sticky bottom ── */
+  .sticky-bottom {
+    position: sticky; bottom: 0;
+    padding: 16px 24px max(16px, env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  .submit-btn {
+    width: 100%; padding: 18px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 14px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.1rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn i { width: 20px; height: 20px; }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+
+<div class="theme-label">07 — Full Bleed</div>
+<div class="bg-pattern"></div>
+
+<div class="page">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+      <div class="live-badge"><div class="live-dot"></div> Live</div>
+    </div>
+    <h1>Join <span class="code">X7KQ9W</span></h1>
+    <p>Set up your player profile and jump in.</p>
+  </div>
+
+  <div class="form-area">
+    <div class="divider">
+      <div class="divider-line"></div>
+      <span class="divider-text">Player Setup</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <i data-lucide="user" class="field-icon amber"></i>
+        <span class="field-label">Display Name</span>
+      </div>
+      <div class="field-hint">This appears on the big screen.</div>
+      <input type="text" class="field-input" placeholder="Your name" maxlength="40">
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <i data-lucide="palette" class="field-icon sage"></i>
+        <span class="field-label">Player Color</span>
+      </div>
+      <div class="field-hint">Pick one to stand out.</div>
+      <div class="color-pills">
+        <div class="cpill active" style="background:#22d3ee;"></div>
+        <div class="cpill" style="background:#f59e0b;"></div>
+        <div class="cpill" style="background:#4ade80;"></div>
+        <div class="cpill" style="background:#fb7185;"></div>
+        <div class="cpill" style="background:#a78bfa;"></div>
+        <div class="cpill" style="background:#f472b6;"></div>
+        <div class="cpill" style="background:#fbbf24;"></div>
+        <div class="cpill" style="background:#34d399;"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-row">
+        <i data-lucide="brain" class="field-icon sky"></i>
+        <span class="field-label">Your Expertise</span>
+      </div>
+      <div class="field-hint">What topics are you good at?</div>
+      <textarea class="field-input" placeholder="History, space, pop culture..." maxlength="250"></textarea>
+      <div class="char-count">0 / 250</div>
+    </div>
+  </div>
+
+  <div class="sticky-bottom">
+    <button class="submit-btn"><i data-lucide="zap"></i> Enter Room</button>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  document.querySelectorAll('.cpill').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.cpill').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

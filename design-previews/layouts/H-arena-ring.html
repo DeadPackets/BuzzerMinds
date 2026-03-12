@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout H: Arena Ring</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --text: #e8e6f0; --text-dim: #6b6e7b;
+    --accent: #7c6ef6; --green: #34d399; --gold: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-dot { position: absolute; border-radius: 50%; opacity: 0.04; }
+  .layout-label {
+    position: fixed; top: 16px; right: 16px; z-index: 99;
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; color: var(--text-dim);
+    background: rgba(26,29,39,0.7); backdrop-filter: blur(8px);
+  }
+
+  /* ══════════════════════════════════════════
+     LAYOUT H: ARENA RING
+     Players form a ring/circle around a central 
+     focus area that contains the room code.
+     QR and settings are positioned at the corners.
+     Like a game arena where players surround the
+     action. Works great for the "party game" vibe.
+     ══════════════════════════════════════════ */
+
+  .lobby {
+    position: relative; z-index: 1;
+    height: 100vh;
+  }
+
+  /* Logo — top left */
+  .logo {
+    position: absolute; top: 36px; left: 56px;
+    font-size: 1.8rem; font-weight: 900;
+  }
+  .logo span { color: var(--accent); }
+
+  /* QR — top right */
+  .qr-corner {
+    position: absolute; top: 32px; right: 56px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .qr-text { text-align: right; font-size: 0.95rem; font-weight: 600; color: var(--text-dim); line-height: 1.5; }
+  .qr-text b { color: var(--accent); }
+  .qr {
+    width: 160px; height: 160px;
+    background: white; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #333;
+  }
+
+  /* Center: Room Code */
+  .center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .code-label {
+    font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .code-row { display: flex; gap: 14px; justify-content: center; }
+  .code-ch {
+    font-size: 6rem; font-weight: 900; line-height: 1;
+    color: var(--accent);
+  }
+  .join-url {
+    margin-top: 10px; font-size: 1.15rem; font-weight: 600; color: var(--text-dim);
+  }
+  .join-url b { color: var(--accent); }
+
+  /* Players — arranged in a ring around center */
+  .player-ring {
+    position: absolute; inset: 0;
+  }
+  .player {
+    position: absolute;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 99px;
+    background: rgba(26,29,39,0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700; font-size: 1.1rem;
+    white-space: nowrap;
+  }
+  .player .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .player .vip {
+    font-size: 0.6rem; font-weight: 800; color: var(--gold);
+    background: rgba(251,191,36,0.15); padding: 2px 7px; border-radius: 5px;
+  }
+  /* Position each player around the ring */
+  .p1 { top: 36%; left: 5%; }
+  .p2 { top: 22%; left: 30%; }
+  .p3 { top: 24%; right: 28%; }
+  .p4 { top: 40%; right: 4%; }
+  .p5 { bottom: 25%; left: 12%; }
+
+  .players-label {
+    position: absolute; bottom: 20%; left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--text-dim);
+  }
+
+  /* Settings — bottom spread */
+  .settings-area {
+    position: absolute; bottom: 36px; left: 56px; right: 56px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .s-tag {
+    padding: 8px 16px; border-radius: 8px;
+    background: rgba(26,29,39,0.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.95rem; font-weight: 600;
+  }
+  .s-tag .dim { color: var(--text-dim); }
+  .status {
+    margin-left: auto; font-size: 0.95rem; font-weight: 600; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="layout-label">H / ARENA RING</div>
+
+<div class="lobby">
+  <div class="logo">Buzzer<span>Minds</span></div>
+
+  <div class="qr-corner">
+    <div class="qr-text">Scan to join<br><b>quiz.deadpackets.pw</b></div>
+    <div class="qr">QR CODE</div>
+  </div>
+
+  <div class="player-ring">
+    <div class="player p1"><span class="dot"></span> SpeedDemon <span class="vip">VIP</span></div>
+    <div class="player p2"><span class="dot"></span> BrainiacBee</div>
+    <div class="player p3"><span class="dot"></span> QuizWhiz42</div>
+    <div class="player p4"><span class="dot"></span> TriviaKing</div>
+    <div class="player p5"><span class="dot"></span> NerdHerd99</div>
+  </div>
+
+  <div class="center">
+    <div class="code-label">Room Code</div>
+    <div class="code-row">
+      <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+      <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+    </div>
+    <div class="join-url">at <b>quiz.deadpackets.pw</b></div>
+  </div>
+
+  <div class="players-label">5 Players Joined</div>
+
+  <div class="settings-area">
+    <div class="s-tag"><span class="dim">Topic:</span> Science</div>
+    <div class="s-tag"><span class="dim">Diff:</span> Medium</div>
+    <div class="s-tag"><span class="dim">Qs:</span> 10</div>
+    <div class="s-tag"><span class="dim">Time:</span> 30s</div>
+    <div class="status">Waiting for VIP to start...</div>
+  </div>
+</div>
+
+<script>
+  const bg = document.getElementById('bg'); const dots = [];
+  for (let i = 0; i < 15; i++) {
+    const el = document.createElement('div'); el.className = 'bg-dot';
+    const size = 80 + Math.random() * 200;
+    el.style.width = size + 'px'; el.style.height = size + 'px'; el.style.background = '#7c6ef6';
+    bg.appendChild(el);
+    dots.push({ el, size, x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 });
+  }
+  (function anim() {
+    dots.forEach(d => { d.x += d.vx; d.y += d.vy; if (d.x < -d.size) d.x = innerWidth; if (d.x > innerWidth) d.x = -d.size; if (d.y < -d.size) d.y = innerHeight; if (d.y > innerHeight) d.y = -d.size; d.el.style.transform = `translate(${d.x}px,${d.y}px)`; });
+    requestAnimationFrame(anim);
+  })();
+</script>
+</body>
+</html>

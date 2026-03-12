@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIP Settings — 03 Quick Presets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #141414;
+    --surface: rgba(30, 30, 30, 0.65);
+    --amber: #f59e0b;
+    --sage: #4ade80;
+    --rose: #fb7185;
+    --sky: #38bdf8;
+    --text-bright: #f5f5f5;
+    --text-dim: #737373;
+    --border: rgba(255, 255, 255, 0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ── Three.js canvas ── */
+  #wireframe-bg {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px;
+    border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Page wrapper ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px 16px 40px;
+  }
+
+  .panel {
+    width: 100%; max-width: 440px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* ── Header ── */
+  .panel-header {
+    text-align: center;
+    padding: 8px 0 4px;
+  }
+  .panel-header h1 {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.5rem;
+    letter-spacing: -0.02em; line-height: 1.15;
+  }
+  .panel-header h1 .amber { color: var(--amber); }
+  .panel-header p {
+    margin-top: 6px; font-size: 0.82rem; color: var(--text-dim); line-height: 1.5;
+  }
+
+  /* ── Preset Cards ── */
+  .presets-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+
+  .preset-card {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, background 0.2s;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; gap: 8px;
+    border-left: 3px solid transparent;
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .preset-card:hover { transform: translateY(-2px); }
+  .preset-card:active { transform: scale(0.97); }
+
+  .preset-card .preset-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .preset-card .preset-icon i { width: 18px; height: 18px; }
+
+  .preset-card .preset-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+    line-height: 1.2; transition: color 0.2s;
+  }
+  .preset-card .preset-desc {
+    font-size: 0.68rem; color: var(--text-dim); line-height: 1.4;
+  }
+
+  /* Casual — sage */
+  .preset-card[data-preset="casual"] .preset-icon { background: rgba(74,222,128,0.1); color: var(--sage); }
+  .preset-card[data-preset="casual"].active {
+    border-left-color: var(--sage); background: rgba(74,222,128,0.06);
+    border-color: rgba(74,222,128,0.15);
+  }
+  .preset-card[data-preset="casual"].active .preset-name { color: var(--sage); }
+
+  /* Standard — amber */
+  .preset-card[data-preset="standard"] .preset-icon { background: rgba(245,158,11,0.1); color: var(--amber); }
+  .preset-card[data-preset="standard"].active {
+    border-left-color: var(--amber); background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.15);
+  }
+  .preset-card[data-preset="standard"].active .preset-name { color: var(--amber); }
+
+  /* Competitive — rose */
+  .preset-card[data-preset="competitive"] .preset-icon { background: rgba(251,113,133,0.1); color: var(--rose); }
+  .preset-card[data-preset="competitive"].active {
+    border-left-color: var(--rose); background: rgba(251,113,133,0.06);
+    border-color: rgba(251,113,133,0.15);
+  }
+  .preset-card[data-preset="competitive"].active .preset-name { color: var(--rose); }
+
+  /* ── Customize toggle ── */
+  .customize-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s;
+  }
+  .customize-toggle:hover { border-color: rgba(255,255,255,0.1); }
+
+  .customize-toggle-left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .customize-toggle-left i { width: 18px; height: 18px; color: var(--sky); }
+  .customize-toggle-left span {
+    font-family: var(--font-display); font-weight: 600; font-size: 0.88rem;
+  }
+  .customize-toggle .chevron {
+    width: 18px; height: 18px; color: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .customize-toggle.open .chevron { transform: rotate(180deg); }
+
+  /* ── Customize panel ── */
+  .customize-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .customize-panel.open { grid-template-rows: 1fr; }
+  .customize-panel-inner {
+    overflow: hidden;
+  }
+  .customize-content {
+    display: flex; flex-direction: column; gap: 12px;
+    padding-top: 4px;
+  }
+
+  /* ── Settings sections ── */
+  .settings-section {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px;
+  }
+  .section-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-dim); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title i { width: 14px; height: 14px; color: var(--amber); }
+
+  /* ── Setting rows ── */
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .setting-row:first-of-type { padding-top: 0; }
+
+  .setting-label {
+    font-size: 0.82rem; font-weight: 500; color: var(--text-bright);
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .setting-label i { width: 15px; height: 15px; color: var(--text-dim); }
+
+  .setting-value {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    color: var(--amber);
+    min-width: 32px; text-align: right;
+  }
+
+  /* ── Slider row (full width below label) ── */
+  .setting-slider-row {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-slider-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .setting-slider-row:first-of-type { padding-top: 0; }
+
+  .setting-slider-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  /* ── Styled range slider ── */
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px; outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid var(--bg);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid var(--bg);
+    cursor: pointer;
+  }
+
+  /* Sage-themed slider */
+  .slider-sage::-webkit-slider-thumb { background: var(--sage); }
+  .slider-sage::-moz-range-thumb { background: var(--sage); }
+
+  /* Sky-themed slider */
+  .slider-sky::-webkit-slider-thumb { background: var(--sky); }
+  .slider-sky::-moz-range-thumb { background: var(--sky); }
+
+  /* Rose-themed slider */
+  .slider-rose::-webkit-slider-thumb { background: var(--rose); }
+  .slider-rose::-moz-range-thumb { background: var(--rose); }
+
+  /* ── Styled select dropdown ── */
+  .styled-select {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .styled-select select {
+    -webkit-appearance: none; appearance: none;
+    background: rgba(20,20,20,0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-bright);
+    font-family: var(--font-body);
+    font-size: 0.78rem; font-weight: 500;
+    padding: 8px 30px 8px 12px;
+    outline: none; cursor: pointer;
+    transition: border-color 0.2s;
+    max-width: 170px;
+  }
+  .styled-select select:focus { border-color: var(--amber); }
+  .styled-select::after {
+    content: '';
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+
+  /* ── Toggle switch ── */
+  .toggle-switch {
+    position: relative;
+    width: 42px; height: 24px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input {
+    opacity: 0; width: 0; height: 0; position: absolute;
+  }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.25s;
+  }
+  .toggle-switch input:checked + .toggle-track {
+    background: rgba(245,158,11,0.2);
+  }
+  .toggle-switch input:checked + .toggle-track::after {
+    transform: translateX(18px);
+    background: var(--amber);
+  }
+
+  /* ── Pill select (for reveal/end mode) ── */
+  .pill-group {
+    display: flex; gap: 4px;
+    background: rgba(20,20,20,0.5);
+    border-radius: 8px; padding: 3px;
+  }
+  .pill-option {
+    font-size: 0.72rem; font-weight: 600;
+    padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; color: var(--text-dim);
+    transition: background 0.2s, color 0.2s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pill-option.active {
+    background: rgba(245,158,11,0.15);
+    color: var(--amber);
+  }
+  .pill-option:hover:not(.active) { color: var(--text-bright); }
+
+  /* ── Start button ── */
+  .start-section {
+    display: flex; flex-direction: column; gap: 12px;
+    margin-top: 4px;
+  }
+
+  .start-btn {
+    width: 100%; padding: 16px;
+    background: var(--amber); color: var(--bg);
+    border: none; border-radius: 14px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: filter 0.15s, transform 0.15s;
+    letter-spacing: -0.01em;
+  }
+  .start-btn:hover { filter: brightness(1.08); }
+  .start-btn:active { transform: scale(0.98); }
+  .start-btn i { width: 20px; height: 20px; }
+
+  .blockers {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 0 4px;
+  }
+  .blocker-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.75rem; color: var(--text-dim);
+  }
+  .blocker-item i { width: 14px; height: 14px; flex-shrink: 0; }
+  .blocker-item.warn i { color: var(--rose); }
+  .blocker-item.ok i { color: var(--sage); }
+
+  /* ── Pop-in animations ── */
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(18px) scale(0.96); }
+    70% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .pop { opacity: 0; animation: popIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .pop-d1 { animation-delay: 0.05s; }
+  .pop-d2 { animation-delay: 0.12s; }
+  .pop-d3 { animation-delay: 0.2s; }
+  .pop-d4 { animation-delay: 0.28s; }
+  .pop-d5 { animation-delay: 0.36s; }
+</style>
+</head>
+<body>
+
+<canvas id="wireframe-bg"></canvas>
+<div class="theme-label">03 — Quick Presets</div>
+
+<div class="page">
+  <div class="panel">
+
+    <!-- Header -->
+    <div class="panel-header pop pop-d1">
+      <h1>Game <span class="amber">Settings</span></h1>
+      <p>Pick a preset to get started, or customize everything.</p>
+    </div>
+
+    <!-- Preset Cards -->
+    <div class="presets-row pop pop-d2">
+      <div class="preset-card" data-preset="casual">
+        <div class="preset-icon"><i data-lucide="coffee"></i></div>
+        <div class="preset-name">Casual</div>
+        <div class="preset-desc">Short &amp; easy. 3 rounds, generous timers.</div>
+      </div>
+      <div class="preset-card active" data-preset="standard">
+        <div class="preset-icon"><i data-lucide="star"></i></div>
+        <div class="preset-name">Standard</div>
+        <div class="preset-desc">Balanced fun. 5 rounds, normal pace.</div>
+      </div>
+      <div class="preset-card" data-preset="competitive">
+        <div class="preset-icon"><i data-lucide="flame"></i></div>
+        <div class="preset-name">Competitive</div>
+        <div class="preset-desc">Fast &amp; fierce. 8 rounds, tight timers.</div>
+      </div>
+    </div>
+
+    <!-- Customize Toggle -->
+    <div class="customize-toggle pop pop-d3" id="customizeToggle">
+      <div class="customize-toggle-left">
+        <i data-lucide="sliders-horizontal"></i>
+        <span>Customize Settings</span>
+      </div>
+      <i data-lucide="chevron-down" class="chevron"></i>
+    </div>
+
+    <!-- Customize Panel (collapsed by default) -->
+    <div class="customize-panel" id="customizePanel">
+      <div class="customize-panel-inner">
+        <div class="customize-content">
+
+          <!-- AI & Content -->
+          <div class="settings-section pop-inner">
+            <div class="section-title"><i data-lucide="brain"></i> AI &amp; Content</div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="cpu"></i> Model</div>
+              <div class="styled-select">
+                <select id="modelSelect">
+                  <option value="gpt4o" selected>GPT-4o Standard</option>
+                  <option value="claude">Claude Sonnet</option>
+                  <option value="gemini">Gemini Flash</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="setting-slider-row">
+              <div class="setting-slider-top">
+                <div class="setting-label"><i data-lucide="layers"></i> Topic Pool Size</div>
+                <div class="setting-value" id="topicPoolVal">6</div>
+              </div>
+              <input type="range" min="3" max="12" value="6" id="topicPool" class="slider-sky">
+            </div>
+
+            <div class="setting-slider-row">
+              <div class="setting-slider-top">
+                <div class="setting-label"><i data-lucide="repeat"></i> Rounds</div>
+                <div class="setting-value" id="roundsVal">5</div>
+              </div>
+              <input type="range" min="2" max="10" value="5" id="rounds">
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="eye"></i> Reveal Mode</div>
+              <div class="pill-group" data-setting="revealMode">
+                <div class="pill-option active" data-value="after-each">After Each</div>
+                <div class="pill-option" data-value="end-only">End Only</div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="flag"></i> End Mode</div>
+              <div class="pill-group" data-setting="endMode">
+                <div class="pill-option active" data-value="rounds">Rounds</div>
+                <div class="pill-option" data-value="timer">Timer</div>
+              </div>
+            </div>
+
+            <div class="setting-slider-row" id="timerMinutesRow" style="display:none;">
+              <div class="setting-slider-top">
+                <div class="setting-label"><i data-lucide="clock"></i> Timer Minutes</div>
+                <div class="setting-value" id="timerMinVal">10</div>
+              </div>
+              <input type="range" min="5" max="30" value="10" id="timerMinutes" class="slider-rose">
+            </div>
+
+            <div class="setting-row" id="timerExpiryRow" style="display:none;">
+              <div class="setting-label"><i data-lucide="timer-off"></i> Timer Expiry</div>
+              <div class="pill-group" data-setting="timerExpiry">
+                <div class="pill-option active" data-value="finish-round">Finish Round</div>
+                <div class="pill-option" data-value="immediate">Immediate</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Buzzer Timing -->
+          <div class="settings-section pop-inner">
+            <div class="section-title"><i data-lucide="timer"></i> Buzzer Timing</div>
+
+            <div class="setting-slider-row">
+              <div class="setting-slider-top">
+                <div class="setting-label"><i data-lucide="clock-3"></i> Answer Time</div>
+                <div class="setting-value" id="answerTimeVal">45s</div>
+              </div>
+              <input type="range" min="15" max="120" value="45" step="5" id="answerTime" class="slider-sage">
+            </div>
+
+            <div class="setting-slider-row">
+              <div class="setting-slider-top">
+                <div class="setting-label"><i data-lucide="shield-off"></i> No-Buzz Window</div>
+                <div class="setting-value" id="noBuzzVal">3s</div>
+              </div>
+              <input type="range" min="0" max="10" value="3" id="noBuzz" class="slider-rose">
+            </div>
+
+            <div class="setting-slider-row">
+              <div class="setting-slider-top">
+                <div class="setting-label"><i data-lucide="zap"></i> Bonus Time</div>
+                <div class="setting-value" id="bonusTimeVal">30s</div>
+              </div>
+              <input type="range" min="10" max="60" value="30" step="5" id="bonusTime">
+            </div>
+          </div>
+
+          <!-- Experience -->
+          <div class="settings-section pop-inner">
+            <div class="section-title"><i data-lucide="sparkles"></i> Experience</div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="shield-check"></i> Moderation</div>
+              <div class="styled-select">
+                <select id="moderationSelect">
+                  <option value="standard" selected>Standard</option>
+                  <option value="strict">Strict</option>
+                  <option value="relaxed">Relaxed</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="mic"></i> Narration</div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked id="toggleNarration">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="volume-2"></i> Sound Effects</div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked id="toggleSfx">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label"><i data-lucide="music"></i> Music</div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked id="toggleMusic">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Start Section -->
+    <div class="start-section pop pop-d4">
+      <button class="start-btn" id="startBtn">
+        <i data-lucide="play"></i> Start Match
+      </button>
+      <div class="blockers">
+        <div class="blocker-item warn">
+          <i data-lucide="alert-circle"></i>
+          <span>Need at least 2 players to start</span>
+        </div>
+        <div class="blocker-item ok">
+          <i data-lucide="check-circle-2"></i>
+          <span>AI model connected and ready</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+
+// ── Preset data ──
+const presets = {
+  casual: {
+    rounds: 3, topicPool: 4, answerTime: 60, noBuzz: 2, bonusTime: 20,
+    revealMode: 'after-each', endMode: 'rounds', timerMin: 10,
+    timerExpiry: 'finish-round', model: 'gpt4o', moderation: 'relaxed',
+    narration: true, sfx: true, music: true
+  },
+  standard: {
+    rounds: 5, topicPool: 6, answerTime: 45, noBuzz: 3, bonusTime: 30,
+    revealMode: 'after-each', endMode: 'rounds', timerMin: 10,
+    timerExpiry: 'finish-round', model: 'gpt4o', moderation: 'standard',
+    narration: true, sfx: true, music: true
+  },
+  competitive: {
+    rounds: 8, topicPool: 10, answerTime: 25, noBuzz: 5, bonusTime: 15,
+    revealMode: 'end-only', endMode: 'timer', timerMin: 15,
+    timerExpiry: 'immediate', model: 'gpt4o', moderation: 'strict',
+    narration: false, sfx: true, music: false
+  }
+};
+
+// ── DOM refs ──
+const roundsSlider = document.getElementById('rounds');
+const roundsVal = document.getElementById('roundsVal');
+const topicSlider = document.getElementById('topicPool');
+const topicVal = document.getElementById('topicPoolVal');
+const answerSlider = document.getElementById('answerTime');
+const answerVal = document.getElementById('answerTimeVal');
+const noBuzzSlider = document.getElementById('noBuzz');
+const noBuzzVal = document.getElementById('noBuzzVal');
+const bonusSlider = document.getElementById('bonusTime');
+const bonusVal = document.getElementById('bonusTimeVal');
+const timerMinSlider = document.getElementById('timerMinutes');
+const timerMinVal = document.getElementById('timerMinVal');
+const modelSelect = document.getElementById('modelSelect');
+const moderationSelect = document.getElementById('moderationSelect');
+const toggleNarration = document.getElementById('toggleNarration');
+const toggleSfx = document.getElementById('toggleSfx');
+const toggleMusic = document.getElementById('toggleMusic');
+const timerMinutesRow = document.getElementById('timerMinutesRow');
+const timerExpiryRow = document.getElementById('timerExpiryRow');
+
+// ── Apply preset values to controls ──
+function applyPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+
+  roundsSlider.value = p.rounds; roundsVal.textContent = p.rounds;
+  topicSlider.value = p.topicPool; topicVal.textContent = p.topicPool;
+  answerSlider.value = p.answerTime; answerVal.textContent = p.answerTime + 's';
+  noBuzzSlider.value = p.noBuzz; noBuzzVal.textContent = p.noBuzz + 's';
+  bonusSlider.value = p.bonusTime; bonusVal.textContent = p.bonusTime + 's';
+  timerMinSlider.value = p.timerMin; timerMinVal.textContent = p.timerMin;
+  modelSelect.value = p.model;
+  moderationSelect.value = p.moderation;
+  toggleNarration.checked = p.narration;
+  toggleSfx.checked = p.sfx;
+  toggleMusic.checked = p.music;
+
+  // Pill groups
+  setPillGroup('revealMode', p.revealMode);
+  setPillGroup('endMode', p.endMode);
+  setPillGroup('timerExpiry', p.timerExpiry);
+
+  // Show/hide timer rows based on end mode
+  updateTimerVisibility(p.endMode);
+
+  // Update all slider fills
+  updateSliderFill(roundsSlider);
+  updateSliderFill(topicSlider);
+  updateSliderFill(answerSlider);
+  updateSliderFill(noBuzzSlider);
+  updateSliderFill(bonusSlider);
+  updateSliderFill(timerMinSlider);
+}
+
+function setPillGroup(settingName, value) {
+  const group = document.querySelector(`.pill-group[data-setting="${settingName}"]`);
+  if (!group) return;
+  group.querySelectorAll('.pill-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.value === value);
+  });
+}
+
+function updateTimerVisibility(endMode) {
+  const show = endMode === 'timer';
+  timerMinutesRow.style.display = show ? '' : 'none';
+  timerExpiryRow.style.display = show ? '' : 'none';
+}
+
+// ── Preset card selection ──
+document.querySelectorAll('.preset-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    applyPreset(card.dataset.preset);
+  });
+});
+
+// ── Customize toggle ──
+const customizeToggle = document.getElementById('customizeToggle');
+const customizePanel = document.getElementById('customizePanel');
+
+customizeToggle.addEventListener('click', () => {
+  customizeToggle.classList.toggle('open');
+  customizePanel.classList.toggle('open');
+});
+
+// ── Slider gradient fill ──
+function updateSliderFill(slider) {
+  const min = parseFloat(slider.min);
+  const max = parseFloat(slider.max);
+  const val = parseFloat(slider.value);
+  const pct = ((val - min) / (max - min)) * 100;
+  const thumb = getComputedStyle(slider).getPropertyValue('--thumb-color') ||
+    (slider.classList.contains('slider-sage') ? '#4ade80' :
+     slider.classList.contains('slider-sky') ? '#38bdf8' :
+     slider.classList.contains('slider-rose') ? '#fb7185' : '#f59e0b');
+  slider.style.background = `linear-gradient(to right, ${thumb} 0%, ${thumb} ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
+}
+
+// ── Slider real-time updates ──
+roundsSlider.addEventListener('input', () => {
+  roundsVal.textContent = roundsSlider.value;
+  updateSliderFill(roundsSlider);
+});
+topicSlider.addEventListener('input', () => {
+  topicVal.textContent = topicSlider.value;
+  updateSliderFill(topicSlider);
+});
+answerSlider.addEventListener('input', () => {
+  answerVal.textContent = answerSlider.value + 's';
+  updateSliderFill(answerSlider);
+});
+noBuzzSlider.addEventListener('input', () => {
+  noBuzzVal.textContent = noBuzzSlider.value + 's';
+  updateSliderFill(noBuzzSlider);
+});
+bonusSlider.addEventListener('input', () => {
+  bonusVal.textContent = bonusSlider.value + 's';
+  updateSliderFill(bonusSlider);
+});
+timerMinSlider.addEventListener('input', () => {
+  timerMinVal.textContent = timerMinSlider.value;
+  updateSliderFill(timerMinSlider);
+});
+
+// ── Pill group clicks ──
+document.querySelectorAll('.pill-group').forEach(group => {
+  group.querySelectorAll('.pill-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      group.querySelectorAll('.pill-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+
+      // Handle end mode toggling timer visibility
+      if (group.dataset.setting === 'endMode') {
+        updateTimerVisibility(opt.dataset.value);
+      }
+    });
+  });
+});
+
+// ── Start button interaction ──
+document.getElementById('startBtn').addEventListener('click', () => {
+  const btn = document.getElementById('startBtn');
+  btn.style.transform = 'scale(0.96)';
+  setTimeout(() => { btn.style.transform = ''; }, 150);
+});
+
+// ── Initialize default preset ──
+applyPreset('standard');
+
+// ── Three.js wireframe background ──
+(function(){
+  const canvas = document.getElementById('wireframe-bg');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 18;
+
+  const colors = [0xf59e0b, 0x4ade80, 0xfb7185, 0x38bdf8];
+  const shapes = [];
+  const count = 10;
+
+  for (let i = 0; i < count; i++) {
+    const size = 0.6 + Math.random() * 1.0;
+    const geoType = Math.random();
+    let geo;
+    if (geoType < 0.33) {
+      geo = new THREE.IcosahedronGeometry(size, 0);
+    } else if (geoType < 0.66) {
+      geo = new THREE.OctahedronGeometry(size, 0);
+    } else {
+      geo = new THREE.DodecahedronGeometry(size, 0);
+    }
+    const wireGeo = new THREE.WireframeGeometry(geo);
+    const mat = new THREE.LineBasicMaterial({
+      color: colors[i % colors.length],
+      transparent: true,
+      opacity: 0.08 + Math.random() * 0.06
+    });
+    const mesh = new THREE.LineSegments(wireGeo, mat);
+    mesh.position.x = (Math.random() - 0.5) * 20;
+    mesh.position.y = (Math.random() - 0.5) * 24;
+    mesh.position.z = (Math.random() - 0.5) * 6 - 3;
+    mesh.rotation.x = Math.random() * Math.PI;
+    mesh.rotation.y = Math.random() * Math.PI;
+    mesh.userData = {
+      rotSpeedX: (Math.random() - 0.5) * 0.002,
+      rotSpeedY: (Math.random() - 0.5) * 0.003,
+      rotSpeedZ: (Math.random() - 0.5) * 0.001,
+      origX: mesh.position.x,
+      origY: mesh.position.y,
+      driftPhase: Math.random() * Math.PI * 2
+    };
+    scene.add(mesh);
+    shapes.push(mesh);
+  }
+
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.006;
+    shapes.forEach(s => {
+      s.rotation.x += s.userData.rotSpeedX;
+      s.rotation.y += s.userData.rotSpeedY;
+      s.rotation.z += s.userData.rotSpeedZ;
+      s.position.x = s.userData.origX + Math.sin(time + s.userData.driftPhase) * 1.5;
+      s.position.y = s.userData.origY + Math.cos(time * 0.6 + s.userData.driftPhase) * 1.2;
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+</body>
+</html>

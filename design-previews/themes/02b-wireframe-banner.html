@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Wireframe Banner Theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --bg: #141414;
+    --surface: rgba(30, 30, 30, 0.65);
+    --amber: #f59e0b;
+    --sage: #4ade80;
+    --rose: #fb7185;
+    --sky: #38bdf8;
+    --cream: #fef3c7;
+    --text-bright: #f5f5f5;
+    --text-dim: #737373;
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Theme label */
+  .theme-label {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 100;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: rgba(30, 30, 30, 0.7);
+    backdrop-filter: blur(8px);
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(245, 158, 11, 0.12);
+  }
+
+  /* Background layers */
+  .bg-pattern {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(245, 158, 11, 0.03) 0px,
+      rgba(245, 158, 11, 0.03) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+  }
+
+  #three-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Page layout */
+  .page {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .lobby {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    padding: 40px 64px 24px;
+    flex: 1;
+    align-items: center;
+  }
+
+  /* Left tower */
+  .left-tower {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 36px;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 4.2rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+    animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+  }
+
+  .logo .amber { color: var(--amber); }
+  .logo .sage { color: var(--sage); }
+
+  .room-code-block {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+    animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s forwards;
+  }
+
+  .room-code-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .room-code-label i {
+    width: 16px;
+    height: 16px;
+    color: var(--amber);
+  }
+
+  .room-code-chars {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .room-code-char {
+    font-family: var(--font-display);
+    font-size: 7.5rem;
+    font-weight: 900;
+    color: var(--amber);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    display: inline-block;
+  }
+
+  .room-code-char:nth-child(1) { animation: charWave 3s ease-in-out 0s infinite; }
+  .room-code-char:nth-child(2) { animation: charWave 3s ease-in-out 0.15s infinite; }
+  .room-code-char:nth-child(3) { animation: charWave 3s ease-in-out 0.3s infinite; }
+  .room-code-char:nth-child(4) { animation: charWave 3s ease-in-out 0.45s infinite; }
+  .room-code-char:nth-child(5) { animation: charWave 3s ease-in-out 0.6s infinite; }
+  .room-code-char:nth-child(6) { animation: charWave 3s ease-in-out 0.75s infinite; }
+
+  @keyframes charWave {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .room-code-url {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+
+  .room-code-url strong {
+    color: var(--sage);
+    font-weight: 700;
+  }
+
+  /* Right tower */
+  .right-tower {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 36px;
+  }
+
+  .card {
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 24px;
+  }
+
+  /* QR block */
+  .qr-card {
+    border-color: rgba(74, 222, 128, 0.25);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+    animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s forwards;
+  }
+
+  .qr-square {
+    width: 220px;
+    height: 220px;
+    background: #fff;
+    border-radius: 10px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .qr-square canvas {
+    width: 200px;
+    height: 200px;
+  }
+
+  .qr-placeholder {
+    width: 180px;
+    height: 180px;
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 2px;
+  }
+
+  .qr-placeholder span {
+    background: #141414;
+    border-radius: 1px;
+  }
+
+  .qr-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--sage);
+  }
+
+  .qr-label i {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Players block */
+  .players-card {
+    border-color: rgba(251, 113, 133, 0.25);
+    min-width: 280px;
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+    animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+  }
+
+  .players-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+
+  .players-header i {
+    width: 18px;
+    height: 18px;
+    color: var(--rose);
+  }
+
+  .players-header .count {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .player-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+
+  .player-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .player-name {
+    color: var(--text-bright);
+  }
+
+  .vip-badge {
+    font-family: var(--font-display);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--bg);
+    background: var(--amber);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: auto;
+  }
+
+  /* Status card */
+  .status-card {
+    border-color: rgba(255, 255, 255, 0.04);
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+    animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
+  }
+
+  .status-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .status-text i {
+    width: 18px;
+    height: 18px;
+    color: var(--sky);
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sage);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Bottom banner */
+  .bottom-banner {
+    padding: 22px 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    border-top: 1px solid rgba(245, 158, 11, 0.15);
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    transform: translateY(30px);
+    animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.75s forwards;
+  }
+
+  .banner-setting {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0 48px;
+  }
+
+  .banner-setting-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .banner-setting-top i {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .banner-setting-value {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+
+  .banner-setting-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+
+  .banner-divider {
+    width: 1px;
+    height: 48px;
+    background: rgba(245, 158, 11, 0.12);
+    flex-shrink: 0;
+  }
+
+  .setting-amber i { color: var(--amber); }
+  .setting-sage i { color: var(--sage); }
+  .setting-rose i { color: var(--rose); }
+  .setting-sky i { color: var(--sky); }
+
+  /* Animations */
+  @keyframes popIn {
+    0% {
+      opacity: 0;
+      transform: translateY(30px) scale(0.92);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes slideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">02b — Wireframe Banner</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+  <div class="lobby">
+    <!-- Left Tower -->
+    <div class="left-tower">
+      <div class="logo">
+        <span class="amber">Buzzer</span><span class="sage">Minds</span>
+      </div>
+
+      <div class="room-code-block">
+        <div class="room-code-label">
+          <i data-lucide="hash"></i>
+          Room Code
+        </div>
+        <div class="room-code-chars">
+          <span class="room-code-char">X</span>
+          <span class="room-code-char">7</span>
+          <span class="room-code-char">K</span>
+          <span class="room-code-char">Q</span>
+          <span class="room-code-char">9</span>
+          <span class="room-code-char">W</span>
+        </div>
+        <div class="room-code-url">Enter at <strong>quiz.deadpackets.pw</strong></div>
+      </div>
+    </div>
+
+    <!-- Right Tower -->
+    <div class="right-tower">
+      <div class="card qr-card">
+        <div class="qr-square">
+          <div class="qr-placeholder" id="qr-placeholder"></div>
+        </div>
+        <div class="qr-label">
+          <i data-lucide="scan-line"></i>
+          Scan to join
+        </div>
+      </div>
+
+      <div class="card players-card">
+        <div class="players-header">
+          <i data-lucide="users"></i>
+          Players <span class="count">(5 joined)</span>
+        </div>
+        <div class="player-list">
+          <div class="player-item">
+            <div class="player-dot" style="background: var(--amber);"></div>
+            <span class="player-name">DeadPackets</span>
+            <span class="vip-badge">VIP</span>
+          </div>
+          <div class="player-item">
+            <div class="player-dot" style="background: var(--sage);"></div>
+            <span class="player-name">PixelPusher</span>
+          </div>
+          <div class="player-item">
+            <div class="player-dot" style="background: var(--rose);"></div>
+            <span class="player-name">ByteRunner</span>
+          </div>
+          <div class="player-item">
+            <div class="player-dot" style="background: var(--sky);"></div>
+            <span class="player-name">QuizWhiz</span>
+          </div>
+          <div class="player-item">
+            <div class="player-dot" style="background: var(--cream);"></div>
+            <span class="player-name">NerdAlert</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card status-card">
+        <div class="status-text">
+          <div class="pulse-dot"></div>
+          <i data-lucide="radio"></i>
+          Waiting for host to start the game...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Banner -->
+  <div class="bottom-banner">
+    <div class="banner-setting setting-amber">
+      <div class="banner-setting-top">
+        <i data-lucide="book-open"></i>
+        <span class="banner-setting-value">Science</span>
+      </div>
+      <span class="banner-setting-label">Topic</span>
+    </div>
+
+    <div class="banner-divider"></div>
+
+    <div class="banner-setting setting-sage">
+      <div class="banner-setting-top">
+        <i data-lucide="gauge"></i>
+        <span class="banner-setting-value">Medium</span>
+      </div>
+      <span class="banner-setting-label">Difficulty</span>
+    </div>
+
+    <div class="banner-divider"></div>
+
+    <div class="banner-setting setting-rose">
+      <div class="banner-setting-top">
+        <i data-lucide="list-ordered"></i>
+        <span class="banner-setting-value">10</span>
+      </div>
+      <span class="banner-setting-label">Questions</span>
+    </div>
+
+    <div class="banner-divider"></div>
+
+    <div class="banner-setting setting-sky">
+      <div class="banner-setting-top">
+        <i data-lucide="timer"></i>
+        <span class="banner-setting-value">30s</span>
+      </div>
+      <span class="banner-setting-label">Time</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize Lucide icons
+  lucide.createIcons();
+
+  // Generate fake QR code pattern
+  (function generateQR() {
+    const container = document.getElementById('qr-placeholder');
+    // QR-like pattern: fixed corners + random fill
+    const size = 9;
+    const grid = Array.from({ length: size * size }, () => Math.random() > 0.45);
+
+    // Force corner patterns (finder patterns)
+    const setBlock = (r, c, val) => {
+      if (r >= 0 && r < size && c >= 0 && c < size) grid[r * size + c] = val;
+    };
+    // Top-left 3x3
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) setBlock(r, c, true);
+    setBlock(1, 1, false);
+    // Top-right 3x3
+    for (let r = 0; r < 3; r++) for (let c = size - 3; c < size; c++) setBlock(r, c, true);
+    setBlock(1, size - 2, false);
+    // Bottom-left 3x3
+    for (let r = size - 3; r < size; r++) for (let c = 0; c < 3; c++) setBlock(r, c, true);
+    setBlock(size - 2, 1, false);
+
+    grid.forEach(filled => {
+      const span = document.createElement('span');
+      if (!filled) span.style.background = 'transparent';
+      container.appendChild(span);
+    });
+  })();
+
+  // Three.js wireframe background
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'), // amber
+      new THREE.Color('#4ade80'), // sage
+      new THREE.Color('#fb7185'), // rose
+    ];
+
+    const shapes = [];
+
+    for (let i = 0; i < 10; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.12 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: opacity,
+      });
+      const lineSegments = new THREE.LineSegments(wireframe, material);
+
+      lineSegments.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh: lineSegments, rotSpeed, driftSpeed });
+      scene.add(lineSegments);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+
+        // Wrap around
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

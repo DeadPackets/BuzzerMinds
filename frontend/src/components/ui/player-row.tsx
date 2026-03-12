@@ -23,13 +23,16 @@ export function PlayerRow({
   trailing?: ReactNode;
 }) {
   return (
-    <div className={cn(
-      "flex min-w-0 items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all duration-200",
-      active
-        ? "border-[var(--bm-neon-pink)]/40 bg-[var(--bm-neon-pink)]/8 shadow-[0_0_20px_rgba(255,61,154,0.1)]"
-        : "border-[var(--bm-border-glow)] bg-[var(--bm-bg-elevated)]",
-      !connected && "opacity-50",
-    )}>
+    <div
+      className={cn(
+        "flex min-w-0 items-center justify-between gap-3 rounded-xl px-4 py-3 transition-all duration-200",
+        !connected && "opacity-50",
+      )}
+      style={{
+        background: active ? "rgba(245, 158, 11, 0.08)" : "rgba(30, 30, 30, 0.5)",
+        border: active ? "1px solid rgba(245, 158, 11, 0.25)" : "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-3">
           <span
@@ -38,8 +41,8 @@ export function PlayerRow({
             style={{ backgroundColor: color }}
           />
           <div className="min-w-0">
-            <p className="truncate font-semibold text-[var(--bm-text-bright)]">{name}</p>
-            <p className="truncate text-sm text-[var(--bm-text-dim)]">
+            <p className="truncate font-semibold text-[var(--text-bright)]">{name}</p>
+            <p className="truncate text-sm text-[var(--text-dim)]">
               {formatRole(role)}
               {score !== undefined ? ` · ${score} pts` : ""}
               {!connected ? " · offline" : ""}

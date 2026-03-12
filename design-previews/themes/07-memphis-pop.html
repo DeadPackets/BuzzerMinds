@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Memphis Pop</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Rubik:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --red: #ef4444; --blue: #3b82f6; --yellow: #facc15; --green: #22c55e;
+    --pink: #ec4899; --bg: #111827; --text: #f9fafb; --dim: #9ca3af;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow: hidden; }
+
+  /* Theme label */
+  .theme-label { position: fixed; top: 16px; right: 20px; font-family: 'Rubik', sans-serif; font-size: 0.75rem; font-weight: 700; color: var(--bg); background: var(--yellow); padding: 4px 12px; border-radius: 4px; z-index: 100; transform: rotate(2deg); border: 2px solid var(--bg); }
+
+  /* Memphis background shapes */
+  .memphis-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .m-shape { position: absolute; opacity: 0.08; }
+  .m-circle { border-radius: 50%; }
+  .m-triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+  .m-cross { width: 40px; height: 40px; }
+  .m-cross::before, .m-cross::after { content: ''; position: absolute; background: inherit; border-radius: 2px; }
+  .m-cross::before { width: 100%; height: 30%; top: 35%; left: 0; }
+  .m-cross::after { width: 30%; height: 100%; left: 35%; top: 0; }
+  .m-dots { display: grid; grid-template-columns: repeat(4, 8px); gap: 10px; }
+  .m-dots span { width: 8px; height: 8px; border-radius: 50%; background: inherit; }
+  .m-wave { width: 180px; height: 20px; border-bottom: 4px solid; border-radius: 0; clip-path: url(#wave-clip); }
+  @keyframes drift { 0% { transform: translate(0, 0) rotate(var(--r, 0deg)); } 50% { transform: translate(var(--dx, 10px), var(--dy, -10px)) rotate(calc(var(--r, 0deg) + 15deg)); } 100% { transform: translate(0, 0) rotate(var(--r, 0deg)); } }
+  .m-shape { animation: drift var(--dur, 12s) ease-in-out infinite; }
+
+  /* Zigzag divider */
+  .zigzag { height: 12px; width: 100%; background: repeating-linear-gradient(90deg, var(--red) 0px, var(--red) 10px, transparent 10px, transparent 20px, var(--blue) 20px, var(--blue) 30px, transparent 30px, transparent 40px, var(--yellow) 40px, var(--yellow) 50px, transparent 50px, transparent 60px); clip-path: polygon(0% 0%, 5% 100%, 10% 0%, 15% 100%, 20% 0%, 25% 100%, 30% 0%, 35% 100%, 40% 0%, 45% 100%, 50% 0%, 55% 100%, 60% 0%, 65% 100%, 70% 0%, 75% 100%, 80% 0%, 85% 100%, 90% 0%, 95% 100%, 100% 0%); animation: zigzag-scroll 4s linear infinite; opacity: 0.5; }
+  @keyframes zigzag-scroll { 0% { background-position: 0 0; } 100% { background-position: 60px 0; } }
+
+  /* Lobby layout */
+  .lobby { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 100px; padding: 44px 80px; min-height: 100vh; align-items: center; }
+  .left-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+  .right-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-end; }
+
+  /* Logo */
+  .logo { font-family: 'Rubik', sans-serif; font-size: 3.2rem; font-weight: 900; transform: rotate(-2deg); line-height: 1; position: relative; }
+  .logo .l1 { color: var(--red); }
+  .logo .l2 { color: var(--blue); }
+  .logo-zigzag { height: 6px; width: 180px; margin-top: 4px; background: var(--yellow); clip-path: polygon(0% 0%, 4% 100%, 8% 0%, 12% 100%, 16% 0%, 20% 100%, 24% 0%, 28% 100%, 32% 0%, 36% 100%, 40% 0%, 44% 100%, 48% 0%, 52% 100%, 56% 0%, 60% 100%, 64% 0%, 68% 100%, 72% 0%, 76% 100%, 80% 0%, 84% 100%, 88% 0%, 92% 100%, 96% 0%, 100% 100%); }
+
+  /* Code block */
+  .code-block { background: rgba(255,255,255,0.04); border: 3px solid var(--red); border-radius: 12px; padding: 24px 32px; transform: rotate(0.5deg); }
+  .code-label { font-family: 'Rubik', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--dim); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .code-row { display: flex; gap: 12px; margin-bottom: 10px; }
+  .code-ch { font-family: 'Rubik', sans-serif; font-size: 5.5rem; font-weight: 900; color: var(--text); width: 88px; height: 100px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; line-height: 1; }
+  .code-ch::before { content: ''; position: absolute; z-index: -1; opacity: 0.15; }
+  .code-ch:nth-child(1)::before { width: 80px; height: 80px; border-radius: 50%; background: var(--red); }
+  .code-ch:nth-child(2)::before { width: 76px; height: 76px; background: var(--blue); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+  .code-ch:nth-child(3)::before { width: 72px; height: 72px; background: var(--yellow); border-radius: 6px; }
+  .code-ch:nth-child(4)::before { width: 80px; height: 80px; border-radius: 50%; background: var(--green); }
+  .code-ch:nth-child(5)::before { width: 76px; height: 76px; background: var(--pink); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+  .code-ch:nth-child(6)::before { width: 72px; height: 72px; background: var(--blue); border-radius: 6px; }
+  .join-url { font-size: 1rem; color: var(--dim); }
+  .join-url b { color: var(--yellow); font-weight: 700; }
+
+  /* Settings */
+  .settings-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .s-tag { font-family: 'Rubik', sans-serif; font-size: 0.85rem; font-weight: 700; padding: 6px 14px; border-radius: 6px; color: var(--bg); display: flex; align-items: center; gap: 5px; }
+  .s-tag .dim { opacity: 0.7; }
+  .s-tag:nth-child(1) { background: var(--red); transform: rotate(-1.5deg); }
+  .s-tag:nth-child(2) { background: var(--blue); transform: rotate(1deg); }
+  .s-tag:nth-child(3) { background: var(--yellow); color: var(--bg); transform: rotate(-0.5deg); }
+  .s-tag:nth-child(4) { background: var(--green); transform: rotate(1.5deg); }
+  .s-tag .dim { font-weight: 500; }
+
+  /* QR block */
+  .qr-block { text-align: right; }
+  .scan-text { font-size: 0.9rem; color: var(--dim); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .qr { width: 180px; height: 180px; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: 'Rubik', sans-serif; font-weight: 900; font-size: 0.9rem; color: var(--bg); border: 4px solid var(--yellow); transform: rotate(1.5deg); }
+
+  /* Players */
+  .players-block { text-align: right; }
+  .players-label { font-family: 'Rubik', sans-serif; font-size: 1rem; font-weight: 700; color: var(--dim); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; justify-content: flex-end; text-transform: uppercase; letter-spacing: 1px; }
+  .player-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .player { font-size: 1.05rem; font-weight: 500; display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 3px solid; }
+  .player:nth-child(1) { border-color: var(--red); transform: rotate(-1deg); }
+  .player:nth-child(2) { border-color: var(--blue); transform: rotate(0.8deg); }
+  .player:nth-child(3) { border-color: var(--yellow); transform: rotate(-0.5deg); }
+  .player:nth-child(4) { border-color: var(--green); transform: rotate(1.2deg); }
+  .player:nth-child(5) { border-color: var(--pink); transform: rotate(-0.7deg); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .player:nth-child(1) .dot { background: var(--red); }
+  .player:nth-child(2) .dot { background: var(--blue); }
+  .player:nth-child(3) .dot { background: var(--yellow); }
+  .player:nth-child(4) .dot { background: var(--green); }
+  .player:nth-child(5) .dot { background: var(--pink); }
+  .vip { font-family: 'Rubik', sans-serif; font-size: 0.7rem; font-weight: 900; background: var(--yellow); color: var(--red); padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; text-transform: uppercase; }
+
+  /* Status */
+  .status { font-family: 'Rubik', sans-serif; font-size: 1rem; font-weight: 700; color: var(--yellow); border: 3px solid var(--yellow); padding: 10px 20px; border-radius: 8px; transform: rotate(-1deg); animation: status-bounce 2s ease-in-out infinite; }
+  @keyframes status-bounce { 0%, 100% { transform: rotate(-1deg) translateY(0); } 50% { transform: rotate(-1deg) translateY(-4px); } }
+
+  /* Entrance animation */
+  @keyframes pop-in { 0% { opacity: 0; transform: scale(0.7) translateY(20px); } 60% { transform: scale(1.05) translateY(-4px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+  .left-tower > *, .right-tower > * { animation: pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+  .left-tower > *:nth-child(1) { animation-delay: 0.1s; }
+  .left-tower > *:nth-child(2) { animation-delay: 0.25s; }
+  .left-tower > *:nth-child(3) { animation-delay: 0.4s; }
+  .right-tower > *:nth-child(1) { animation-delay: 0.15s; }
+  .right-tower > *:nth-child(2) { animation-delay: 0.3s; }
+  .right-tower > *:nth-child(3) { animation-delay: 0.45s; }
+
+  .code-label i, .scan-text i, .players-label i, .s-tag i { width: 16px; height: 16px; }
+  .vip i { width: 12px; height: 12px; }
+</style>
+</head>
+<body>
+
+<div class="theme-label">Memphis Pop</div>
+
+<div class="memphis-bg" id="memphis-bg"></div>
+
+<div class="lobby">
+  <div class="left-tower">
+    <div>
+      <div class="logo"><span class="l1">Buzzer</span><span class="l2">Minds</span></div>
+      <div class="logo-zigzag"></div>
+    </div>
+    <div class="code-block">
+      <div class="code-label"><i data-lucide="hash" style="width:16px;height:16px"></i> Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+      <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+    </div>
+    <div class="zigzag"></div>
+    <div class="settings-row">
+      <div class="s-tag"><span class="dim"><i data-lucide="book-open"></i> Topic:</span> Science</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="gauge"></i> Diff:</span> Medium</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="list-ordered"></i> Qs:</span> 10</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="clock"></i> Time:</span> 30s</div>
+    </div>
+  </div>
+  <div class="right-tower">
+    <div class="qr-block">
+      <div class="scan-text"><i data-lucide="scan-line"></i> Scan to join</div>
+      <div class="qr">QR CODE</div>
+    </div>
+    <div class="players-block">
+      <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+      <div class="player-list">
+        <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+        <div class="player"><span class="dot"></span> BrainiacBee</div>
+        <div class="player"><span class="dot"></span> QuizWhiz42</div>
+        <div class="player"><span class="dot"></span> TriviaKing</div>
+        <div class="player"><span class="dot"></span> NerdHerd99</div>
+      </div>
+    </div>
+    <div class="status">Waiting for VIP to start...</div>
+  </div>
+</div>
+
+<script>
+// Generate Memphis background shapes
+(function() {
+  const bg = document.getElementById('memphis-bg');
+  const colors = ['#ef4444','#3b82f6','#facc15','#22c55e','#ec4899'];
+  const shapes = [];
+
+  function rng(min, max) { return Math.random() * (max - min) + min; }
+
+  for (let i = 0; i < 18; i++) {
+    const el = document.createElement('div');
+    el.className = 'm-shape';
+    const c = colors[i % colors.length];
+    const type = i % 5;
+    const size = rng(40, 120);
+    el.style.cssText = `
+      left: ${rng(2, 92)}%; top: ${rng(2, 90)}%;
+      --dur: ${rng(10, 22)}s; --dx: ${rng(-15, 15)}px; --dy: ${rng(-15, 15)}px;
+      --r: ${rng(-20, 20)}deg; animation-delay: ${rng(0, 5)}s;
+    `;
+
+    if (type === 0) { // Circle
+      el.classList.add('m-circle');
+      el.style.width = size + 'px'; el.style.height = size + 'px';
+      el.style.background = c;
+    } else if (type === 1) { // Triangle
+      el.classList.add('m-triangle');
+      el.style.width = size + 'px'; el.style.height = size + 'px';
+      el.style.background = c;
+    } else if (type === 2) { // Cross
+      el.classList.add('m-cross');
+      el.style.width = (size * 0.5) + 'px'; el.style.height = (size * 0.5) + 'px';
+      el.style.background = c;
+    } else if (type === 3) { // Square (rotated)
+      el.style.width = (size * 0.7) + 'px'; el.style.height = (size * 0.7) + 'px';
+      el.style.background = c; el.style.borderRadius = '4px';
+      el.style.setProperty('--r', rng(20, 50) + 'deg');
+    } else { // Dots grid
+      el.classList.add('m-dots');
+      el.style.background = 'none'; el.style.opacity = '0.1';
+      for (let d = 0; d < 16; d++) {
+        const dot = document.createElement('span');
+        dot.style.background = c;
+        el.appendChild(dot);
+      }
+    }
+    bg.appendChild(el);
+  }
+})();
+
+lucide.createIcons();
+</script>
+</body>
+</html>

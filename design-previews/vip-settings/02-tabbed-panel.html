@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BuzzerMinds — VIP Settings (02 Tabbed Panel)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root{
+    --bg:#141414;
+    --surface:rgba(30,30,30,0.65);
+    --amber:#f59e0b;
+    --sage:#4ade80;
+    --rose:#fb7185;
+    --sky:#38bdf8;
+    --cream:#fef3c7;
+    --text-bright:#f5f5f5;
+    --text-dim:#737373;
+    --border:rgba(255,255,255,0.06);
+    --radius:14px;
+    --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  html{
+    font-size:16px;
+    -webkit-text-size-adjust:100%;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  body{
+    font-family:'DM Sans',sans-serif;
+    background:var(--bg);
+    color:var(--text-bright);
+    min-height:100dvh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ── diagonal line pattern ── */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 18px,
+      rgba(255,255,255,0.018) 18px,
+      rgba(255,255,255,0.018) 19px
+    );
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ── three.js canvas ── */
+  #bg-canvas{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  /* ── variant label ── */
+  .variant-label{
+    position:fixed;
+    top:12px;
+    right:12px;
+    font-family:'Outfit',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    background:rgba(20,20,20,0.7);
+    backdrop-filter:blur(8px);
+    padding:5px 10px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    z-index:100;
+    user-select:none;
+  }
+
+  /* ── layout ── */
+  .page-wrap{
+    position:relative;
+    z-index:1;
+    max-width:440px;
+    margin:0 auto;
+    padding:env(safe-area-inset-top,20px) 16px calc(env(safe-area-inset-bottom,20px) + 24px);
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ── header ── */
+  .settings-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:20px 0 18px;
+  }
+  .settings-header .icon-wrap{
+    width:36px;
+    height:36px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(245,158,11,0.1);
+    border-radius:10px;
+    color:var(--amber);
+    flex-shrink:0;
+  }
+  .settings-header .icon-wrap svg{width:20px;height:20px}
+  .settings-header h1{
+    font-family:'Outfit',sans-serif;
+    font-size:22px;
+    font-weight:700;
+    color:var(--text-bright);
+    letter-spacing:-0.01em;
+  }
+
+  /* ── card ── */
+  .card{
+    background:var(--surface);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+    flex:1 1 auto;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ── tab bar ── */
+  .tab-bar{
+    display:flex;
+    gap:4px;
+    padding:10px 12px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .tab-bar::-webkit-scrollbar{display:none}
+
+  .tab-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 14px;
+    border-radius:100px;
+    border:none;
+    background:transparent;
+    color:var(--text-dim);
+    font-family:'DM Sans',sans-serif;
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all var(--transition);
+    flex-shrink:0;
+    outline:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tab-btn svg{width:15px;height:15px;flex-shrink:0}
+  .tab-btn:hover{color:var(--text-bright)}
+  .tab-btn.active{
+    background:var(--amber);
+    color:#1a1a1a;
+    font-weight:600;
+  }
+  .tab-btn.active svg{stroke:#1a1a1a}
+
+  /* ── tab panels ── */
+  .tab-panels{
+    position:relative;
+    flex:1 1 auto;
+    overflow-y:auto;
+    overflow-x:hidden;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(255,255,255,0.08) transparent;
+  }
+  .tab-panels::-webkit-scrollbar{width:4px}
+  .tab-panels::-webkit-scrollbar-track{background:transparent}
+  .tab-panels::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
+
+  .tab-panel{
+    display:none;
+    padding:18px 16px 24px;
+    animation:panelFade 0.3s ease;
+  }
+  .tab-panel.active{display:block}
+
+  @keyframes panelFade{
+    from{opacity:0;transform:translateY(6px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* ── form controls ── */
+  .field{margin-bottom:20px}
+  .field:last-child{margin-bottom:0}
+
+  .field-label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:8px;
+  }
+  .field-label svg{width:13px;height:13px;opacity:0.7}
+
+  /* ── dropdown ── */
+  .select-wrap{
+    position:relative;
+  }
+  .select-wrap::after{
+    content:'';
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    width:0;height:0;
+    border-left:4px solid transparent;
+    border-right:4px solid transparent;
+    border-top:5px solid var(--text-dim);
+    pointer-events:none;
+  }
+  .select-wrap select{
+    width:100%;
+    padding:10px 36px 10px 14px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px;
+    color:var(--text-bright);
+    font-family:'DM Sans',sans-serif;
+    font-size:14px;
+    font-weight:500;
+    appearance:none;
+    -webkit-appearance:none;
+    cursor:pointer;
+    outline:none;
+    transition:border-color var(--transition);
+  }
+  .select-wrap select:focus{border-color:rgba(245,158,11,0.4)}
+  .select-wrap select option{background:#222;color:#f5f5f5}
+
+  /* ── slider ── */
+  .slider-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .slider-row input[type="range"]{
+    flex:1;
+    -webkit-appearance:none;
+    appearance:none;
+    height:6px;
+    background:rgba(255,255,255,0.08);
+    border-radius:3px;
+    outline:none;
+    cursor:pointer;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:var(--amber);
+    border:2px solid #1a1a1a;
+    box-shadow:0 0 0 1px rgba(245,158,11,0.3);
+    cursor:grab;
+    transition:transform 0.15s ease;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb:active{
+    transform:scale(1.15);
+    cursor:grabbing;
+  }
+  .slider-row input[type="range"]::-moz-range-thumb{
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:var(--amber);
+    border:2px solid #1a1a1a;
+    box-shadow:0 0 0 1px rgba(245,158,11,0.3);
+    cursor:grab;
+  }
+  .slider-row input[type="range"]::-moz-range-track{
+    height:6px;
+    background:rgba(255,255,255,0.08);
+    border-radius:3px;
+    border:none;
+  }
+  .slider-value{
+    min-width:36px;
+    text-align:right;
+    font-family:'Outfit',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    color:var(--amber);
+    flex-shrink:0;
+  }
+
+  /* ── toggle ── */
+  .toggle-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 14px;
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:background var(--transition);
+  }
+  .toggle-row:last-child{margin-bottom:0}
+  .toggle-row:hover{background:rgba(255,255,255,0.05)}
+
+  .toggle-info{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .toggle-icon{
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    flex-shrink:0;
+  }
+  .toggle-icon svg{width:16px;height:16px}
+  .toggle-icon.narration{background:rgba(56,189,248,0.12);color:var(--sky)}
+  .toggle-icon.sfx{background:rgba(251,113,133,0.12);color:var(--rose)}
+  .toggle-icon.music{background:rgba(74,222,128,0.12);color:var(--sage)}
+
+  .toggle-text{
+    font-size:14px;
+    font-weight:500;
+    color:var(--text-bright);
+  }
+  .toggle-desc{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:2px;
+  }
+
+  .toggle-switch{
+    position:relative;
+    width:44px;
+    height:24px;
+    flex-shrink:0;
+  }
+  .toggle-switch input{
+    opacity:0;
+    width:0;
+    height:0;
+    position:absolute;
+  }
+  .toggle-track{
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,0.1);
+    border-radius:12px;
+    transition:background var(--transition);
+    cursor:pointer;
+  }
+  .toggle-track::after{
+    content:'';
+    position:absolute;
+    top:3px;
+    left:3px;
+    width:18px;
+    height:18px;
+    background:#555;
+    border-radius:50%;
+    transition:all var(--transition);
+  }
+  .toggle-switch input:checked + .toggle-track{
+    background:var(--amber);
+  }
+  .toggle-switch input:checked + .toggle-track::after{
+    transform:translateX(20px);
+    background:#1a1a1a;
+  }
+
+  /* ── conditional fields ── */
+  .conditional-field{
+    overflow:hidden;
+    max-height:0;
+    opacity:0;
+    transition:max-height 0.35s ease, opacity 0.25s ease, margin 0.3s ease;
+    margin-top:0;
+  }
+  .conditional-field.visible{
+    max-height:120px;
+    opacity:1;
+    margin-top:20px;
+  }
+
+  /* ── footer ── */
+  .footer{
+    padding-top:18px;
+    flex-shrink:0;
+  }
+  .start-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+    padding:15px 24px;
+    background:var(--amber);
+    color:#1a1a1a;
+    border:none;
+    border-radius:12px;
+    font-family:'Outfit',sans-serif;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:0.01em;
+    cursor:pointer;
+    transition:all var(--transition);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .start-btn svg{width:20px;height:20px}
+  .start-btn:hover{filter:brightness(1.08)}
+  .start-btn:active{transform:scale(0.98)}
+
+  /* ── blockers ── */
+  .blockers-box{
+    margin-top:12px;
+    padding:12px 14px;
+    background:rgba(251,113,133,0.06);
+    border:1px solid rgba(251,113,133,0.12);
+    border-radius:10px;
+  }
+  .blockers-title{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    font-weight:600;
+    color:var(--rose);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:8px;
+  }
+  .blockers-title svg{width:13px;height:13px}
+  .blocker-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    color:var(--text-dim);
+    padding:3px 0;
+  }
+  .blocker-item .dot{
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:var(--rose);
+    flex-shrink:0;
+  }
+
+  /* ── separator ── */
+  .field-sep{
+    height:1px;
+    background:var(--border);
+    margin:16px 0;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="variant-label">02 — Tabbed Panel</div>
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="settings-header">
+    <div class="icon-wrap">
+      <i data-lucide="settings"></i>
+    </div>
+    <h1>Game Settings</h1>
+  </div>
+
+  <!-- Main Card -->
+  <div class="card">
+    <!-- Tab Bar -->
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-tab="setup">
+        <i data-lucide="sliders-horizontal"></i>
+        Setup
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="rules">
+        <i data-lucide="scroll-text"></i>
+        Rules
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="timing">
+        <i data-lucide="timer"></i>
+        Timing
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="audio">
+        <i data-lucide="volume-2"></i>
+        Audio
+      </button>
+    </div>
+
+    <!-- Tab Panels -->
+    <div class="tab-panels">
+
+      <!-- SETUP -->
+      <div class="tab-panel active" id="panel-setup" role="tabpanel">
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="brain"></i>
+            Model Preset
+          </label>
+          <div class="select-wrap">
+            <select>
+              <option>GPT-4o Standard</option>
+              <option>Claude Sonnet</option>
+              <option>Gemini Flash</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="shield-check"></i>
+            Moderation
+          </label>
+          <div class="select-wrap">
+            <select>
+              <option>Off</option>
+              <option>Light</option>
+              <option selected>Family Safe</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULES -->
+      <div class="tab-panel" id="panel-rules" role="tabpanel">
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="layers"></i>
+            Topic Pool Size
+          </label>
+          <div class="slider-row">
+            <input type="range" min="3" max="12" value="6" data-display="pool-size">
+            <span class="slider-value" id="pool-size">6</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="repeat"></i>
+            Rounds
+          </label>
+          <div class="slider-row">
+            <input type="range" min="2" max="10" value="5" data-display="rounds">
+            <span class="slider-value" id="rounds">5</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="eye"></i>
+            Reveal Mode
+          </label>
+          <div class="select-wrap">
+            <select>
+              <option selected>Progressive</option>
+              <option>Full</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-sep"></div>
+
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="flag-triangleRight"></i>
+            End Mode
+          </label>
+          <div class="select-wrap">
+            <select id="end-mode-select">
+              <option value="rounds" selected>Rounds</option>
+              <option value="timer">Timer</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="conditional-field" id="timer-fields">
+          <div class="field">
+            <label class="field-label">
+              <i data-lucide="clock"></i>
+              Timer Minutes
+            </label>
+            <div class="slider-row">
+              <input type="range" min="5" max="60" value="20" data-display="timer-min">
+              <span class="slider-value" id="timer-min">20</span>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px">
+            <label class="field-label">
+              <i data-lucide="alarm-clock-off"></i>
+              Timer Expiry
+            </label>
+            <div class="select-wrap">
+              <select>
+                <option>Finish Round</option>
+                <option>Main Only</option>
+                <option>Stop Immediately</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMING -->
+      <div class="tab-panel" id="panel-timing" role="tabpanel">
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="hourglass"></i>
+            Answer Time
+          </label>
+          <div class="slider-row">
+            <input type="range" min="15" max="120" value="45" data-display="answer-time" data-suffix="s">
+            <span class="slider-value" id="answer-time">45s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="bell-off"></i>
+            No-Buzz Window
+          </label>
+          <div class="slider-row">
+            <input type="range" min="0" max="10" value="3" data-display="no-buzz" data-suffix="s">
+            <span class="slider-value" id="no-buzz">3s</span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">
+            <i data-lucide="zap"></i>
+            Bonus Time
+          </label>
+          <div class="slider-row">
+            <input type="range" min="10" max="60" value="20" data-display="bonus-time" data-suffix="s">
+            <span class="slider-value" id="bonus-time">20s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIO -->
+      <div class="tab-panel" id="panel-audio" role="tabpanel">
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-icon narration"><i data-lucide="mic"></i></div>
+            <div>
+              <div class="toggle-text">Narration</div>
+              <div class="toggle-desc">AI host voice between rounds</div>
+            </div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-icon sfx"><i data-lucide="sparkles"></i></div>
+            <div>
+              <div class="toggle-text">Sound Effects</div>
+              <div class="toggle-desc">Buzzer, correct/wrong cues</div>
+            </div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-icon music"><i data-lucide="music"></i></div>
+            <div>
+              <div class="toggle-text">Music</div>
+              <div class="toggle-desc">Background music during play</div>
+            </div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-track"></span>
+          </div>
+        </label>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="start-btn">
+      <i data-lucide="play"></i>
+      Start Match
+    </button>
+
+    <div class="blockers-box">
+      <div class="blockers-title">
+        <i data-lucide="alert-triangle"></i>
+        Start Blockers
+      </div>
+      <div class="blocker-item">
+        <span class="dot"></span>
+        Need at least 2 players to start
+      </div>
+      <div class="blocker-item">
+        <span class="dot"></span>
+        Waiting for AI model connection
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Initialize Lucide icons ──
+lucide.createIcons();
+
+// ── Tab switching ──
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+
+    tabBtns.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+
+    tabPanels.forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('panel-' + target);
+    if (panel) {
+      panel.classList.remove('active');
+      // Force reflow for animation restart
+      void panel.offsetWidth;
+      panel.classList.add('active');
+    }
+
+    // Scroll active tab into view
+    btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  });
+});
+
+// ── Range sliders ──
+document.querySelectorAll('input[type="range"]').forEach(slider => {
+  const displayId = slider.dataset.display;
+  const suffix = slider.dataset.suffix || '';
+  const display = document.getElementById(displayId);
+
+  const update = () => {
+    if (display) display.textContent = slider.value + suffix;
+    // Update fill
+    const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+    slider.style.background = `linear-gradient(to right, var(--amber) 0%, var(--amber) ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
+  };
+
+  slider.addEventListener('input', update);
+  update();
+});
+
+// ── End mode conditional ──
+const endModeSelect = document.getElementById('end-mode-select');
+const timerFields = document.getElementById('timer-fields');
+
+if (endModeSelect && timerFields) {
+  const updateTimerVisibility = () => {
+    if (endModeSelect.value === 'timer') {
+      timerFields.classList.add('visible');
+    } else {
+      timerFields.classList.remove('visible');
+    }
+  };
+  endModeSelect.addEventListener('change', updateTimerVisibility);
+  updateTimerVisibility();
+}
+
+// ── Three.js wireframe octahedron ──
+(function initThreeBackground() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    alpha: true,
+    antialias: true
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  camera.position.z = 5;
+
+  // Octahedron
+  const geo = new THREE.OctahedronGeometry(1.6, 0);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xf59e0b,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.06
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(1.2, -0.5, 0);
+  scene.add(mesh);
+
+  // Second smaller one
+  const geo2 = new THREE.OctahedronGeometry(0.8, 0);
+  const mat2 = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.04
+  });
+  const mesh2 = new THREE.Mesh(geo2, mat2);
+  mesh2.position.set(-1.5, 1.2, -1);
+  scene.add(mesh2);
+
+  function resize() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function animate(t) {
+    requestAnimationFrame(animate);
+    const s = t * 0.001;
+    mesh.rotation.x = s * 0.15;
+    mesh.rotation.y = s * 0.2;
+    mesh2.rotation.x = s * -0.12;
+    mesh2.rotation.y = s * 0.18;
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

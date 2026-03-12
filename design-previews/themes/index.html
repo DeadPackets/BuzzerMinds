@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Theme Picker (Split Towers Layout)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0f;
+    color: #e4e4e7;
+    min-height: 100vh;
+  }
+  .header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 1px solid #27272a;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .header h1 .accent { color: #22d3ee; }
+  .header p {
+    margin-top: 8px;
+    color: #71717a;
+    font-size: 1rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 24px;
+    padding: 32px 40px 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .card {
+    border: 1px solid #27272a;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    background: #18181b;
+  }
+  .card:hover {
+    border-color: #3f3f46;
+    transform: translateY(-4px);
+  }
+  .card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .card-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border: none;
+    pointer-events: none;
+    display: block;
+    background: #0f0f14;
+  }
+  .card-info {
+    padding: 16px 20px;
+    border-top: 1px solid #27272a;
+  }
+  .card-info h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .card-info .num {
+    color: #71717a;
+    font-weight: 400;
+    margin-right: 4px;
+  }
+  .card-info .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    vertical-align: middle;
+  }
+  .badge-shadcn { background: #22d3ee; color: #0a0a0f; }
+  .badge-threejs { background: #7c3aed; color: #fff; }
+  .badge-canvas { background: #f59e0b; color: #0a0a0f; }
+  .badge-css { background: #22c55e; color: #0a0a0f; }
+  .card-info p {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #71717a;
+    line-height: 1.5;
+  }
+  .card-info .fonts {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: #52525b;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Theme Picker <span class="accent">— Split Towers</span></h1>
+  <p>10 theme variations applied to Layout C (Split Towers). Same layout, different visual personality. Click any card to view full-screen. Only #1 uses shadcn.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <a href="01-ocean-night.html" target="_blank">
+      <iframe class="card-preview" src="01-ocean-night.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">01</span> Ocean Night <span class="badge badge-shadcn">shadcn</span> <span class="badge badge-css">css bg</span></h2>
+        <p>The existing landing page design. Clean shadcn cards, deep navy palette, Memphis floating shapes. Corporate but polished.</p>
+        <div class="fonts">Sora + Archivo</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="02-candy-pop.html" target="_blank">
+      <iframe class="card-preview" src="02-candy-pop.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">02</span> Candy Pop <span class="badge badge-threejs">three.js</span></h2>
+        <p>Bubbly pastels, gumball aesthetic. 3D floating spheres, donuts, and icosahedrons. Everything round and squishy.</p>
+        <div class="fonts">Quicksand + Baloo 2</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="03-comic-book.html" target="_blank">
+      <iframe class="card-preview" src="03-comic-book.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">03</span> Comic Book <span class="badge badge-css">css bg</span></h2>
+        <p>Bold outlines, halftone dots, speed lines, "JOIN!" starburst. High contrast comic panel aesthetic.</p>
+        <div class="fonts">Comic Neue + Bangers</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="04-board-game.html" target="_blank">
+      <iframe class="card-preview" src="04-board-game.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">04</span> Board Game <span class="badge badge-threejs">three.js</span></h2>
+        <p>Cozy game night warmth. 3D floating dice, game tile room codes, pawn-style player dots. Warm stone palette.</p>
+        <div class="fonts">Nunito + Fredoka</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="05-sunset-fiesta.html" target="_blank">
+      <iframe class="card-preview" src="05-sunset-fiesta.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">05</span> Sunset Fiesta <span class="badge badge-css">css bg</span></h2>
+        <p>Warm sunset colors, papel picado settings tags, twinkling stars, golden hour party energy.</p>
+        <div class="fonts">Quicksand + Lilita One</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="06-sticker-pack.html" target="_blank">
+      <iframe class="card-preview" src="06-sticker-pack.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">06</span> Sticker Pack <span class="badge badge-css">css bg</span></h2>
+        <p>Every element is a peelable sticker. White/bright stickers on dark slate. Random rotations, offset shadows, hover-peel effect.</p>
+        <div class="fonts">Poppins + Fredoka</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="07-memphis-pop.html" target="_blank">
+      <iframe class="card-preview" src="07-memphis-pop.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">07</span> Memphis Pop <span class="badge badge-css">css bg</span></h2>
+        <p>80s/90s Memphis Group energy. Primary colors, geometric shapes, zigzag dividers, playful angles. Bold and graphic.</p>
+        <div class="fonts">DM Sans + Rubik</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="08-underwater.html" target="_blank">
+      <iframe class="card-preview" src="08-underwater.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">08</span> Underwater <span class="badge badge-threejs">three.js</span></h2>
+        <p>Deep ocean bioluminescence. Rising bubble particles, swaying seaweed, wavy settings tags. Coral reef at night.</p>
+        <div class="fonts">Quicksand + Comfortaa</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="09-confetti-carnival.html" target="_blank">
+      <iframe class="card-preview" src="09-confetti-carnival.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">09</span> Confetti Carnival <span class="badge badge-canvas">canvas</span></h2>
+        <p>Pure celebration. Canvas confetti rain, party-colored room code characters, festive borders, color-cycling status.</p>
+        <div class="fonts">Nunito + Boogaloo</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="10-liquid-blob.html" target="_blank">
+      <iframe class="card-preview" src="10-liquid-blob.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="num">10</span> Liquid Blob <span class="badge badge-threejs">three.js</span></h2>
+        <p>Organic morphing shapes, lava lamp aesthetic. Ultra-smooth, modern, alive. Calm but mesmerizing.</p>
+        <div class="fonts">Plus Jakarta Sans + Outfit</div>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Confetti Carnival</title>
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0f0a1a; font-family: 'Nunito', sans-serif; color: #fef9c3; }
+
+  .theme-label {
+    position: fixed; top: 16px; right: 20px; z-index: 100;
+    font-family: 'Boogaloo', cursive; font-size: 0.85rem; color: #facc15;
+    background: rgba(15,10,26,0.8); padding: 6px 14px; border-radius: 20px;
+    border: 2px solid #facc15;
+  }
+
+  canvas#confetti-canvas {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
+  }
+
+  .lobby {
+    position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 100px; padding: 44px 80px; height: 100vh; align-items: center;
+  }
+
+  .left-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+  .right-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-end; }
+
+  .logo {
+    font-family: 'Boogaloo', cursive; font-size: 3.5rem; color: #fb923c;
+    opacity: 0; animation: bounceIn 0.7s 0.1s cubic-bezier(0.34, 1.8, 0.64, 1) forwards;
+  }
+  .logo span { color: #f472b6; }
+
+  .code-block {
+    background: rgba(15,10,26,0.7); backdrop-filter: blur(8px);
+    border: 3px solid #ef4444; border-radius: 18px; padding: 24px 30px;
+    opacity: 0; animation: bounceIn 0.6s 0.2s cubic-bezier(0.34, 1.8, 0.64, 1) forwards;
+  }
+  .code-label {
+    font-size: 0.95rem; color: #7c6f8a; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+  .code-label i { width: 16px; height: 16px; }
+  .code-row { display: flex; gap: 12px; margin-bottom: 10px; }
+
+  .code-ch {
+    font-family: 'Boogaloo', cursive; font-size: 5.5rem; line-height: 1;
+    width: 88px; height: 96px; display: flex; align-items: center; justify-content: center;
+    border-radius: 18px; color: #0f0a1a; font-weight: 400;
+    opacity: 0; transform: scale(0) rotate(-20deg);
+  }
+  .code-ch:nth-child(1) { background: #ef4444; animation: popChar 0.5s 0.4s cubic-bezier(0.34, 1.8, 0.64, 1) forwards; }
+  .code-ch:nth-child(2) { background: #60a5fa; animation: popChar 0.5s 0.5s cubic-bezier(0.34, 1.8, 0.64, 1) forwards; }
+  .code-ch:nth-child(3) { background: #4ade80; animation: popChar 0.5s 0.6s cubic-bezier(0.34, 1.8, 0.64, 1) forwards; }
+  .code-ch:nth-child(4) { background: #facc15; animation: popChar 0.5s 0.7s cubic-bezier(0.34, 1.8, 0.64, 1) forwards; }
+  .code-ch:nth-child(5) { background: #f472b6; animation: popChar 0.5s 0.8s cubic-bezier(0.34, 1.8, 0.64, 1) forwards; }
+  .code-ch:nth-child(6) { background: #a78bfa; animation: popChar 0.5s 0.9s cubic-bezier(0.34, 1.8, 0.64, 1) forwards; }
+
+  .join-url { font-size: 1rem; color: #7c6f8a; font-weight: 600; }
+  .join-url b { color: #fef9c3; }
+
+  .settings-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    opacity: 0; animation: bounceIn 0.6s 0.35s cubic-bezier(0.34, 1.8, 0.64, 1) forwards;
+  }
+  .s-tag {
+    background: rgba(15,10,26,0.7); backdrop-filter: blur(8px);
+    padding: 8px 16px; border-radius: 10px; font-size: 0.95rem; font-weight: 700;
+    border-left: 4px solid; display: flex; align-items: center; gap: 5px;
+  }
+  .s-tag:nth-child(1) { border-color: #60a5fa; transform: rotate(-1deg); }
+  .s-tag:nth-child(2) { border-color: #4ade80; transform: rotate(0.5deg); }
+  .s-tag:nth-child(3) { border-color: #facc15; transform: rotate(-0.8deg); }
+  .s-tag:nth-child(4) { border-color: #f472b6; transform: rotate(1deg); }
+  .s-tag i { width: 14px; height: 14px; }
+  .dim { color: #7c6f8a; }
+
+  .qr-block {
+    text-align: right;
+    opacity: 0; animation: bounceIn 0.6s 0.25s cubic-bezier(0.34, 1.8, 0.64, 1) forwards;
+  }
+  .scan-text {
+    font-size: 0.95rem; color: #7c6f8a; margin-bottom: 10px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  }
+  .scan-text i { width: 16px; height: 16px; }
+  .qr {
+    width: 180px; height: 180px; background: #fff; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: #0f0a1a; font-family: 'Boogaloo', cursive; font-size: 1.1rem;
+    border: 3px solid #a78bfa; margin-left: auto;
+  }
+
+  .players-block {
+    background: rgba(15,10,26,0.7); backdrop-filter: blur(8px);
+    border: 3px solid #4ade80; border-radius: 18px; padding: 20px 24px;
+    opacity: 0; animation: bounceIn 0.6s 0.3s cubic-bezier(0.34, 1.8, 0.64, 1) forwards;
+  }
+  .players-label {
+    font-size: 0.95rem; color: #7c6f8a; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 12px; text-align: right;
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  }
+  .players-label i { width: 16px; height: 16px; }
+
+  .player-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .player {
+    display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700;
+    padding: 8px 16px; border-radius: 30px; background: rgba(15,10,26,0.5);
+    opacity: 0; transform: translateX(40px);
+  }
+  .player:nth-child(1) { border: 2px solid #ef4444; animation: slidePlayer 0.5s 0.5s cubic-bezier(0.34, 1.5, 0.64, 1) forwards; }
+  .player:nth-child(2) { border: 2px solid #60a5fa; animation: slidePlayer 0.5s 0.6s cubic-bezier(0.34, 1.5, 0.64, 1) forwards; }
+  .player:nth-child(3) { border: 2px solid #4ade80; animation: slidePlayer 0.5s 0.7s cubic-bezier(0.34, 1.5, 0.64, 1) forwards; }
+  .player:nth-child(4) { border: 2px solid #facc15; animation: slidePlayer 0.5s 0.8s cubic-bezier(0.34, 1.5, 0.64, 1) forwards; }
+  .player:nth-child(5) { border: 2px solid #f472b6; animation: slidePlayer 0.5s 0.9s cubic-bezier(0.34, 1.5, 0.64, 1) forwards; }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .player:nth-child(1) .dot { background: #ef4444; }
+  .player:nth-child(2) .dot { background: #60a5fa; }
+  .player:nth-child(3) .dot { background: #4ade80; }
+  .player:nth-child(4) .dot { background: #facc15; }
+  .player:nth-child(5) .dot { background: #f472b6; }
+
+  .vip {
+    background: #facc15; color: #0f0a1a; font-size: 0.75rem; font-weight: 800;
+    padding: 2px 10px; border-radius: 12px; margin-left: 4px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .vip i { width: 12px; height: 12px; }
+
+  .status {
+    font-size: 1.05rem; color: #7c6f8a; font-weight: 700; text-align: right;
+    display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+    opacity: 0; animation: bounceIn 0.6s 1s cubic-bezier(0.34, 1.5, 0.64, 1) forwards;
+  }
+  .status i { width: 18px; height: 18px; }
+  .status-text { animation: colorCycle 4s ease-in-out infinite; }
+
+  /* Decorative streamers */
+  .streamer {
+    position: fixed; z-index: 0; pointer-events: none; width: 4px; border-radius: 3px;
+    opacity: 0.25;
+  }
+  .streamer-1 { top: -20px; left: 8%; height: 120px; background: #ef4444; transform: rotate(12deg); }
+  .streamer-2 { top: -10px; left: 22%; height: 90px; background: #60a5fa; transform: rotate(-8deg); }
+  .streamer-3 { top: -15px; right: 15%; height: 110px; background: #4ade80; transform: rotate(6deg); }
+  .streamer-4 { top: -5px; right: 30%; height: 80px; background: #facc15; transform: rotate(-14deg); }
+  .streamer-5 { bottom: -10px; left: 12%; height: 100px; background: #f472b6; transform: rotate(10deg); }
+  .streamer-6 { bottom: -20px; right: 8%; height: 130px; background: #a78bfa; transform: rotate(-5deg); }
+
+  @keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3) translateY(30px); }
+    70% { transform: scale(1.08) translateY(-4px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes popChar {
+    0% { opacity: 0; transform: scale(0) rotate(-20deg); }
+    60% { transform: scale(1.2) rotate(5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  @keyframes slidePlayer {
+    0% { opacity: 0; transform: translateX(40px); }
+    60% { transform: translateX(-6px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes colorCycle {
+    0%, 100% { color: #7c6f8a; }
+    25% { color: #ef4444; }
+    50% { color: #facc15; }
+    75% { color: #4ade80; }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">Confetti Carnival</div>
+<canvas id="confetti-canvas"></canvas>
+
+<div class="streamer streamer-1"></div>
+<div class="streamer streamer-2"></div>
+<div class="streamer streamer-3"></div>
+<div class="streamer streamer-4"></div>
+<div class="streamer streamer-5"></div>
+<div class="streamer streamer-6"></div>
+
+<div class="lobby">
+  <div class="left-tower">
+    <div class="logo">Buzzer<span>Minds</span></div>
+    <div class="code-block">
+      <div class="code-label"><i data-lucide="hash"></i> Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+      <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+    </div>
+    <div class="settings-row">
+      <div class="s-tag"><span class="dim"><i data-lucide="book-open"></i> Topic:</span> Science</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="gauge"></i> Diff:</span> Medium</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="list-ordered"></i> Qs:</span> 10</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="timer"></i> Time:</span> 30s</div>
+    </div>
+  </div>
+  <div class="right-tower">
+    <div class="qr-block">
+      <div class="scan-text"><i data-lucide="scan-line"></i> Scan to<br>join instantly</div>
+      <div class="qr">QR CODE</div>
+    </div>
+    <div class="players-block">
+      <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+      <div class="player-list">
+        <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+        <div class="player"><span class="dot"></span> BrainiacBee</div>
+        <div class="player"><span class="dot"></span> QuizWhiz42</div>
+        <div class="player"><span class="dot"></span> TriviaKing</div>
+        <div class="player"><span class="dot"></span> NerdHerd99</div>
+      </div>
+    </div>
+    <div class="status"><i data-lucide="party-popper"></i> <span class="status-text">Waiting for VIP to start...</span></div>
+  </div>
+</div>
+
+<script>
+// Confetti canvas
+const canvas = document.getElementById('confetti-canvas');
+const ctx = canvas.getContext('2d');
+const COLORS = ['#ef4444','#60a5fa','#4ade80','#facc15','#f472b6','#fb923c','#a78bfa'];
+let W, H;
+
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+class Piece {
+  constructor() { this.reset(true); }
+  reset(init) {
+    this.x = Math.random() * W;
+    this.y = init ? Math.random() * -H : -15;
+    this.w = 3 + Math.random() * 5;
+    this.h = 8 + Math.random() * 7;
+    this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    this.circle = Math.random() > 0.65;
+    this.r = this.circle ? 2 + Math.random() * 4 : 0;
+    this.speed = 1.2 + Math.random() * 2.5;
+    this.drift = Math.random() * Math.PI * 2;
+    this.driftSpeed = 0.01 + Math.random() * 0.02;
+    this.rot = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.08;
+  }
+  update() {
+    this.y += this.speed;
+    this.drift += this.driftSpeed;
+    this.x += Math.sin(this.drift) * 0.8;
+    this.rot += this.rotSpeed;
+    if (this.y > H + 20) this.reset(false);
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rot);
+    ctx.fillStyle = this.color;
+    if (this.circle) {
+      ctx.beginPath(); ctx.arc(0, 0, this.r, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillRect(-this.w / 2, -this.h / 2, this.w, this.h);
+    }
+    ctx.restore();
+  }
+}
+
+const pieces = Array.from({ length: 90 }, () => new Piece());
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+  pieces.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animate);
+}
+animate();
+
+lucide.createIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout I: Cinematic Wide</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --text: #e8e6f0; --text-dim: #6b6e7b;
+    --accent: #7c6ef6; --green: #34d399; --gold: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-dot { position: absolute; border-radius: 50%; opacity: 0.04; }
+  .layout-label {
+    position: fixed; top: 16px; right: 16px; z-index: 99;
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; color: var(--text-dim);
+    background: rgba(26,29,39,0.7); backdrop-filter: blur(8px);
+  }
+
+  /* ══════════════════════════════════════════
+     LAYOUT I: CINEMATIC WIDE
+     Inspired by movie title sequences.
+     Everything vertically centered in a narrow 
+     horizontal band across the middle of the screen.
+     Top and bottom thirds are pure background.
+     Code is the main title, everything else is 
+     credits-style below it.
+     QR on the far right like a watermark.
+     Maximum background visibility.
+     ══════════════════════════════════════════ */
+
+  .lobby {
+    position: relative; z-index: 1;
+    height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 0 80px;
+  }
+
+  /* Thin line accent above */
+  .accent-line {
+    width: 120px; height: 2px; background: var(--accent); opacity: 0.4;
+    margin-bottom: 20px;
+  }
+
+  .logo {
+    font-size: 1.2rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.25em;
+    color: var(--text-dim); margin-bottom: 12px;
+  }
+  .logo span { color: var(--accent); letter-spacing: 0.1em; }
+
+  /* Room code — massive, full width */
+  .code-row {
+    display: flex; gap: 20px; justify-content: center;
+    margin-bottom: 8px;
+  }
+  .code-ch {
+    font-size: 8rem; font-weight: 900; line-height: 0.85;
+    color: var(--accent);
+  }
+
+  .join-url {
+    font-size: 1.3rem; font-weight: 600; color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .join-url b { color: var(--accent); }
+
+  .accent-line-2 {
+    width: 80px; height: 1px; background: rgba(255,255,255,0.1);
+    margin-bottom: 20px;
+  }
+
+  /* Players — inline flow */
+  .players-row {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .player {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 99px;
+    background: rgba(26,29,39,0.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700; font-size: 1rem;
+  }
+  .player .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .player .vip {
+    font-size: 0.55rem; font-weight: 800; color: var(--gold);
+    background: rgba(251,191,36,0.15); padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* Settings — small metadata row */
+  .meta-row {
+    display: flex; gap: 20px;
+    margin-bottom: 8px;
+  }
+  .meta-item { font-size: 0.9rem; font-weight: 600; }
+  .meta-item .dim { color: var(--text-dim); }
+
+  .status { font-size: 0.9rem; font-weight: 600; color: var(--text-dim); }
+
+  .accent-line-3 {
+    width: 120px; height: 2px; background: var(--accent); opacity: 0.4;
+    margin-top: 20px;
+  }
+
+  /* QR — positioned as a floating element on the right */
+  .qr-float {
+    position: absolute; right: 60px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .qr {
+    width: 160px; height: 160px;
+    background: white; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #333;
+  }
+  .scan-text { font-size: 0.85rem; font-weight: 600; color: var(--text-dim); text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="layout-label">I / CINEMATIC WIDE</div>
+
+<div class="lobby">
+  <div class="accent-line"></div>
+  <div class="logo">Buzzer<span>Minds</span></div>
+
+  <div class="code-row">
+    <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+    <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+  </div>
+
+  <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+
+  <div class="accent-line-2"></div>
+
+  <div class="players-row">
+    <div class="player"><span class="dot"></span> SpeedDemon <span class="vip">VIP</span></div>
+    <div class="player"><span class="dot"></span> BrainiacBee</div>
+    <div class="player"><span class="dot"></span> QuizWhiz42</div>
+    <div class="player"><span class="dot"></span> TriviaKing</div>
+    <div class="player"><span class="dot"></span> NerdHerd99</div>
+  </div>
+
+  <div class="meta-row">
+    <div class="meta-item"><span class="dim">Topic:</span> Science</div>
+    <div class="meta-item"><span class="dim">Diff:</span> Medium</div>
+    <div class="meta-item"><span class="dim">Qs:</span> 10</div>
+    <div class="meta-item"><span class="dim">Time:</span> 30s</div>
+  </div>
+
+  <div class="status">Waiting for VIP to start...</div>
+
+  <div class="accent-line-3"></div>
+
+  <div class="qr-float">
+    <div class="qr">QR CODE</div>
+    <div class="scan-text">Scan to join</div>
+  </div>
+</div>
+
+<script>
+  const bg = document.getElementById('bg'); const dots = [];
+  for (let i = 0; i < 15; i++) {
+    const el = document.createElement('div'); el.className = 'bg-dot';
+    const size = 80 + Math.random() * 200;
+    el.style.width = size + 'px'; el.style.height = size + 'px'; el.style.background = '#7c6ef6';
+    bg.appendChild(el);
+    dots.push({ el, size, x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 });
+  }
+  (function anim() {
+    dots.forEach(d => { d.x += d.vx; d.y += d.vy; if (d.x < -d.size) d.x = innerWidth; if (d.x > innerWidth) d.x = -d.size; if (d.y < -d.size) d.y = innerHeight; if (d.y > innerHeight) d.y = -d.size; d.el.style.transform = `translate(${d.x}px,${d.y}px)`; });
+    requestAnimationFrame(anim);
+  })();
+</script>
+</body>
+</html>

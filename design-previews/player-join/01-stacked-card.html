@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 01 Stacked Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #141414;
+    --surface: rgba(30, 30, 30, 0.65);
+    --amber: #f59e0b;
+    --sage: #4ade80;
+    --rose: #fb7185;
+    --sky: #38bdf8;
+    --cream: #fef3c7;
+    --text-bright: #f5f5f5;
+    --text-dim: #737373;
+    --border: rgba(255, 255, 255, 0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 20px;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(20,20,20,0.8); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .top-bar-logo {
+    font-family: var(--font-display); font-size: 1.1rem; font-weight: 800;
+  }
+  .top-bar-logo .a { color: var(--amber); }
+  .top-bar-logo .s { color: var(--sage); }
+  .top-bar-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.95rem;
+    color: var(--amber); letter-spacing: 0.08em;
+  }
+
+  /* ── Card ── */
+  .join-card {
+    width: 100%; max-width: 400px;
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius: 16px;
+    overflow: hidden;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+
+  .card-header {
+    padding: 28px 24px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-header h1 {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.65rem;
+    letter-spacing: -0.02em; line-height: 1.15;
+  }
+  .card-header p {
+    margin-top: 6px; font-size: 0.85rem; color: var(--text-dim); line-height: 1.5;
+  }
+  .room-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 12px; padding: 4px 12px;
+    background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 20px; font-family: var(--font-display);
+    font-size: 0.7rem; font-weight: 700; color: var(--amber);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .room-badge i { width: 12px; height: 12px; }
+
+  /* ── Form ── */
+  .card-body { padding: 24px; }
+
+  .field { margin-bottom: 20px; }
+  .field:last-of-type { margin-bottom: 24px; }
+
+  .field-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .field-label i { width: 14px; height: 14px; color: var(--amber); }
+
+  .field-input {
+    width: 100%; padding: 14px 16px;
+    background: rgba(20,20,20,0.6); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-size: 1rem; font-weight: 500; outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: var(--sage); }
+  .field-input::placeholder { color: var(--text-dim); font-weight: 400; }
+
+  textarea.field-input { resize: none; min-height: 80px; line-height: 1.5; }
+
+  /* ── Color swatches ── */
+  .color-swatches {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .swatch {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.active { border-color: var(--text-bright); transform: scale(1.15); }
+
+  .char-count {
+    text-align: right; font-size: 0.7rem; color: var(--text-dim); margin-top: 6px;
+  }
+
+  /* ── Submit ── */
+  .submit-btn {
+    width: 100%; padding: 16px;
+    background: var(--amber); color: var(--bg);
+    border: none; border-radius: 10px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn i { width: 18px; height: 18px; }
+
+  /* ── Footer note ── */
+  .card-footer {
+    padding: 16px 24px; text-align: center;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem; color: var(--text-dim);
+  }
+  .card-footer strong { color: var(--sage); font-weight: 600; }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">01 — Stacked Card</div>
+<div class="bg-pattern"></div>
+
+<div class="top-bar">
+  <div class="top-bar-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+  <div class="top-bar-code">X7KQ9W</div>
+</div>
+
+<div class="page">
+  <div class="join-card">
+    <div class="card-header">
+      <div class="room-badge"><i data-lucide="hash"></i> Room X7KQ9W</div>
+      <h1>Jump into the game</h1>
+      <p>Pick a name, choose your color, and tell us what you know.</p>
+    </div>
+
+    <div class="card-body">
+      <div class="field">
+        <label class="field-label"><i data-lucide="user"></i> Display Name</label>
+        <input type="text" class="field-input" placeholder="What should we call you?" maxlength="40">
+      </div>
+
+      <div class="field">
+        <label class="field-label"><i data-lucide="palette"></i> Your Color</label>
+        <div class="color-swatches">
+          <div class="swatch" style="background:#f59e0b;"></div>
+          <div class="swatch active" style="background:#22d3ee;"></div>
+          <div class="swatch" style="background:#4ade80;"></div>
+          <div class="swatch" style="background:#fb7185;"></div>
+          <div class="swatch" style="background:#a78bfa;"></div>
+          <div class="swatch" style="background:#f472b6;"></div>
+          <div class="swatch" style="background:#fbbf24;"></div>
+          <div class="swatch" style="background:#34d399;"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label"><i data-lucide="brain"></i> Your Expertise</label>
+        <textarea class="field-input" placeholder="Classic films, space, cooking..." maxlength="250"></textarea>
+        <div class="char-count">0 / 250</div>
+      </div>
+
+      <button class="submit-btn"><i data-lucide="arrow-right"></i> Enter Room</button>
+    </div>
+
+    <div class="card-footer">First player becomes <strong>VIP</strong> and controls the game.</div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  document.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

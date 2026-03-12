@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BuzzerMinds — Candy Pop</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#1a1a2e;--pink:#ff6b9d;--mint:#4ecdc4;--lavender:#a78bfa;--lemon:#fde047;--peach:#fb923c;--text:#f0e6ff;--dim:#8b7faa}
+body{background:var(--bg);color:var(--text);font-family:'Quicksand',sans-serif;min-height:100vh;overflow:hidden;position:relative}
+#bg-canvas{position:fixed;inset:0;z-index:0}
+.theme-label{position:fixed;top:16px;right:20px;font-size:.72rem;font-weight:700;color:var(--lemon);background:rgba(26,26,46,.7);backdrop-filter:blur(10px);border:2px solid var(--lemon);border-radius:20px;padding:5px 14px;z-index:100;font-family:'Quicksand',sans-serif}
+/* Layout */
+.lobby{display:grid;grid-template-columns:1fr 1fr;gap:48px;max-width:1280px;margin:0 auto;padding:48px 56px;min-height:100vh;align-items:center;position:relative;z-index:1}
+.left-tower{display:flex;flex-direction:column;align-items:flex-start;gap:32px}
+.right-tower{display:flex;flex-direction:column;align-items:flex-end;gap:32px}
+/* Pop-in animation */
+@keyframes popIn{0%{opacity:0;transform:scale(.6) translateY(30px)}60%{transform:scale(1.05) translateY(-4px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.left-tower>*,.right-tower>*{animation:popIn .6s cubic-bezier(.34,1.56,.64,1) backwards}
+.left-tower>*:nth-child(1){animation-delay:.1s}
+.left-tower>*:nth-child(2){animation-delay:.2s}
+.left-tower>*:nth-child(3){animation-delay:.3s}
+.right-tower>*:nth-child(1){animation-delay:.15s}
+.right-tower>*:nth-child(2){animation-delay:.25s}
+.right-tower>*:nth-child(3){animation-delay:.35s}
+/* Cards */
+.card{background:rgba(26,26,46,.6);backdrop-filter:blur(12px);border-radius:22px;border:3px solid var(--lavender)}
+/* Logo */
+.logo{font-family:'Baloo 2',cursive;font-size:3.4rem;font-weight:800;letter-spacing:-1px}
+.logo .pk{color:var(--pink)}
+.logo .mt{color:var(--mint)}
+/* Code block */
+.code-block{composes:card;background:rgba(26,26,46,.6);backdrop-filter:blur(12px);border-radius:22px;border:3px solid var(--pink);padding:28px 32px;width:100%}
+.code-label{font-size:.85rem;color:var(--dim);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:1.5px}
+.code-label i{width:16px;height:16px}
+.code-row{display:flex;gap:10px;margin-bottom:16px}
+@keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.code-ch{font-family:'Baloo 2',cursive;font-size:5.2rem;font-weight:800;color:#fff;border-radius:16px;width:86px;height:102px;display:flex;align-items:center;justify-content:center;line-height:1;border:3px solid;animation:wave 2.4s ease-in-out infinite}
+.code-ch:nth-child(1){background:rgba(255,107,157,.15);border-color:var(--pink);animation-delay:0s}
+.code-ch:nth-child(2){background:rgba(78,205,196,.15);border-color:var(--mint);animation-delay:.15s}
+.code-ch:nth-child(3){background:rgba(167,139,250,.15);border-color:var(--lavender);animation-delay:.3s}
+.code-ch:nth-child(4){background:rgba(253,224,71,.15);border-color:var(--lemon);animation-delay:.45s}
+.code-ch:nth-child(5){background:rgba(251,146,60,.15);border-color:var(--peach);animation-delay:.6s}
+.code-ch:nth-child(6){background:rgba(255,107,157,.15);border-color:var(--pink);animation-delay:.75s}
+.join-url{font-size:.9rem;color:var(--dim)}
+.join-url b{color:var(--mint);font-weight:700}
+/* Settings */
+.settings-row{display:flex;flex-wrap:wrap;gap:10px}
+.s-tag{border-radius:20px;padding:10px 18px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:6px}
+.s-tag i{width:14px;height:14px}
+.s-tag:nth-child(1){background:rgba(255,107,157,.18);color:var(--pink);border:2px solid rgba(255,107,157,.3)}
+.s-tag:nth-child(2){background:rgba(167,139,250,.18);color:var(--lavender);border:2px solid rgba(167,139,250,.3)}
+.s-tag:nth-child(3){background:rgba(253,224,71,.18);color:var(--lemon);border:2px solid rgba(253,224,71,.3)}
+.s-tag:nth-child(4){background:rgba(78,205,196,.18);color:var(--mint);border:2px solid rgba(78,205,196,.3)}
+.dim{opacity:.7}
+/* QR */
+.qr-block{background:rgba(26,26,46,.6);backdrop-filter:blur(12px);border-radius:22px;border:3px solid var(--mint);padding:24px;text-align:center}
+.scan-text{font-size:.82rem;color:var(--dim);margin-bottom:14px;display:flex;align-items:center;gap:8px;justify-content:center}
+.scan-text i{width:16px;height:16px}
+.qr{width:180px;height:180px;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2',cursive;font-weight:700;color:var(--bg);font-size:.9rem;margin:0 auto}
+/* Players */
+.players-block{background:rgba(26,26,46,.6);backdrop-filter:blur(12px);border-radius:22px;border:3px solid var(--lavender);padding:24px;width:100%;min-width:320px}
+.players-label{font-size:.85rem;color:var(--dim);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:1.5px}
+.players-label i{width:16px;height:16px}
+.player-list{display:flex;flex-direction:column;gap:6px}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.player{padding:10px 16px;border-radius:14px;font-size:1rem;font-weight:600;display:flex;align-items:center;gap:10px;border:2px solid transparent;animation:bob 3s ease-in-out infinite}
+.player:nth-child(1){background:rgba(255,107,157,.1);border-color:rgba(255,107,157,.25);animation-delay:0s}
+.player:nth-child(2){background:rgba(78,205,196,.1);border-color:rgba(78,205,196,.25);animation-delay:.3s}
+.player:nth-child(3){background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.25);animation-delay:.6s}
+.player:nth-child(4){background:rgba(253,224,71,.1);border-color:rgba(253,224,71,.25);animation-delay:.9s}
+.player:nth-child(5){background:rgba(251,146,60,.1);border-color:rgba(251,146,60,.25);animation-delay:1.2s}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.player:nth-child(1) .dot{background:var(--pink)}
+.player:nth-child(2) .dot{background:var(--mint)}
+.player:nth-child(3) .dot{background:var(--lavender)}
+.player:nth-child(4) .dot{background:var(--lemon)}
+.player:nth-child(5) .dot{background:var(--peach)}
+.vip{font-size:.7rem;font-weight:700;color:var(--lemon);background:rgba(253,224,71,.15);padding:3px 10px;border-radius:12px;margin-left:auto;display:flex;align-items:center;gap:4px;border:1.5px solid rgba(253,224,71,.3)}
+.vip i{width:12px;height:12px}
+/* Status */
+.status{font-size:.9rem;color:var(--dim);font-weight:600;text-align:right;padding:12px 22px;background:rgba(26,26,46,.6);backdrop-filter:blur(12px);border:3px solid var(--peach);border-radius:20px}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="theme-label">Candy Pop</div>
+<div class="lobby">
+  <div class="left-tower">
+    <div class="logo"><span class="pk">Buzzer</span><span class="mt">Minds</span></div>
+    <div class="code-block">
+      <div class="code-label"><i data-lucide="hash"></i> Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+      <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+    </div>
+    <div class="settings-row">
+      <div class="s-tag"><span class="dim"><i data-lucide="book-open"></i> Topic:</span> Science</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="signal"></i> Diff:</span> Medium</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="list-ordered"></i> Qs:</span> 10</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="timer"></i> Time:</span> 30s</div>
+    </div>
+  </div>
+  <div class="right-tower">
+    <div class="qr-block">
+      <div class="scan-text"><i data-lucide="scan-line"></i> Scan to join instantly</div>
+      <div class="qr">QR CODE</div>
+    </div>
+    <div class="players-block">
+      <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+      <div class="player-list">
+        <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+        <div class="player"><span class="dot"></span> BrainiacBee</div>
+        <div class="player"><span class="dot"></span> QuizWhiz42</div>
+        <div class="player"><span class="dot"></span> TriviaKing</div>
+        <div class="player"><span class="dot"></span> NerdHerd99</div>
+      </div>
+    </div>
+    <div class="status">Waiting for VIP to start...</div>
+  </div>
+</div>
+<script>
+// Three.js floating candy shapes
+(function(){
+  const canvas=document.getElementById('bg-canvas');
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100);
+  camera.position.z=18;
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  // Lighting
+  const ambient=new THREE.AmbientLight(0xffffff,0.5);
+  scene.add(ambient);
+  const dirLight=new THREE.DirectionalLight(0xffffff,0.8);
+  dirLight.position.set(5,8,10);
+  scene.add(dirLight);
+  const colors=[0xff6b9d,0x4ecdc4,0xa78bfa,0xfde047,0xfb923c];
+  const shapes=[];
+  for(let i=0;i<14;i++){
+    let geo;
+    const t=i%3;
+    if(t===0) geo=new THREE.SphereGeometry(0.5+Math.random()*0.5,16,16);
+    else if(t===1) geo=new THREE.TorusGeometry(0.4+Math.random()*0.3,0.15,12,24);
+    else geo=new THREE.IcosahedronGeometry(0.4+Math.random()*0.4,0);
+    const mat=new THREE.MeshStandardMaterial({color:colors[i%colors.length],metalness:0.3,roughness:0.5,transparent:true,opacity:0.35});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set((Math.random()-0.5)*24,(Math.random()-0.5)*14,(Math.random()-0.5)*8);
+    mesh.userData={rx:0.002+Math.random()*0.006,ry:0.002+Math.random()*0.006,dx:(Math.random()-0.5)*0.008,dy:(Math.random()-0.5)*0.006};
+    scene.add(mesh);
+    shapes.push(mesh);
+  }
+  function animate(){
+    requestAnimationFrame(animate);
+    shapes.forEach(m=>{
+      m.rotation.x+=m.userData.rx;
+      m.rotation.y+=m.userData.ry;
+      m.position.x+=m.userData.dx;
+      m.position.y+=m.userData.dy;
+      if(Math.abs(m.position.x)>14) m.userData.dx*=-1;
+      if(Math.abs(m.position.y)>9) m.userData.dy*=-1;
+    });
+    renderer.render(scene,camera);
+  }
+  animate();
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+})();
+lucide.createIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout G: Diagonal Drift</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --text: #e8e6f0; --text-dim: #6b6e7b;
+    --accent: #7c6ef6; --green: #34d399; --gold: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-dot { position: absolute; border-radius: 50%; opacity: 0.04; }
+  .layout-label {
+    position: fixed; top: 16px; right: 16px; z-index: 99;
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; color: var(--text-dim);
+    background: rgba(26,29,39,0.7); backdrop-filter: blur(8px);
+  }
+
+  /* ══════════════════════════════════════════
+     LAYOUT G: DIAGONAL DRIFT
+     Elements flow along a diagonal from top-left 
+     to bottom-right. Each element is offset further 
+     right as you go down. Creates a dynamic, 
+     cinematic staircase effect.
+     Background shows heavily on the opposite diagonal.
+     ══════════════════════════════════════════ */
+
+  .lobby {
+    position: relative; z-index: 1;
+    height: 100vh; padding: 40px 60px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+  }
+
+  /* Step 1: Logo — far left */
+  .step-1 {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-size: 2rem; font-weight: 900; }
+  .logo span { color: var(--accent); }
+  .status { font-size: 0.95rem; font-weight: 600; color: var(--text-dim); }
+
+  /* Step 2: Room Code — offset 10% right */
+  .step-2 {
+    padding-left: 8%;
+  }
+  .code-label {
+    font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--text-dim); margin-bottom: 6px;
+  }
+  .code-row { display: flex; gap: 14px; }
+  .code-ch {
+    font-size: 6.5rem; font-weight: 900; line-height: 1;
+    color: var(--accent);
+  }
+  .join-url {
+    margin-top: 6px; font-size: 1.1rem; font-weight: 600; color: var(--text-dim);
+  }
+  .join-url b { color: var(--accent); }
+
+  /* Step 3: QR + Players — offset 20% right */
+  .step-3 {
+    padding-left: 16%;
+    display: flex; align-items: flex-start; gap: 36px;
+  }
+  .qr {
+    width: 170px; height: 170px; flex-shrink: 0;
+    background: white; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #333;
+  }
+  .qr-caption {
+    margin-top: 6px; font-size: 0.9rem; font-weight: 600;
+    color: var(--text-dim); text-align: center;
+  }
+  .players-block { }
+  .players-label {
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .player-flow {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .player {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 99px;
+    background: rgba(26,29,39,0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700; font-size: 1.05rem;
+  }
+  .player .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .player .vip {
+    font-size: 0.6rem; font-weight: 800; color: var(--gold);
+    background: rgba(251,191,36,0.15); padding: 2px 7px; border-radius: 5px;
+  }
+
+  /* Step 4: Settings — offset 30% right */
+  .step-4 {
+    padding-left: 24%;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .s-tag {
+    padding: 8px 16px; border-radius: 8px;
+    background: rgba(26,29,39,0.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.95rem; font-weight: 600;
+  }
+  .s-tag .dim { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="layout-label">G / DIAGONAL DRIFT</div>
+
+<div class="lobby">
+  <div class="step-1">
+    <div class="logo">Buzzer<span>Minds</span></div>
+    <div class="status">Waiting for VIP to start...</div>
+  </div>
+
+  <div class="step-2">
+    <div class="code-label">Room Code</div>
+    <div class="code-row">
+      <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+      <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+    </div>
+    <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+  </div>
+
+  <div class="step-3">
+    <div>
+      <div class="qr">QR CODE</div>
+      <div class="qr-caption">Scan to join</div>
+    </div>
+    <div class="players-block">
+      <div class="players-label">Players (5 joined)</div>
+      <div class="player-flow">
+        <div class="player"><span class="dot"></span> SpeedDemon <span class="vip">VIP</span></div>
+        <div class="player"><span class="dot"></span> BrainiacBee</div>
+        <div class="player"><span class="dot"></span> QuizWhiz42</div>
+        <div class="player"><span class="dot"></span> TriviaKing</div>
+        <div class="player"><span class="dot"></span> NerdHerd99</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-4">
+    <div class="s-tag"><span class="dim">Topic:</span> Science</div>
+    <div class="s-tag"><span class="dim">Difficulty:</span> Medium</div>
+    <div class="s-tag"><span class="dim">Questions:</span> 10</div>
+    <div class="s-tag"><span class="dim">Time:</span> 30s</div>
+  </div>
+</div>
+
+<script>
+  const bg = document.getElementById('bg'); const dots = [];
+  for (let i = 0; i < 15; i++) {
+    const el = document.createElement('div'); el.className = 'bg-dot';
+    const size = 80 + Math.random() * 200;
+    el.style.width = size + 'px'; el.style.height = size + 'px'; el.style.background = '#7c6ef6';
+    bg.appendChild(el);
+    dots.push({ el, size, x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 });
+  }
+  (function anim() {
+    dots.forEach(d => { d.x += d.vx; d.y += d.vy; if (d.x < -d.size) d.x = innerWidth; if (d.x > innerWidth) d.x = -d.size; if (d.y < -d.size) d.y = innerHeight; if (d.y > innerHeight) d.y = -d.size; d.el.style.transform = `translate(${d.x}px,${d.y}px)`; });
+    requestAnimationFrame(anim);
+  })();
+</script>
+</body>
+</html>

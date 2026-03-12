@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 04 Floating Pill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text-bright); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 16px;
+    gap: 20px;
+  }
+
+  /* ── Branding top ── */
+  .brand {
+    text-align: center;
+    animation: fadeIn 0.4s ease;
+  }
+  .brand-logo {
+    font-family: var(--font-display); font-size: 2rem; font-weight: 900;
+    line-height: 1;
+  }
+  .brand-logo .a { color: var(--amber); }
+  .brand-logo .s { color: var(--sage); }
+  .brand-sub {
+    margin-top: 8px; font-size: 0.8rem; color: var(--text-dim);
+  }
+  .brand-sub strong {
+    color: var(--amber); font-weight: 700;
+    font-family: var(--font-display); letter-spacing: 0.04em;
+  }
+
+  /* ── Pill form ── */
+  .pill-form {
+    width: 100%; max-width: 380px;
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 6px;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+  }
+
+  .pill-inner {
+    background: rgba(20,20,20,0.5);
+    border-radius: 24px;
+    padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .pill-field {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: rgba(30,30,30,0.6);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: border-color 0.2s;
+  }
+  .pill-field:focus-within { border-color: var(--sage); }
+
+  .pill-field-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pill-field-icon i { width: 18px; height: 18px; }
+  .pill-field-icon.amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .pill-field-icon.sage { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .pill-field-icon.sky { background: rgba(56,189,248,0.12); color: var(--sky); }
+
+  .pill-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text-bright); font-size: 0.95rem; font-weight: 500;
+  }
+  .pill-input::placeholder { color: var(--text-dim); font-weight: 400; }
+
+  textarea.pill-input {
+    resize: none; min-height: 56px; line-height: 1.4;
+    font-family: var(--font-body);
+  }
+
+  /* ── Color row ── */
+  .color-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 16px;
+  }
+  .color-row-label {
+    font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .color-dots {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .cdot {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .cdot:hover { transform: scale(1.15); }
+  .cdot.active { border-color: var(--text-bright); transform: scale(1.2); }
+
+  /* ── Submit ── */
+  .pill-submit {
+    width: 100%; padding: 16px;
+    background: var(--amber); color: var(--bg); border: none;
+    border-radius: 16px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .pill-submit:hover { filter: brightness(1.08); }
+  .pill-submit i { width: 18px; height: 18px; }
+
+  /* ── VIP hint ── */
+  .vip-hint {
+    text-align: center; font-size: 0.75rem; color: var(--text-dim);
+    animation: fadeIn 0.4s ease 0.3s both;
+  }
+  .vip-hint strong { color: var(--sage); font-weight: 600; }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">04 — Floating Pill</div>
+<div class="bg-pattern"></div>
+
+<div class="page">
+  <div class="brand">
+    <div class="brand-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+    <div class="brand-sub">Joining room <strong>X7KQ9W</strong></div>
+  </div>
+
+  <div class="pill-form">
+    <div class="pill-inner">
+      <div class="pill-field">
+        <div class="pill-field-icon amber"><i data-lucide="user"></i></div>
+        <input type="text" class="pill-input" placeholder="Your display name" maxlength="40">
+      </div>
+
+      <div class="color-row">
+        <span class="color-row-label">Color</span>
+        <div class="color-dots">
+          <div class="cdot active" style="background:#22d3ee;"></div>
+          <div class="cdot" style="background:#f59e0b;"></div>
+          <div class="cdot" style="background:#4ade80;"></div>
+          <div class="cdot" style="background:#fb7185;"></div>
+          <div class="cdot" style="background:#a78bfa;"></div>
+          <div class="cdot" style="background:#f472b6;"></div>
+          <div class="cdot" style="background:#fbbf24;"></div>
+          <div class="cdot" style="background:#34d399;"></div>
+        </div>
+      </div>
+
+      <div class="pill-field">
+        <div class="pill-field-icon sky"><i data-lucide="brain"></i></div>
+        <textarea class="pill-input" placeholder="Topics you know: movies, science..." maxlength="250"></textarea>
+      </div>
+
+      <button class="pill-submit"><i data-lucide="arrow-right"></i> Enter Room</button>
+    </div>
+  </div>
+
+  <div class="vip-hint">First player in becomes <strong>VIP</strong></div>
+</div>
+
+<script>
+  lucide.createIcons();
+  document.querySelectorAll('.cdot').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.cdot').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

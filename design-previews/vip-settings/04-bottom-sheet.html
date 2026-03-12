@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VIP Settings — 04 Bottom Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #141414;
+    --surface: rgba(30, 30, 30, 0.65);
+    --sheet-bg: rgba(26, 26, 26, 0.97);
+    --amber: #f59e0b;
+    --sage: #4ade80;
+    --rose: #fb7185;
+    --sky: #38bdf8;
+    --text-bright: #f5f5f5;
+    --text-dim: #737373;
+    --border: rgba(255, 255, 255, 0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 200;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Three.js canvas ── */
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+
+  /* ── Mobile frame ── */
+  .mobile-frame {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 440px;
+    height: 100vh; height: 100dvh;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(20,20,20,0.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .top-bar-logo {
+    font-family: var(--font-display); font-size: 1.1rem; font-weight: 800;
+  }
+  .top-bar-logo .a { color: var(--amber); }
+  .top-bar-logo .s { color: var(--sage); }
+  .top-bar-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.85rem;
+    color: var(--amber); letter-spacing: 0.08em;
+    background: rgba(245,158,11,0.08);
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid rgba(245,158,11,0.15);
+  }
+
+  /* ── Lobby area (behind sheet) ── */
+  .lobby {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lobby-status {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+
+  .lobby-icon-ring {
+    width: 72px; height: 72px;
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .lobby-icon-ring::before {
+    content: '';
+    position: absolute; inset: -4px;
+    border: 1px solid rgba(245,158,11,0.08);
+    border-radius: 50%;
+  }
+  .lobby-icon-ring i { width: 28px; height: 28px; color: var(--amber); }
+
+  .pulse-ring {
+    position: absolute; inset: -8px;
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 50%;
+    animation: pulse-expand 2.4s ease-out infinite;
+  }
+
+  @keyframes pulse-expand {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  .lobby-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;
+    color: var(--text-bright);
+  }
+  .lobby-subtitle {
+    font-size: 0.82rem; color: var(--text-dim); line-height: 1.5;
+    text-align: center; max-width: 260px;
+  }
+
+  .player-count-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    background: var(--surface); backdrop-filter: blur(8px);
+    border: 1px solid var(--border); border-radius: 20px;
+    font-size: 0.78rem; font-weight: 600; color: var(--text-dim);
+  }
+  .player-count-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--sage);
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  .player-count-pill .count { color: var(--sage); font-weight: 700; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .player-avatars {
+    display: flex; gap: -4px;
+  }
+  .avatar-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 0.7rem; font-weight: 700;
+    color: var(--bg); margin-left: -6px;
+  }
+  .avatar-dot:first-child { margin-left: 0; }
+
+  /* ── Scrim (overlay behind sheet) ── */
+  .scrim {
+    position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .scrim.active { opacity: 1; pointer-events: auto; }
+
+  /* ── Bottom Sheet ── */
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0; left: 50%;
+    width: 100%; max-width: 440px;
+    transform: translateX(-50%) translateY(calc(100% - 160px));
+    z-index: 100;
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+    max-height: 92vh; max-height: 92dvh;
+    display: flex; flex-direction: column;
+  }
+  .bottom-sheet.expanded {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .sheet-surface {
+    background: var(--sheet-bg);
+    backdrop-filter: blur(24px);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column;
+    max-height: 92vh; max-height: 92dvh;
+    overflow: hidden;
+  }
+
+  /* ── Drag handle area ── */
+  .sheet-handle-area {
+    flex-shrink: 0;
+    padding: 10px 0 6px;
+    display: flex; flex-direction: column; align-items: center;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .sheet-handle-area:active { cursor: grabbing; }
+
+  .drag-handle {
+    width: 40px; height: 4px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 2px;
+  }
+
+  /* ── Peek content (visible in collapsed state) ── */
+  .sheet-peek {
+    flex-shrink: 0;
+    padding: 8px 20px 16px;
+  }
+
+  .peek-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .peek-summary {
+    font-size: 0.78rem; color: var(--text-dim); font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+    flex: 1; min-width: 0;
+  }
+  .peek-summary .sep {
+    color: rgba(255,255,255,0.15);
+  }
+
+  .configure-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 8px;
+    color: var(--amber); font-size: 0.72rem; font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer; transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .configure-btn:hover { background: rgba(245,158,11,0.18); }
+  .configure-btn i { width: 13px; height: 13px; }
+
+  .start-btn {
+    width: 100%; padding: 14px;
+    background: var(--amber); color: var(--bg);
+    border: none; border-radius: 10px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .start-btn:hover { filter: brightness(1.08); }
+  .start-btn:active { filter: brightness(0.95); }
+  .start-btn i { width: 18px; height: 18px; }
+
+  /* ── Settings panel (visible in expanded state) ── */
+  .sheet-settings {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 20px 32px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sheet-settings::-webkit-scrollbar { width: 4px; }
+  .sheet-settings::-webkit-scrollbar-track { background: transparent; }
+  .sheet-settings::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1); border-radius: 2px;
+  }
+
+  .settings-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .settings-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 1rem;
+  }
+  .settings-reset {
+    font-size: 0.72rem; color: var(--text-dim); font-weight: 500;
+    cursor: pointer; padding: 4px 8px; border-radius: 4px;
+    transition: color 0.15s;
+    background: none; border: none; font-family: var(--font-body);
+  }
+  .settings-reset:hover { color: var(--rose); }
+
+  /* ── Setting items ── */
+  .setting-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .setting-item:last-child { border-bottom: none; }
+
+  .setting-label-group {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1; min-width: 0;
+  }
+  .setting-icon {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px; flex-shrink: 0;
+  }
+  .setting-icon i { width: 16px; height: 16px; color: var(--text-dim); }
+  .setting-icon.amber i { color: var(--amber); }
+  .setting-icon.sage i { color: var(--sage); }
+  .setting-icon.rose i { color: var(--rose); }
+  .setting-icon.sky i { color: var(--sky); }
+
+  .setting-text {
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .setting-name {
+    font-size: 0.85rem; font-weight: 600; color: var(--text-bright);
+  }
+  .setting-hint {
+    font-size: 0.68rem; color: var(--text-dim);
+  }
+
+  /* ── Controls ── */
+  .setting-control {
+    flex-shrink: 0;
+  }
+
+  /* Select dropdown */
+  .ctrl-select {
+    appearance: none; -webkit-appearance: none;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-bright); font-size: 0.78rem; font-weight: 500;
+    padding: 7px 28px 7px 10px;
+    font-family: var(--font-body);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    outline: none;
+    transition: border-color 0.15s;
+    max-width: 140px;
+  }
+  .ctrl-select:focus { border-color: var(--amber); }
+
+  /* Slider */
+  .ctrl-slider-wrap {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ctrl-slider-value {
+    font-size: 0.78rem; font-weight: 700; color: var(--amber);
+    min-width: 28px; text-align: right;
+    font-family: var(--font-display);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 90px; height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px; outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    background: var(--amber);
+    border-radius: 50%; border: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--amber);
+    border-radius: 50%; border: none;
+    cursor: pointer;
+  }
+
+  /* Toggle */
+  .ctrl-toggle {
+    position: relative;
+    width: 40px; height: 22px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none; padding: 0;
+  }
+  .ctrl-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .ctrl-toggle.on {
+    background: rgba(74,222,128,0.25);
+  }
+  .ctrl-toggle.on::after {
+    transform: translateX(18px);
+    background: var(--sage);
+  }
+
+  /* ── Section labels ── */
+  .section-divider {
+    padding: 16px 0 6px;
+    font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Start button in expanded state ── */
+  .sheet-footer {
+    flex-shrink: 0;
+    padding: 12px 20px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--sheet-bg);
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .lobby-status {
+    animation: fadeInUp 0.6s ease forwards;
+    opacity: 0;
+  }
+
+  .player-avatars {
+    animation: fadeInUp 0.6s ease 0.15s forwards;
+    opacity: 0;
+  }
+
+  .player-count-pill {
+    animation: fadeInUp 0.6s ease 0.3s forwards;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">04 — Bottom Sheet</div>
+<canvas id="bg-canvas"></canvas>
+
+<div class="mobile-frame">
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-bar-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+    <div class="top-bar-code">X7KQ9W</div>
+  </div>
+
+  <!-- Lobby (behind the sheet) -->
+  <div class="lobby">
+    <div class="lobby-status">
+      <div class="lobby-icon-ring">
+        <i data-lucide="radio"></i>
+        <div class="pulse-ring"></div>
+      </div>
+      <div class="lobby-title">Waiting for players...</div>
+      <div class="lobby-subtitle">Share the room code above to invite friends to the match</div>
+    </div>
+
+    <div class="player-avatars">
+      <div class="avatar-dot" style="background: var(--amber);">DK</div>
+      <div class="avatar-dot" style="background: var(--sky);">ML</div>
+      <div class="avatar-dot" style="background: var(--rose);">JR</div>
+      <div class="avatar-dot" style="background: var(--sage);">+2</div>
+    </div>
+
+    <div class="player-count-pill">
+      <span class="dot"></span>
+      <span class="count">5</span> players connected
+    </div>
+  </div>
+</div>
+
+<!-- Scrim overlay -->
+<div class="scrim" id="scrim"></div>
+
+<!-- Bottom Sheet -->
+<div class="bottom-sheet" id="bottomSheet">
+  <div class="sheet-surface">
+    <!-- Handle -->
+    <div class="sheet-handle-area" id="sheetHandle">
+      <div class="drag-handle"></div>
+    </div>
+
+    <!-- Peek: always visible -->
+    <div class="sheet-peek" id="sheetPeek">
+      <div class="peek-row">
+        <div class="peek-summary">
+          <span id="peekText">5 Rounds · Progressive · Narration On</span>
+        </div>
+        <button class="configure-btn" id="configureBtn">
+          <i data-lucide="sliders-horizontal"></i>
+          Configure
+        </button>
+      </div>
+      <button class="start-btn" id="startBtnPeek">
+        <i data-lucide="play"></i>
+        Start Match
+      </button>
+    </div>
+
+    <!-- Expanded settings -->
+    <div class="sheet-settings" id="sheetSettings">
+      <div class="settings-header">
+        <div class="settings-title">Game Settings</div>
+        <button class="settings-reset" id="resetBtn">Reset defaults</button>
+      </div>
+
+      <!-- Model & Topic -->
+      <div class="section-divider">Generation</div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon amber"><i data-lucide="cpu"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Model Preset</div>
+            <div class="setting-hint">AI model for questions</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <select class="ctrl-select" id="modelPreset">
+            <option value="balanced">Balanced</option>
+            <option value="creative">Creative</option>
+            <option value="precise">Precise</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sky"><i data-lucide="layers"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Topic Pool Size</div>
+            <div class="setting-hint">Topics to choose from</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <div class="ctrl-slider-wrap">
+            <input type="range" min="3" max="12" value="6" id="topicPool">
+            <span class="ctrl-slider-value" id="topicPoolVal">6</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rounds & Modes -->
+      <div class="section-divider">Match Rules</div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon amber"><i data-lucide="repeat"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Rounds</div>
+            <div class="setting-hint">Number of rounds</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <div class="ctrl-slider-wrap">
+            <input type="range" min="2" max="10" value="5" id="rounds">
+            <span class="ctrl-slider-value" id="roundsVal">5</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sage"><i data-lucide="eye"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Reveal Mode</div>
+            <div class="setting-hint">When answers are shown</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <select class="ctrl-select" id="revealMode">
+            <option value="progressive">Progressive</option>
+            <option value="end-of-round">End of Round</option>
+            <option value="end-of-game">End of Game</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon rose"><i data-lucide="flag"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">End Mode</div>
+            <div class="setting-hint">How the match ends</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <select class="ctrl-select" id="endMode">
+            <option value="rounds">After Rounds</option>
+            <option value="timer">Timer</option>
+            <option value="score">Target Score</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sky"><i data-lucide="clock"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Timer Minutes</div>
+            <div class="setting-hint">Match time limit</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <select class="ctrl-select" id="timerMinutes">
+            <option value="5">5 min</option>
+            <option value="10" selected>10 min</option>
+            <option value="15">15 min</option>
+            <option value="20">20 min</option>
+            <option value="30">30 min</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon rose"><i data-lucide="timer-off"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Timer Expiry</div>
+            <div class="setting-hint">What happens when time runs out</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <select class="ctrl-select" id="timerExpiry">
+            <option value="finish-round">Finish Round</option>
+            <option value="sudden-death">Sudden Death</option>
+            <option value="immediate">Immediate</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Timing -->
+      <div class="section-divider">Timing</div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon amber"><i data-lucide="hourglass"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Answer Time</div>
+            <div class="setting-hint">Seconds to answer</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <div class="ctrl-slider-wrap">
+            <input type="range" min="15" max="120" value="30" step="5" id="answerTime">
+            <span class="ctrl-slider-value" id="answerTimeVal">30s</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sky"><i data-lucide="bell-off"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">No-Buzz Window</div>
+            <div class="setting-hint">Delay before buzzing in</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <div class="ctrl-slider-wrap">
+            <input type="range" min="0" max="10" value="2" id="noBuzz">
+            <span class="ctrl-slider-value" id="noBuzzVal">2s</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sage"><i data-lucide="zap"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Bonus Time</div>
+            <div class="setting-hint">Extra time after buzz</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <div class="ctrl-slider-wrap">
+            <input type="range" min="10" max="60" value="20" step="5" id="bonusTime">
+            <span class="ctrl-slider-value" id="bonusTimeVal">20s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio & Safety -->
+      <div class="section-divider">Audio & Safety</div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon rose"><i data-lucide="shield"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Moderation</div>
+            <div class="setting-hint">Filter inappropriate content</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <button class="ctrl-toggle on" id="moderation" data-on="true"></button>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon amber"><i data-lucide="mic"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Narration</div>
+            <div class="setting-hint">AI reads questions aloud</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <button class="ctrl-toggle on" id="narration" data-on="true"></button>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sky"><i data-lucide="volume-2"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Sound Effects</div>
+            <div class="setting-hint">Buzzer and UI sounds</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <button class="ctrl-toggle on" id="sfx" data-on="true"></button>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label-group">
+          <div class="setting-icon sage"><i data-lucide="music"></i></div>
+          <div class="setting-text">
+            <div class="setting-name">Music</div>
+            <div class="setting-hint">Background music</div>
+          </div>
+        </div>
+        <div class="setting-control">
+          <button class="ctrl-toggle on" id="music" data-on="true"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer with start button (expanded) -->
+    <div class="sheet-footer" id="sheetFooter">
+      <button class="start-btn" id="startBtnExpanded">
+        <i data-lucide="play"></i>
+        Start Match
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Lucide icons ──
+  lucide.createIcons();
+
+  // ── Three.js wireframe background ──
+  (function() {
+    const canvas = document.getElementById('bg-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 14;
+
+    const colors = ['#f59e0b', '#4ade80', '#fb7185', '#38bdf8'];
+    const shapes = [];
+
+    function createWireframe(geometry, color, opacity, x, y, z, speed) {
+      const wireGeo = new THREE.WireframeGeometry(geometry);
+      const mat = new THREE.LineBasicMaterial({
+        color: color, transparent: true, opacity: opacity
+      });
+      const mesh = new THREE.LineSegments(wireGeo, mat);
+      mesh.position.set(x, y, z);
+      mesh.userData = { speed: speed, rx: Math.random() * 0.3 - 0.15, ry: Math.random() * 0.3 - 0.15 };
+      scene.add(mesh);
+      shapes.push(mesh);
+    }
+
+    createWireframe(new THREE.IcosahedronGeometry(1.4, 0), colors[0], 0.07, -8, 5, -6, 0.8);
+    createWireframe(new THREE.OctahedronGeometry(1.1, 0), colors[1], 0.09, 7, -3, -5, 1.1);
+    createWireframe(new THREE.DodecahedronGeometry(1.0, 0), colors[2], 0.06, -5, -6, -8, 0.9);
+    createWireframe(new THREE.TetrahedronGeometry(1.3, 0), colors[3], 0.08, 9, 4, -7, 1.3);
+    createWireframe(new THREE.DodecahedronGeometry(0.8, 0), colors[0], 0.05, 3, 7, -10, 0.7);
+    createWireframe(new THREE.IcosahedronGeometry(0.9, 0), colors[2], 0.07, -10, 0, -4, 1.0);
+    createWireframe(new THREE.OctahedronGeometry(1.2, 0), colors[3], 0.06, 0, -8, -6, 1.2);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = Date.now() * 0.001;
+      shapes.forEach(s => {
+        s.rotation.x += s.userData.rx * 0.004;
+        s.rotation.y += s.userData.ry * 0.004;
+        s.position.y += Math.sin(t * s.userData.speed * 0.5) * 0.002;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+
+  // ── Bottom sheet logic ──
+  (function() {
+    const sheet = document.getElementById('bottomSheet');
+    const scrim = document.getElementById('scrim');
+    const handle = document.getElementById('sheetHandle');
+    const configureBtn = document.getElementById('configureBtn');
+    const sheetPeek = document.getElementById('sheetPeek');
+    const sheetSettings = document.getElementById('sheetSettings');
+    const sheetFooter = document.getElementById('sheetFooter');
+
+    let expanded = false;
+
+    // Initially hide expanded content
+    sheetSettings.style.display = 'none';
+    sheetFooter.style.display = 'none';
+
+    function toggleSheet() {
+      expanded = !expanded;
+      sheet.classList.toggle('expanded', expanded);
+      scrim.classList.toggle('active', expanded);
+
+      if (expanded) {
+        sheetSettings.style.display = 'block';
+        sheetFooter.style.display = 'block';
+        // Hide peek start button, show configure text changes
+        document.getElementById('startBtnPeek').style.display = 'none';
+        configureBtn.innerHTML = '<i data-lucide="chevron-down"></i> Collapse';
+        lucide.createIcons();
+      } else {
+        // Delay hiding settings to let animation finish
+        setTimeout(() => {
+          if (!expanded) {
+            sheetSettings.style.display = 'none';
+            sheetFooter.style.display = 'none';
+          }
+        }, 400);
+        document.getElementById('startBtnPeek').style.display = 'flex';
+        configureBtn.innerHTML = '<i data-lucide="sliders-horizontal"></i> Configure';
+        lucide.createIcons();
+      }
+    }
+
+    handle.addEventListener('click', toggleSheet);
+    configureBtn.addEventListener('click', toggleSheet);
+    scrim.addEventListener('click', () => { if (expanded) toggleSheet(); });
+
+    // ── Touch drag support ──
+    let startY = 0;
+    let startTranslateY = 0;
+    let dragging = false;
+    const sheetSurface = sheet.querySelector('.sheet-surface');
+
+    handle.addEventListener('touchstart', (e) => {
+      dragging = true;
+      startY = e.touches[0].clientY;
+      sheet.style.transition = 'none';
+
+      const rect = sheet.getBoundingClientRect();
+      startTranslateY = rect.top - (window.innerHeight - sheet.offsetHeight);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - startY;
+
+      // Calculate new position
+      const sheetH = sheet.offsetHeight;
+      const peekH = 160;
+      const maxTranslate = sheetH - peekH; // collapsed offset
+      const minTranslate = 0; // fully expanded
+
+      let newTranslate;
+      if (expanded) {
+        newTranslate = Math.max(minTranslate, Math.min(maxTranslate, diff));
+      } else {
+        newTranslate = Math.max(minTranslate, Math.min(maxTranslate, maxTranslate + diff));
+      }
+
+      sheet.style.transform = `translateX(-50%) translateY(${newTranslate}px)`;
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      sheet.style.transition = '';
+
+      const rect = sheet.getBoundingClientRect();
+      const sheetH = sheet.offsetHeight;
+      const visibleH = window.innerHeight - rect.top;
+      const threshold = sheetH * 0.4;
+
+      if (visibleH > threshold && !expanded) {
+        expanded = false;
+        toggleSheet();
+      } else if (visibleH < threshold && expanded) {
+        expanded = true;
+        toggleSheet();
+      } else {
+        // Snap back
+        sheet.style.transform = '';
+      }
+    });
+  })();
+
+  // ── Slider value displays ──
+  function bindSlider(id, valId, suffix) {
+    const slider = document.getElementById(id);
+    const valEl = document.getElementById(valId);
+    slider.addEventListener('input', () => {
+      valEl.textContent = slider.value + (suffix || '');
+      updatePeekSummary();
+    });
+  }
+
+  bindSlider('topicPool', 'topicPoolVal', '');
+  bindSlider('rounds', 'roundsVal', '');
+  bindSlider('answerTime', 'answerTimeVal', 's');
+  bindSlider('noBuzz', 'noBuzzVal', 's');
+  bindSlider('bonusTime', 'bonusTimeVal', 's');
+
+  // ── Toggle buttons ──
+  document.querySelectorAll('.ctrl-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const isOn = toggle.dataset.on === 'true';
+      toggle.dataset.on = isOn ? 'false' : 'true';
+      toggle.classList.toggle('on', !isOn);
+      updatePeekSummary();
+    });
+  });
+
+  // ── Dropdowns ──
+  document.querySelectorAll('.ctrl-select').forEach(select => {
+    select.addEventListener('change', updatePeekSummary);
+  });
+
+  // ── Update peek summary text ──
+  function updatePeekSummary() {
+    const rounds = document.getElementById('rounds').value;
+    const reveal = document.getElementById('revealMode');
+    const revealText = reveal.options[reveal.selectedIndex].text;
+    const narrationOn = document.getElementById('narration').dataset.on === 'true';
+
+    const parts = [
+      rounds + ' Rounds',
+      revealText,
+      narrationOn ? 'Narration On' : 'Narration Off'
+    ];
+
+    document.getElementById('peekText').innerHTML = parts.join(' <span class="sep">&middot;</span> ');
+  }
+
+  // ── Reset defaults ──
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('modelPreset').value = 'balanced';
+    document.getElementById('topicPool').value = 6;
+    document.getElementById('topicPoolVal').textContent = '6';
+    document.getElementById('rounds').value = 5;
+    document.getElementById('roundsVal').textContent = '5';
+    document.getElementById('revealMode').value = 'progressive';
+    document.getElementById('endMode').value = 'rounds';
+    document.getElementById('timerMinutes').value = '10';
+    document.getElementById('timerExpiry').value = 'finish-round';
+    document.getElementById('answerTime').value = 30;
+    document.getElementById('answerTimeVal').textContent = '30s';
+    document.getElementById('noBuzz').value = 2;
+    document.getElementById('noBuzzVal').textContent = '2s';
+    document.getElementById('bonusTime').value = 20;
+    document.getElementById('bonusTimeVal').textContent = '20s';
+
+    ['moderation', 'narration', 'sfx', 'music'].forEach(id => {
+      const el = document.getElementById(id);
+      el.dataset.on = 'true';
+      el.classList.add('on');
+    });
+
+    updatePeekSummary();
+  });
+</script>
+</body>
+</html>

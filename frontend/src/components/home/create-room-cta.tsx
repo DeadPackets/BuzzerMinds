@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { motion } from "framer-motion";
+import { Monitor, ArrowRight } from "lucide-react";
 
 import { TurnstileProvider, useTurnstile } from "@/components/providers/turnstile-provider";
 import { api } from "@/lib/api";
@@ -26,13 +28,17 @@ function CreateGameButton() {
   }
 
   return (
-    <button
-      className="bm-btn-neon w-full py-4 text-lg"
+    <motion.button
+      className="bm-btn-primary w-full py-4 text-lg"
       disabled={busy}
       onClick={handleCreate}
+      whileHover={{ y: -3, scale: 1.02 }}
+      whileTap={{ y: 1, scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 400, damping: 15 }}
     >
+      <Monitor className="h-[18px] w-[18px]" />
       {busy ? "Creating Room..." : "Create Game"}
-    </button>
+    </motion.button>
   );
 }
 
@@ -50,37 +56,44 @@ function JoinGameForm() {
 
   return (
     <form className="flex flex-col gap-3" onSubmit={handleJoin}>
-      <input
-        autoComplete="off"
-        className="h-14 rounded-xl border border-[var(--bm-border-glow)] bg-[var(--bm-bg-elevated)] px-4 text-center text-xl font-bold uppercase tracking-[0.2em] text-[var(--bm-text-bright)] placeholder:text-[var(--bm-text-dim)] placeholder:tracking-[0.1em] placeholder:text-base placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[var(--bm-neon-purple)]/50"
-        maxLength={8}
-        onChange={(event) => setCode(event.target.value)}
-        placeholder="Room code"
-        value={code}
-      />
-      <button
-        className="bm-btn-outline w-full py-3.5 text-lg"
-        disabled={!code.trim()}
-        type="submit"
-      >
-        Join Game
-      </button>
+      <div className="bm-divider">or join</div>
+      <div className="flex gap-2.5">
+        <input
+          autoComplete="off"
+          className="bm-code-input"
+          maxLength={8}
+          onChange={(event) => setCode(event.target.value)}
+          placeholder="Room code"
+          value={code}
+        />
+        <motion.button
+          className="bm-btn-secondary px-5"
+          disabled={!code.trim()}
+          type="submit"
+          whileHover={{ y: -3, scale: 1.02 }}
+          whileTap={{ y: 1, scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+        >
+          <ArrowRight className="h-5 w-5" />
+        </motion.button>
+      </div>
     </form>
+  );
+}
+
+function CreateRoomCtaInner() {
+  return (
+    <div className="grid w-full gap-4">
+      <CreateGameButton />
+      <JoinGameForm />
+    </div>
   );
 }
 
 export function CreateRoomCta({ config }: { config: PublicConfigResponse }) {
   return (
     <TurnstileProvider config={config}>
-      <div className="grid gap-6 w-full">
-        <CreateGameButton />
-        <div className="flex items-center gap-4">
-          <div className="h-px flex-1 bg-[var(--bm-border-glow)]" />
-          <span className="text-sm font-medium text-[var(--bm-text-dim)]">or</span>
-          <div className="h-px flex-1 bg-[var(--bm-border-glow)]" />
-        </div>
-        <JoinGameForm />
-      </div>
+      <CreateRoomCtaInner />
     </TurnstileProvider>
   );
 }

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout J: Horizon Line</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --text: #e8e6f0; --text-dim: #6b6e7b;
+    --accent: #7c6ef6; --green: #34d399; --gold: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-dot { position: absolute; border-radius: 50%; opacity: 0.04; }
+  .layout-label {
+    position: fixed; top: 16px; right: 16px; z-index: 99;
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; color: var(--text-dim);
+    background: rgba(26,29,39,0.7); backdrop-filter: blur(8px);
+  }
+
+  /* ══════════════════════════════════════════
+     LAYOUT J: HORIZON LINE
+     A horizontal "horizon" divides the screen at ~45%.
+     Above the horizon: Room code floats large.
+     On the horizon line: QR left, logo center, URL right.
+     Below the horizon: Players spread out, settings 
+     at very bottom.
+     The horizon is a subtle line that anchors everything.
+     Lots of open sky (background) above.
+     ══════════════════════════════════════════ */
+
+  .lobby {
+    position: relative; z-index: 1;
+    height: 100vh;
+  }
+
+  /* Above horizon: Room code, floating in space */
+  .sky {
+    height: 42%; display: flex;
+    align-items: center; justify-content: center;
+    padding: 0 60px;
+  }
+  .code-row { display: flex; gap: 18px; }
+  .code-ch {
+    font-size: 7.5rem; font-weight: 900; line-height: 1;
+    color: var(--accent);
+  }
+
+  /* The horizon line */
+  .horizon {
+    display: flex; align-items: center; gap: 24px;
+    padding: 0 60px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    height: 58px;
+  }
+  .qr-mini-area {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .qr {
+    width: 44px; height: 44px;
+    background: white; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 6px; font-weight: 800; color: #333;
+    cursor: pointer;
+  }
+  .qr-expand-hint { font-size: 0.8rem; color: var(--text-dim); font-weight: 600; }
+
+  .logo {
+    flex: 1; text-align: center;
+    font-size: 1.4rem; font-weight: 900;
+  }
+  .logo span { color: var(--accent); }
+
+  .horizon-url {
+    font-size: 1rem; font-weight: 600; color: var(--text-dim);
+  }
+  .horizon-url b { color: var(--accent); }
+
+  /* QR expanded overlay — shown on hover/focus for scanning */
+  .qr-expanded {
+    position: absolute; top: 42%; left: 60px;
+    transform: translateY(-100%);
+    display: none; flex-direction: column; align-items: center; gap: 8px;
+    z-index: 10;
+  }
+  .qr-mini-area:hover + .qr-expanded,
+  .qr-expanded:hover { display: flex; }
+  .qr-big {
+    width: 200px; height: 200px;
+    background: white; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #333;
+  }
+
+  /* Actually, let's just show the QR large permanently on the left */
+  .qr-permanent {
+    position: absolute; top: 10%; left: 60px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .qr-perm {
+    width: 170px; height: 170px;
+    background: white; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #333;
+  }
+  .scan-text { font-size: 0.9rem; font-weight: 600; color: var(--text-dim); }
+
+  /* Below horizon: Players */
+  .ground {
+    height: calc(58% - 58px);
+    padding: 28px 60px 0;
+    display: flex; flex-direction: column;
+  }
+  .players-label {
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 12px;
+  }
+  .player-row {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .player {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 99px;
+    background: rgba(26,29,39,0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700; font-size: 1.1rem;
+  }
+  .player .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .player .vip {
+    font-size: 0.6rem; font-weight: 800; color: var(--gold);
+    background: rgba(251,191,36,0.15); padding: 2px 7px; border-radius: 5px;
+  }
+
+  /* Bottom: Settings + Status */
+  .bottom-bar {
+    margin-top: auto; padding-bottom: 36px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .s-tag {
+    padding: 8px 16px; border-radius: 8px;
+    background: rgba(26,29,39,0.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.95rem; font-weight: 600;
+  }
+  .s-tag .dim { color: var(--text-dim); }
+  .status {
+    margin-left: auto; font-size: 0.95rem; font-weight: 600; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="layout-label">J / HORIZON LINE</div>
+
+<div class="lobby">
+  <!-- QR permanent on upper left -->
+  <div class="qr-permanent">
+    <div class="qr-perm">QR CODE</div>
+    <div class="scan-text">Scan to join</div>
+  </div>
+
+  <!-- Sky: giant code -->
+  <div class="sky">
+    <div class="code-row">
+      <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+      <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+    </div>
+  </div>
+
+  <!-- Horizon line -->
+  <div class="horizon">
+    <div class="horizon-url"><b>quiz.deadpackets.pw</b></div>
+    <div class="logo">Buzzer<span>Minds</span></div>
+    <div class="horizon-url">Enter the room code above</div>
+  </div>
+
+  <!-- Ground: Players + Settings -->
+  <div class="ground">
+    <div class="players-label">Players (5 joined)</div>
+    <div class="player-row">
+      <div class="player"><span class="dot"></span> SpeedDemon <span class="vip">VIP</span></div>
+      <div class="player"><span class="dot"></span> BrainiacBee</div>
+      <div class="player"><span class="dot"></span> QuizWhiz42</div>
+      <div class="player"><span class="dot"></span> TriviaKing</div>
+      <div class="player"><span class="dot"></span> NerdHerd99</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="s-tag"><span class="dim">Topic:</span> Science</div>
+      <div class="s-tag"><span class="dim">Diff:</span> Medium</div>
+      <div class="s-tag"><span class="dim">Qs:</span> 10</div>
+      <div class="s-tag"><span class="dim">Time:</span> 30s</div>
+      <div class="status">Waiting for VIP to start...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const bg = document.getElementById('bg'); const dots = [];
+  for (let i = 0; i < 15; i++) {
+    const el = document.createElement('div'); el.className = 'bg-dot';
+    const size = 80 + Math.random() * 200;
+    el.style.width = size + 'px'; el.style.height = size + 'px'; el.style.background = '#7c6ef6';
+    bg.appendChild(el);
+    dots.push({ el, size, x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 });
+  }
+  (function anim() {
+    dots.forEach(d => { d.x += d.vx; d.y += d.vy; if (d.x < -d.size) d.x = innerWidth; if (d.x > innerWidth) d.x = -d.size; if (d.y < -d.size) d.y = innerHeight; if (d.y > innerHeight) d.y = -d.size; d.el.style.transform = `translate(${d.x}px,${d.y}px)`; });
+    requestAnimationFrame(anim);
+  })();
+</script>
+</body>
+</html>

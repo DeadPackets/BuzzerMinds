@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Wireframe Stack Theme</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0c1222;
+    --surface: rgba(12,18,34,0.6);
+    --cyan: #22d3ee;
+    --magenta: #ec4899;
+    --gold: #fbbf24;
+    --violet: #8b5cf6;
+    --text-bright: #eef2f8;
+    --text-dim: #64748b;
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg);
+    color: var(--text-bright);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── Crosshatch pattern layer ── */
+  .crosshatch {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 49px,
+        rgba(139,92,246,0.04) 49px,
+        rgba(139,92,246,0.04) 50px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 49px,
+        rgba(139,92,246,0.04) 49px,
+        rgba(139,92,246,0.04) 50px
+      );
+  }
+
+  /* ── Three.js canvas ── */
+  #three-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed;
+    top: 18px;
+    right: 24px;
+    z-index: 100;
+    font-family: 'Rubik', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--violet);
+    background: rgba(139,92,246,0.1);
+    border: 1px solid rgba(139,92,246,0.2);
+    padding: 6px 16px;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* ── Lobby grid ── */
+  .lobby {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    padding: 36px 64px;
+    min-height: 100vh;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── LEFT TOWER ── */
+  .left-tower {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 28px;
+  }
+
+  /* Logo */
+  .logo {
+    font-family: 'Rubik', sans-serif;
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    opacity: 0;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+  }
+  .logo .cyan { color: var(--cyan); }
+  .logo .magenta { color: var(--magenta); }
+
+  /* Room code block */
+  .room-code-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    opacity: 0;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s forwards;
+  }
+  .room-code-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .room-code-label i { width: 16px; height: 16px; color: var(--cyan); }
+
+  .room-code-chars {
+    display: flex;
+    gap: 10px;
+  }
+  .room-char {
+    width: 105px;
+    height: 118px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rubik', sans-serif;
+    font-size: 7rem;
+    font-weight: 900;
+    color: #fff;
+    background: var(--surface);
+    border: 2px solid rgba(34,211,238,0.2);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    line-height: 1;
+  }
+  .room-char:nth-child(1) { animation: charWave 2.8s ease-in-out 0.4s infinite; }
+  .room-char:nth-child(2) { animation: charWave 2.8s ease-in-out 0.52s infinite; }
+  .room-char:nth-child(3) { animation: charWave 2.8s ease-in-out 0.64s infinite; }
+  .room-char:nth-child(4) { animation: charWave 2.8s ease-in-out 0.76s infinite; }
+  .room-char:nth-child(5) { animation: charWave 2.8s ease-in-out 0.88s infinite; }
+  .room-char:nth-child(6) { animation: charWave 2.8s ease-in-out 1.0s infinite; }
+
+  .room-url {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .room-url span { color: var(--cyan); font-weight: 600; }
+
+  /* ── Settings vertical stack ── */
+  .settings-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .setting-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    padding: 0 20px;
+    border-radius: 12px;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  .setting-card:nth-child(1) {
+    border-left: 4px solid var(--cyan);
+    animation: slideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards;
+  }
+  .setting-card:nth-child(2) {
+    border-left: 4px solid var(--magenta);
+    animation: slideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards;
+  }
+  .setting-card:nth-child(3) {
+    border-left: 4px solid var(--gold);
+    animation: slideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s forwards;
+  }
+  .setting-card:nth-child(4) {
+    border-left: 4px solid var(--violet);
+    animation: slideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s forwards;
+  }
+
+  .setting-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .setting-left i { width: 24px; height: 24px; }
+  .setting-card:nth-child(1) .setting-left i { color: var(--cyan); }
+  .setting-card:nth-child(2) .setting-left i { color: var(--magenta); }
+  .setting-card:nth-child(3) .setting-left i { color: var(--gold); }
+  .setting-card:nth-child(4) .setting-left i { color: var(--violet); }
+
+  .setting-label {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .setting-value {
+    font-family: 'Rubik', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+
+  /* ── RIGHT TOWER ── */
+  .right-tower {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 28px;
+  }
+
+  /* QR Block */
+  .qr-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 28px 32px;
+    background: var(--surface);
+    border: 1px solid rgba(34,211,238,0.2);
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+  }
+  .qr-placeholder {
+    width: 220px;
+    height: 220px;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .qr-placeholder svg {
+    width: 180px;
+    height: 180px;
+  }
+  .qr-scan-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .qr-scan-label i { width: 18px; height: 18px; color: var(--cyan); }
+
+  /* Players Block */
+  .players-block {
+    width: 100%;
+    max-width: 340px;
+    padding: 24px 28px;
+    background: var(--surface);
+    border: 1px solid rgba(236,72,153,0.2);
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s forwards;
+  }
+  .players-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .players-header i { width: 20px; height: 20px; color: var(--magenta); }
+  .players-title {
+    font-family: 'Rubik', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+  .players-count {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .player-row:nth-child(1) { animation-delay: 0.55s; }
+  .player-row:nth-child(2) { animation-delay: 0.62s; }
+  .player-row:nth-child(3) { animation-delay: 0.69s; }
+  .player-row:nth-child(4) { animation-delay: 0.76s; }
+  .player-row:nth-child(5) { animation-delay: 0.83s; }
+
+  .player-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .player-row:nth-child(1) .player-dot { background: var(--cyan); }
+  .player-row:nth-child(2) .player-dot { background: var(--magenta); }
+  .player-row:nth-child(3) .player-dot { background: var(--gold); }
+  .player-row:nth-child(4) .player-dot { background: var(--violet); }
+  .player-row:nth-child(5) .player-dot { background: var(--cyan); }
+
+  .player-name {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    flex: 1;
+  }
+  .vip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.25);
+    color: var(--gold);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+  .vip-badge i { width: 12px; height: 12px; }
+
+  /* Status block */
+  .status-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    background: rgba(12,18,34,0.5);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s forwards;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  /* ── Keyframes ── */
+  @keyframes popIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.85) translateY(12px);
+    }
+    70% {
+      transform: scale(1.03) translateY(-2px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes slideInLeft {
+    0% {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    70% {
+      transform: translateX(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes charWave {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+    60% { transform: translateY(2px); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="crosshatch"></div>
+<canvas id="three-canvas"></canvas>
+<div class="theme-label">02c — Wireframe Stack</div>
+
+<div class="lobby">
+  <!-- LEFT TOWER -->
+  <div class="left-tower">
+    <div class="logo">
+      <span class="cyan">Buzzer</span><span class="magenta">Minds</span>
+    </div>
+
+    <div class="room-code-block">
+      <div class="room-code-label">
+        <i data-lucide="hash"></i>
+        Room Code
+      </div>
+      <div class="room-code-chars">
+        <div class="room-char">X</div>
+        <div class="room-char">7</div>
+        <div class="room-char">K</div>
+        <div class="room-char">Q</div>
+        <div class="room-char">9</div>
+        <div class="room-char">M</div>
+      </div>
+      <div class="room-url">Enter at <span>quiz.deadpackets.pw</span></div>
+    </div>
+
+    <div class="settings-stack">
+      <div class="setting-card">
+        <div class="setting-left">
+          <i data-lucide="book-open"></i>
+          <span class="setting-label">Topic</span>
+        </div>
+        <span class="setting-value">Science</span>
+      </div>
+      <div class="setting-card">
+        <div class="setting-left">
+          <i data-lucide="gauge"></i>
+          <span class="setting-label">Difficulty</span>
+        </div>
+        <span class="setting-value">Medium</span>
+      </div>
+      <div class="setting-card">
+        <div class="setting-left">
+          <i data-lucide="list-ordered"></i>
+          <span class="setting-label">Questions</span>
+        </div>
+        <span class="setting-value">10</span>
+      </div>
+      <div class="setting-card">
+        <div class="setting-left">
+          <i data-lucide="timer"></i>
+          <span class="setting-label">Time Limit</span>
+        </div>
+        <span class="setting-value">30s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT TOWER -->
+  <div class="right-tower">
+    <div class="qr-block">
+      <div class="qr-placeholder">
+        <!-- Inline SVG QR-like pattern -->
+        <svg viewBox="0 0 37 37" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="37" height="37" fill="white"/>
+          <!-- Top-left finder -->
+          <rect x="1" y="1" width="7" height="7" rx="1" fill="#0c1222"/>
+          <rect x="2.5" y="2.5" width="4" height="4" rx="0.5" fill="white"/>
+          <rect x="3.5" y="3.5" width="2" height="2" rx="0.3" fill="#0c1222"/>
+          <!-- Top-right finder -->
+          <rect x="29" y="1" width="7" height="7" rx="1" fill="#0c1222"/>
+          <rect x="30.5" y="2.5" width="4" height="4" rx="0.5" fill="white"/>
+          <rect x="31.5" y="3.5" width="2" height="2" rx="0.3" fill="#0c1222"/>
+          <!-- Bottom-left finder -->
+          <rect x="1" y="29" width="7" height="7" rx="1" fill="#0c1222"/>
+          <rect x="2.5" y="30.5" width="4" height="4" rx="0.5" fill="white"/>
+          <rect x="3.5" y="31.5" width="2" height="2" rx="0.3" fill="#0c1222"/>
+          <!-- Data modules -->
+          <rect x="10" y="1" width="2" height="2" fill="#0c1222"/>
+          <rect x="14" y="1" width="2" height="2" fill="#0c1222"/>
+          <rect x="18" y="1" width="1" height="2" fill="#0c1222"/>
+          <rect x="21" y="1" width="2" height="2" fill="#0c1222"/>
+          <rect x="25" y="2" width="2" height="1" fill="#0c1222"/>
+          <rect x="10" y="4" width="1" height="2" fill="#0c1222"/>
+          <rect x="13" y="4" width="2" height="1" fill="#0c1222"/>
+          <rect x="17" y="3" width="2" height="2" fill="#0c1222"/>
+          <rect x="21" y="5" width="1" height="2" fill="#0c1222"/>
+          <rect x="24" y="4" width="2" height="2" fill="#0c1222"/>
+          <rect x="10" y="7" width="2" height="1" fill="#0c1222"/>
+          <rect x="14" y="7" width="1" height="2" fill="#0c1222"/>
+          <rect x="17" y="7" width="3" height="1" fill="#0c1222"/>
+          <rect x="22" y="7" width="2" height="1" fill="#0c1222"/>
+          <rect x="26" y="7" width="1" height="2" fill="#0c1222"/>
+          <!-- Row patterns -->
+          <rect x="1" y="10" width="2" height="1" fill="#0c1222"/>
+          <rect x="5" y="10" width="1" height="2" fill="#0c1222"/>
+          <rect x="9" y="10" width="3" height="1" fill="#0c1222"/>
+          <rect x="14" y="10" width="2" height="2" fill="#0c1222"/>
+          <rect x="18" y="10" width="1" height="1" fill="#0c1222"/>
+          <rect x="21" y="10" width="2" height="1" fill="#0c1222"/>
+          <rect x="25" y="10" width="1" height="2" fill="#0c1222"/>
+          <rect x="29" y="10" width="2" height="1" fill="#0c1222"/>
+          <rect x="33" y="10" width="2" height="2" fill="#0c1222"/>
+          <rect x="2" y="13" width="1" height="2" fill="#0c1222"/>
+          <rect x="5" y="13" width="2" height="1" fill="#0c1222"/>
+          <rect x="9" y="14" width="1" height="1" fill="#0c1222"/>
+          <rect x="12" y="13" width="2" height="2" fill="#0c1222"/>
+          <rect x="16" y="14" width="3" height="1" fill="#0c1222"/>
+          <rect x="21" y="13" width="1" height="2" fill="#0c1222"/>
+          <rect x="24" y="14" width="2" height="1" fill="#0c1222"/>
+          <rect x="28" y="13" width="1" height="2" fill="#0c1222"/>
+          <rect x="31" y="14" width="2" height="1" fill="#0c1222"/>
+          <rect x="35" y="13" width="1" height="2" fill="#0c1222"/>
+          <!-- Center area -->
+          <rect x="1" y="17" width="1" height="2" fill="#0c1222"/>
+          <rect x="4" y="17" width="2" height="1" fill="#0c1222"/>
+          <rect x="8" y="17" width="1" height="2" fill="#0c1222"/>
+          <rect x="11" y="18" width="2" height="1" fill="#0c1222"/>
+          <rect x="15" y="17" width="1" height="1" fill="#0c1222"/>
+          <rect x="17" y="17" width="3" height="3" rx="0.5" fill="#22d3ee"/>
+          <rect x="22" y="17" width="1" height="2" fill="#0c1222"/>
+          <rect x="25" y="18" width="2" height="1" fill="#0c1222"/>
+          <rect x="29" y="17" width="1" height="2" fill="#0c1222"/>
+          <rect x="32" y="17" width="2" height="1" fill="#0c1222"/>
+          <rect x="35" y="18" width="1" height="1" fill="#0c1222"/>
+          <!-- Lower patterns -->
+          <rect x="2" y="21" width="2" height="1" fill="#0c1222"/>
+          <rect x="6" y="21" width="1" height="2" fill="#0c1222"/>
+          <rect x="10" y="22" width="2" height="1" fill="#0c1222"/>
+          <rect x="14" y="21" width="1" height="2" fill="#0c1222"/>
+          <rect x="18" y="22" width="2" height="1" fill="#0c1222"/>
+          <rect x="22" y="21" width="2" height="2" fill="#0c1222"/>
+          <rect x="26" y="22" width="1" height="1" fill="#0c1222"/>
+          <rect x="29" y="21" width="2" height="1" fill="#0c1222"/>
+          <rect x="33" y="22" width="2" height="1" fill="#0c1222"/>
+          <rect x="1" y="25" width="1" height="2" fill="#0c1222"/>
+          <rect x="4" y="25" width="2" height="1" fill="#0c1222"/>
+          <rect x="8" y="26" width="1" height="1" fill="#0c1222"/>
+          <rect x="11" y="25" width="2" height="2" fill="#0c1222"/>
+          <rect x="15" y="26" width="1" height="1" fill="#0c1222"/>
+          <rect x="19" y="25" width="2" height="1" fill="#0c1222"/>
+          <rect x="23" y="25" width="1" height="2" fill="#0c1222"/>
+          <rect x="26" y="26" width="2" height="1" fill="#0c1222"/>
+          <!-- Bottom data row -->
+          <rect x="10" y="29" width="2" height="1" fill="#0c1222"/>
+          <rect x="14" y="29" width="1" height="2" fill="#0c1222"/>
+          <rect x="17" y="30" width="2" height="1" fill="#0c1222"/>
+          <rect x="21" y="29" width="1" height="1" fill="#0c1222"/>
+          <rect x="24" y="30" width="2" height="2" fill="#0c1222"/>
+          <rect x="28" y="29" width="1" height="1" fill="#0c1222"/>
+          <rect x="10" y="33" width="1" height="2" fill="#0c1222"/>
+          <rect x="13" y="33" width="2" height="1" fill="#0c1222"/>
+          <rect x="17" y="34" width="1" height="1" fill="#0c1222"/>
+          <rect x="20" y="33" width="2" height="2" fill="#0c1222"/>
+          <rect x="24" y="34" width="1" height="1" fill="#0c1222"/>
+          <rect x="27" y="33" width="2" height="1" fill="#0c1222"/>
+          <rect x="31" y="29" width="2" height="1" fill="#ec4899"/>
+          <rect x="34" y="30" width="1" height="2" fill="#0c1222"/>
+          <rect x="31" y="33" width="1" height="2" fill="#0c1222"/>
+          <rect x="34" y="34" width="2" height="1" fill="#0c1222"/>
+        </svg>
+      </div>
+      <div class="qr-scan-label">
+        <i data-lucide="scan-line"></i>
+        Scan to join
+      </div>
+    </div>
+
+    <div class="players-block">
+      <div class="players-header">
+        <i data-lucide="users"></i>
+        <span class="players-title">Players</span>
+        <span class="players-count">(5 joined)</span>
+      </div>
+      <div class="player-list">
+        <div class="player-row">
+          <span class="player-dot"></span>
+          <span class="player-name">DeadPackets</span>
+          <span class="vip-badge"><i data-lucide="crown"></i> VIP</span>
+        </div>
+        <div class="player-row">
+          <span class="player-dot"></span>
+          <span class="player-name">QuantumFox</span>
+        </div>
+        <div class="player-row">
+          <span class="player-dot"></span>
+          <span class="player-name">NeonByte</span>
+        </div>
+        <div class="player-row">
+          <span class="player-dot"></span>
+          <span class="player-name">PixelDrift</span>
+        </div>
+        <div class="player-row">
+          <span class="player-dot"></span>
+          <span class="player-name">StarForge</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-block">
+      <span class="status-dot"></span>
+      <span class="status-text">Waiting for host to start the game...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Initialize Lucide icons ──
+  lucide.createIcons();
+
+  // ── Three.js wireframe background ──
+  (function() {
+    const canvas = document.getElementById('three-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [0x22d3ee, 0xec4899, 0x8b5cf6];
+    const shapes = [];
+
+    for (let i = 0; i < 10; i++) {
+      const size = 1.0 + Math.random() * 1.5;
+      const geo = new THREE.IcosahedronGeometry(size, 1);
+      const wireGeo = new THREE.WireframeGeometry(geo);
+      const mat = new THREE.LineBasicMaterial({
+        color: colors[i % colors.length],
+        opacity: 0.10 + Math.random() * 0.08,
+        transparent: true
+      });
+      const mesh = new THREE.LineSegments(wireGeo, mat);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 12
+      );
+
+      mesh.userData = {
+        rotSpeedX: (Math.random() - 0.5) * 0.004,
+        rotSpeedY: (Math.random() - 0.5) * 0.004,
+        rotSpeedZ: (Math.random() - 0.5) * 0.002,
+        driftX: (Math.random() - 0.5) * 0.003,
+        driftY: (Math.random() - 0.5) * 0.003,
+        baseX: mesh.position.x,
+        baseY: mesh.position.y,
+        phase: Math.random() * Math.PI * 2
+      };
+
+      scene.add(mesh);
+      shapes.push(mesh);
+    }
+
+    function animate(time) {
+      requestAnimationFrame(animate);
+      const t = time * 0.001;
+
+      shapes.forEach(s => {
+        s.rotation.x += s.userData.rotSpeedX;
+        s.rotation.y += s.userData.rotSpeedY;
+        s.rotation.z += s.userData.rotSpeedZ;
+        s.position.x = s.userData.baseX + Math.sin(t * 0.4 + s.userData.phase) * 1.5;
+        s.position.y = s.userData.baseY + Math.cos(t * 0.3 + s.userData.phase) * 1.2;
+      });
+
+      renderer.render(scene, camera);
+    }
+    animate(0);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

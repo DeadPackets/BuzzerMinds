@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout F: L-Frame</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --text: #e8e6f0; --text-dim: #6b6e7b;
+    --accent: #7c6ef6; --green: #34d399; --gold: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-dot { position: absolute; border-radius: 50%; opacity: 0.04; }
+  .layout-label {
+    position: fixed; top: 16px; right: 16px; z-index: 99;
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; color: var(--text-dim);
+    background: rgba(26,29,39,0.7); backdrop-filter: blur(8px);
+  }
+
+  /* ══════════════════════════════════════════
+     LAYOUT F: L-FRAME
+     Content forms an L-shape: 
+     - Horizontal bar along the top (Logo + Code + QR)
+     - Vertical column on the left (Settings stacked)
+     - The remaining space (bottom-right) = Players area
+     Creates a natural reading flow and leaves a big 
+     open area for players to fill as they join.
+     ══════════════════════════════════════════ */
+
+  .lobby {
+    position: relative; z-index: 1;
+    height: 100vh; padding: 40px 60px;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 32px;
+  }
+
+  /* Top bar — spans full width */
+  .top-bar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 40px;
+  }
+
+  .logo { font-size: 2rem; font-weight: 900; flex-shrink: 0; }
+  .logo span { color: var(--accent); }
+
+  .code-area { flex: 1; }
+  .code-label {
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.15em; color: var(--text-dim); margin-bottom: 6px;
+  }
+  .code-row { display: flex; gap: 12px; }
+  .code-ch {
+    font-size: 5.5rem; font-weight: 900; line-height: 1;
+    color: var(--accent);
+  }
+
+  .qr-area {
+    flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+  }
+  .qr {
+    width: 180px; height: 180px;
+    background: white; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #333;
+  }
+  .qr-text { font-size: 0.95rem; font-weight: 600; color: var(--text-dim); text-align: right; line-height: 1.5; }
+  .qr-text b { color: var(--accent); display: block; font-size: 1.05rem; }
+
+  /* Left column: Settings */
+  .left-col {
+    display: flex; flex-direction: column; gap: 12px;
+    padding-top: 8px;
+  }
+  .settings-label {
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 4px;
+  }
+  .s-item {
+    padding: 12px 16px; border-radius: 10px;
+    background: rgba(26,29,39,0.5); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .s-item .label { font-size: 0.8rem; font-weight: 600; color: var(--text-dim); display: block; }
+  .s-item .value { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+
+  .join-hint {
+    margin-top: auto;
+    font-size: 0.95rem; font-weight: 600; color: var(--text-dim); line-height: 1.5;
+  }
+  .join-hint b { color: var(--accent); }
+
+  /* Right area: Players */
+  .players-area {
+    padding-top: 8px;
+  }
+  .players-label {
+    font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 14px;
+  }
+  .player-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .player {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; border-radius: 99px;
+    background: rgba(26,29,39,0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700; font-size: 1.05rem;
+  }
+  .player .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .player .vip {
+    margin-left: auto; font-size: 0.6rem; font-weight: 800; color: var(--gold);
+    background: rgba(251,191,36,0.15); padding: 2px 7px; border-radius: 5px;
+  }
+  .player-empty {
+    display: flex; align-items: center; justify-content: center;
+    padding: 12px 18px; border-radius: 99px;
+    border: 1px dashed rgba(255,255,255,0.08);
+    font-weight: 600; font-size: 0.9rem; color: var(--text-dim);
+  }
+
+  .status {
+    margin-top: 16px;
+    font-size: 0.95rem; font-weight: 600; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="layout-label">F / L-FRAME</div>
+
+<div class="lobby">
+  <!-- Top bar: Logo + Code + QR -->
+  <div class="top-bar">
+    <div class="logo">Buzzer<span>Minds</span></div>
+    <div class="code-area">
+      <div class="code-label">Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+    </div>
+    <div class="qr-area">
+      <div class="qr-text">Scan to join<b>quiz.deadpackets.pw</b></div>
+      <div class="qr">QR CODE</div>
+    </div>
+  </div>
+
+  <!-- Left column: Settings -->
+  <div class="left-col">
+    <div class="settings-label">Game Settings</div>
+    <div class="s-item"><span class="label">Topic</span><span class="value">Science</span></div>
+    <div class="s-item"><span class="label">Difficulty</span><span class="value">Medium</span></div>
+    <div class="s-item"><span class="label">Questions</span><span class="value">10</span></div>
+    <div class="s-item"><span class="label">Time Limit</span><span class="value">30 seconds</span></div>
+    <div class="join-hint">Visit <b>quiz.deadpackets.pw</b><br>and enter the room code</div>
+  </div>
+
+  <!-- Right area: Players -->
+  <div class="players-area">
+    <div class="players-label">Players (5 joined)</div>
+    <div class="player-grid">
+      <div class="player"><span class="dot"></span> SpeedDemon <span class="vip">VIP</span></div>
+      <div class="player"><span class="dot"></span> BrainiacBee</div>
+      <div class="player"><span class="dot"></span> QuizWhiz42</div>
+      <div class="player"><span class="dot"></span> TriviaKing</div>
+      <div class="player"><span class="dot"></span> NerdHerd99</div>
+      <div class="player-empty">Waiting...</div>
+      <div class="player-empty">Waiting...</div>
+      <div class="player-empty">Waiting...</div>
+      <div class="player-empty">Waiting...</div>
+    </div>
+    <div class="status">Waiting for VIP to start...</div>
+  </div>
+</div>
+
+<script>
+  const bg = document.getElementById('bg'); const dots = [];
+  for (let i = 0; i < 15; i++) {
+    const el = document.createElement('div'); el.className = 'bg-dot';
+    const size = 80 + Math.random() * 200;
+    el.style.width = size + 'px'; el.style.height = size + 'px'; el.style.background = '#7c6ef6';
+    bg.appendChild(el);
+    dots.push({ el, size, x: Math.random() * innerWidth, y: Math.random() * innerHeight, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3 });
+  }
+  (function anim() {
+    dots.forEach(d => { d.x += d.vx; d.y += d.vy; if (d.x < -d.size) d.x = innerWidth; if (d.x > innerWidth) d.x = -d.size; if (d.y < -d.size) d.y = innerHeight; if (d.y > innerHeight) d.y = -d.size; d.el.style.transform = `translate(${d.x}px,${d.y}px)`; });
+    requestAnimationFrame(anim);
+  })();
+</script>
+</body>
+</html>

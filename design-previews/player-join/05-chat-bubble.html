@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 05 Chat Bubble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text-bright); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; display: flex; flex-direction: column;
+    padding: 0;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(20,20,20,0.6); backdrop-filter: blur(12px);
+  }
+  .top-bar-logo { font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; }
+  .top-bar-logo .a { color: var(--amber); }
+  .top-bar-logo .s { color: var(--sage); }
+  .top-bar-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.85rem;
+    color: var(--amber); letter-spacing: 0.06em;
+    padding: 4px 10px; background: rgba(245,158,11,0.08);
+    border-radius: 6px;
+  }
+
+  /* ── Chat area ── */
+  .chat-area {
+    flex: 1; padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* ── Bubbles ── */
+  .bubble-row {
+    display: flex; gap: 10px; max-width: 88%;
+  }
+  .bubble-row.from-game { align-self: flex-start; }
+  .bubble-row.from-player { align-self: flex-end; flex-direction: row-reverse; }
+
+  .bubble-avatar {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .bubble-avatar i { width: 16px; height: 16px; }
+  .bubble-avatar.game { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .bubble-avatar.player { background: rgba(56,189,248,0.15); color: var(--sky); }
+
+  .bubble {
+    padding: 14px 18px; border-radius: 16px;
+    font-size: 0.9rem; line-height: 1.5;
+  }
+  .bubble-row.from-game .bubble {
+    background: var(--surface); border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble-row.from-player .bubble {
+    background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.15);
+    border-bottom-right-radius: 4px;
+    color: var(--text-bright);
+  }
+
+  .bubble-sender {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 4px;
+  }
+  .bubble-row.from-game .bubble-sender { color: var(--amber); }
+  .bubble-row.from-player .bubble-sender { color: var(--sky); }
+
+  /* ── Input areas inside bubbles ── */
+  .bubble-input {
+    width: 100%; padding: 12px 14px; margin-top: 10px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-size: 0.95rem; font-weight: 500; outline: none;
+    transition: border-color 0.2s;
+  }
+  .bubble-input:focus { border-color: var(--sage); }
+  .bubble-input::placeholder { color: var(--text-dim); font-weight: 400; }
+  textarea.bubble-input { resize: none; min-height: 64px; line-height: 1.4; font-family: var(--font-body); }
+
+  /* ── Color picker in bubble ── */
+  .bubble-colors {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .bswatch {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .bswatch:hover { transform: scale(1.1); }
+  .bswatch.active { border-color: var(--text-bright); transform: scale(1.15); }
+
+  /* ── Typing indicator ── */
+  .typing-dots {
+    display: flex; gap: 4px; padding: 8px 0 4px;
+  }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim);
+    animation: typingBounce 1.4s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* ── Bottom bar ── */
+  .bottom-bar {
+    padding: 16px 20px max(16px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: rgba(20,20,20,0.6); backdrop-filter: blur(12px);
+  }
+  .submit-btn {
+    width: 100%; padding: 16px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn i { width: 18px; height: 18px; }
+
+  /* ── Stagger animation ── */
+  .bubble-row { opacity: 0; animation: bubbleIn 0.4s ease forwards; }
+  .bubble-row:nth-child(1) { animation-delay: 0s; }
+  .bubble-row:nth-child(2) { animation-delay: 0.15s; }
+  .bubble-row:nth-child(3) { animation-delay: 0.3s; }
+  .bubble-row:nth-child(4) { animation-delay: 0.45s; }
+  .bubble-row:nth-child(5) { animation-delay: 0.6s; }
+  .bubble-row:nth-child(6) { animation-delay: 0.75s; }
+
+  @keyframes bubbleIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">05 — Chat Bubble</div>
+<div class="bg-pattern"></div>
+
+<div class="page">
+  <div class="top-bar">
+    <div class="top-bar-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+    <div class="top-bar-code">X7KQ9W</div>
+  </div>
+
+  <div class="chat-area">
+    <!-- Game message 1 -->
+    <div class="bubble-row from-game">
+      <div class="bubble-avatar game"><i data-lucide="bot"></i></div>
+      <div class="bubble">
+        <div class="bubble-sender">BuzzerMinds</div>
+        Welcome to room <strong style="color:var(--amber);">X7KQ9W</strong>! Let's get you set up. What should we call you?
+      </div>
+    </div>
+
+    <!-- Player response: name input -->
+    <div class="bubble-row from-player">
+      <div class="bubble-avatar player"><i data-lucide="user"></i></div>
+      <div class="bubble">
+        <div class="bubble-sender">You</div>
+        <input type="text" class="bubble-input" placeholder="Type your display name..." maxlength="40">
+      </div>
+    </div>
+
+    <!-- Game message 2 -->
+    <div class="bubble-row from-game">
+      <div class="bubble-avatar game"><i data-lucide="bot"></i></div>
+      <div class="bubble">
+        <div class="bubble-sender">BuzzerMinds</div>
+        Pick a color so everyone can spot you on the big screen.
+        <div class="bubble-colors">
+          <div class="bswatch active" style="background:#22d3ee;"></div>
+          <div class="bswatch" style="background:#f59e0b;"></div>
+          <div class="bswatch" style="background:#4ade80;"></div>
+          <div class="bswatch" style="background:#fb7185;"></div>
+          <div class="bswatch" style="background:#a78bfa;"></div>
+          <div class="bswatch" style="background:#f472b6;"></div>
+          <div class="bswatch" style="background:#fbbf24;"></div>
+          <div class="bswatch" style="background:#34d399;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game message 3 -->
+    <div class="bubble-row from-game">
+      <div class="bubble-avatar game"><i data-lucide="bot"></i></div>
+      <div class="bubble">
+        <div class="bubble-sender">BuzzerMinds</div>
+        Last thing: what topics are you good at? The AI uses this to pick questions.
+      </div>
+    </div>
+
+    <!-- Player response: expertise -->
+    <div class="bubble-row from-player">
+      <div class="bubble-avatar player"><i data-lucide="user"></i></div>
+      <div class="bubble">
+        <div class="bubble-sender">You</div>
+        <textarea class="bubble-input" placeholder="Movies, cooking, history..." maxlength="250"></textarea>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="bubble-row from-game">
+      <div class="bubble-avatar game"><i data-lucide="bot"></i></div>
+      <div class="bubble">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span style="font-size:0.75rem;color:var(--text-dim);">Ready when you are...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="submit-btn"><i data-lucide="zap"></i> Enter Room</button>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  document.querySelectorAll('.bswatch').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.bswatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

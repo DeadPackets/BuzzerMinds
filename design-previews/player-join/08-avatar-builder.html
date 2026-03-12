@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 08 Avatar Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text-bright); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; display: flex; flex-direction: column;
+    padding: 0 20px;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 0; flex-shrink: 0;
+  }
+  .top-bar-logo { font-family: var(--font-display); font-size: 1.05rem; font-weight: 800; }
+  .top-bar-logo .a { color: var(--amber); }
+  .top-bar-logo .s { color: var(--sage); }
+  .top-bar-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.85rem;
+    color: var(--amber); letter-spacing: 0.06em;
+    padding: 4px 10px; background: rgba(245,158,11,0.08); border-radius: 6px;
+  }
+
+  /* ── Avatar area ── */
+  .avatar-area {
+    flex-shrink: 0; display: flex; flex-direction: column;
+    align-items: center; padding: 32px 0 24px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .avatar-circle {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: #22d3ee;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    transition: background 0.3s ease;
+    position: relative;
+  }
+  .avatar-circle .initials {
+    font-family: var(--font-display); font-weight: 900; font-size: 2.4rem;
+    color: var(--bg); text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+  .avatar-circle .edit-hint {
+    position: absolute; bottom: -4px; right: -4px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar-circle .edit-hint i { width: 14px; height: 14px; color: var(--text-dim); }
+
+  .avatar-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 1.15rem;
+    color: var(--text-bright); min-height: 1.4em;
+  }
+  .avatar-hint {
+    font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;
+  }
+
+  /* ── Color ring ── */
+  .color-ring {
+    display: flex; gap: 10px; justify-content: center;
+    padding: 16px 0 8px;
+  }
+  .cring {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .cring:hover { transform: scale(1.1); }
+  .cring.active { border-color: var(--text-bright); transform: scale(1.2); }
+
+  /* ── Form fields ── */
+  .form-section {
+    flex: 1; display: flex; flex-direction: column; gap: 20px;
+    padding-top: 8px;
+    animation: fadeUp 0.4s ease 0.15s both;
+  }
+
+  .separator {
+    height: 1px; background: var(--border); margin: 4px 0;
+  }
+
+  .field-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .field-label i { width: 13px; height: 13px; color: var(--amber); }
+
+  .field-input {
+    width: 100%; padding: 14px 16px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-bright);
+    font-size: 1rem; font-weight: 500; outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: var(--sage); }
+  .field-input::placeholder { color: var(--text-dim); font-weight: 400; }
+  textarea.field-input { resize: none; min-height: 72px; line-height: 1.5; font-family: var(--font-body); }
+
+  .char-count { text-align: right; font-size: 0.65rem; color: var(--text-dim); margin-top: 4px; }
+
+  /* ── Submit ── */
+  .bottom-area {
+    padding: 16px 0 max(20px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+  }
+  .submit-btn {
+    width: 100%; padding: 16px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn i { width: 18px; height: 18px; }
+  .vip-note {
+    text-align: center; font-size: 0.72rem; color: var(--text-dim); margin-top: 10px;
+  }
+  .vip-note strong { color: var(--sage); font-weight: 600; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="theme-label">08 — Avatar Builder</div>
+<div class="bg-pattern"></div>
+
+<div class="page">
+  <div class="top-bar">
+    <div class="top-bar-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+    <div class="top-bar-code">X7KQ9W</div>
+  </div>
+
+  <div class="avatar-area">
+    <div class="avatar-circle" id="avatarCircle">
+      <span class="initials" id="avatarInitials">?</span>
+      <div class="edit-hint"><i data-lucide="pencil"></i></div>
+    </div>
+    <div class="avatar-name" id="avatarName">Your Name</div>
+    <div class="avatar-hint">This is how others will see you</div>
+
+    <div class="color-ring">
+      <div class="cring active" style="background:#22d3ee;" data-color="#22d3ee"></div>
+      <div class="cring" style="background:#f59e0b;" data-color="#f59e0b"></div>
+      <div class="cring" style="background:#4ade80;" data-color="#4ade80"></div>
+      <div class="cring" style="background:#fb7185;" data-color="#fb7185"></div>
+      <div class="cring" style="background:#a78bfa;" data-color="#a78bfa"></div>
+      <div class="cring" style="background:#f472b6;" data-color="#f472b6"></div>
+      <div class="cring" style="background:#fbbf24;" data-color="#fbbf24"></div>
+      <div class="cring" style="background:#34d399;" data-color="#34d399"></div>
+    </div>
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="form-section">
+    <div>
+      <label class="field-label"><i data-lucide="user"></i> Display Name</label>
+      <input type="text" class="field-input" placeholder="What should we call you?" maxlength="40" id="nameInput">
+    </div>
+
+    <div>
+      <label class="field-label"><i data-lucide="brain"></i> Your Expertise</label>
+      <textarea class="field-input" placeholder="Movies, science, history..." maxlength="250" id="expertiseInput"></textarea>
+      <div class="char-count" id="charCount">0 / 250</div>
+    </div>
+  </div>
+
+  <div class="bottom-area">
+    <button class="submit-btn"><i data-lucide="arrow-right"></i> Enter Room</button>
+    <div class="vip-note">First player in becomes <strong>VIP</strong></div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  const avatar = document.getElementById('avatarCircle');
+  const initials = document.getElementById('avatarInitials');
+  const nameDisplay = document.getElementById('avatarName');
+  const nameInput = document.getElementById('nameInput');
+  const expertiseInput = document.getElementById('expertiseInput');
+  const charCount = document.getElementById('charCount');
+
+  nameInput.addEventListener('input', () => {
+    const val = nameInput.value.trim();
+    nameDisplay.textContent = val || 'Your Name';
+    initials.textContent = val ? val.charAt(0).toUpperCase() : '?';
+  });
+
+  expertiseInput.addEventListener('input', () => {
+    charCount.textContent = expertiseInput.value.length + ' / 250';
+  });
+
+  document.querySelectorAll('.cring').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('.cring').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+      avatar.style.background = c.dataset.color;
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Board Game Theme</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #1c1917;
+    color: #fafaf9;
+  }
+
+  #bg-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    width: 100%; height: 100%;
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .theme-label {
+    position: fixed; top: 16px; right: 20px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.85rem; color: #f59e0b;
+    background: rgba(28,25,23,0.9); border: 2px solid #44403c;
+    padding: 4px 14px; border-radius: 8px; z-index: 100;
+    letter-spacing: 0.5px;
+  }
+
+  .lobby {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 100px; padding: 44px 80px;
+    height: 100vh; align-items: center;
+  }
+
+  .left-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+  .right-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-end; }
+
+  /* Logo */
+  .logo {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 4.2rem; font-weight: 700; line-height: 1;
+    color: #f59e0b;
+    letter-spacing: 1px;
+  }
+  .logo span { color: #10b981; }
+
+  /* Code block */
+  .code-block {
+    background: rgba(41,37,36,0.7);
+    backdrop-filter: blur(8px);
+    border: 2px solid #44403c;
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .code-label {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem; color: #a8a29e;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .code-label i { width: 20px; height: 20px; }
+  .code-row { display: flex; gap: 12px; }
+  .code-ch {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 5rem; font-weight: 700; line-height: 1;
+    width: 82px; height: 92px;
+    display: flex; align-items: center; justify-content: center;
+    background: #292524;
+    border: 2px solid #44403c;
+    border-radius: 12px;
+    color: #f59e0b;
+    box-shadow: 0 4px 0 #44403c;
+    animation: dealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
+  }
+  .code-ch:nth-child(1) { animation-delay: 0.1s; }
+  .code-ch:nth-child(2) { animation-delay: 0.18s; }
+  .code-ch:nth-child(3) { animation-delay: 0.26s; }
+  .code-ch:nth-child(4) { animation-delay: 0.34s; }
+  .code-ch:nth-child(5) { animation-delay: 0.42s; }
+  .code-ch:nth-child(6) { animation-delay: 0.50s; }
+
+  @keyframes dealIn {
+    0% { transform: translateY(40px) scale(0.8); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  .join-url {
+    margin-top: 14px; font-size: 1.05rem; color: #a8a29e;
+  }
+  .join-url b { color: #f59e0b; }
+
+  /* Settings */
+  .settings-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .s-tag {
+    background: rgba(41,37,36,0.7);
+    backdrop-filter: blur(8px);
+    border: 2px solid #44403c;
+    border-radius: 10px;
+    padding: 8px 16px; font-size: 0.95rem;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    color: #fafaf9;
+    animation: dealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.6s backwards;
+  }
+  .s-tag:nth-child(1) { transform: rotate(-0.8deg); }
+  .s-tag:nth-child(2) { transform: rotate(0.5deg); }
+  .s-tag:nth-child(3) { transform: rotate(-0.6deg); }
+  .s-tag:nth-child(4) { transform: rotate(1deg); }
+  .s-tag .dim { color: #a8a29e; font-weight: 400; display: flex; align-items: center; gap: 4px; }
+  .s-tag .dim i { width: 14px; height: 14px; }
+
+  /* QR block */
+  .qr-block { text-align: right; }
+  .scan-text {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.05rem; color: #a8a29e;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+  }
+  .scan-text i { width: 18px; height: 18px; }
+  .qr {
+    width: 180px; height: 180px;
+    background: #fafaf9; color: #1c1917;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka', sans-serif; font-size: 1rem; font-weight: 600;
+    border-radius: 14px;
+    border: 2px solid #44403c;
+    box-shadow: 0 4px 0 #44403c;
+    margin-left: auto;
+  }
+
+  /* Players */
+  .players-block { text-align: right; }
+  .players-label {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.15rem; color: #a8a29e;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+  }
+  .players-label i { width: 20px; height: 20px; }
+  .player-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+
+  .pawn {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+    border: 2px solid rgba(0,0,0,0.2);
+  }
+
+  .player {
+    background: rgba(41,37,36,0.7);
+    backdrop-filter: blur(8px);
+    border: 2px solid #44403c;
+    border-radius: 10px;
+    padding: 8px 18px; font-size: 1.05rem; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+    animation: dealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
+    transition: transform 0.2s ease;
+  }
+  .player:hover { transform: rotate(-2deg) scale(1.03); }
+  .player:nth-child(1) { animation-delay: 0.4s; }
+  .player:nth-child(1) .pawn { background: #ef4444; }
+  .player:nth-child(2) { animation-delay: 0.5s; }
+  .player:nth-child(2) .pawn { background: #3b82f6; }
+  .player:nth-child(3) { animation-delay: 0.6s; }
+  .player:nth-child(3) .pawn { background: #10b981; }
+  .player:nth-child(4) { animation-delay: 0.7s; }
+  .player:nth-child(4) .pawn { background: #a855f7; }
+  .player:nth-child(5) { animation-delay: 0.8s; }
+  .player:nth-child(5) .pawn { background: #f59e0b; }
+
+  .vip {
+    background: #f59e0b; color: #1c1917;
+    padding: 2px 8px; font-size: 0.75rem; font-weight: 700;
+    border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 3px;
+    margin-left: 4px;
+    font-family: 'Fredoka', sans-serif;
+  }
+  .vip i { width: 12px; height: 12px; }
+
+  .status {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.1rem; color: #f59e0b;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="theme-label">BOARD GAME</div>
+<div class="lobby">
+  <div class="left-tower">
+    <div class="logo">Buzzer<span>Minds</span></div>
+    <div class="code-block">
+      <div class="code-label"><i data-lucide="hash"></i> Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+      <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+    </div>
+    <div class="settings-row">
+      <div class="s-tag"><span class="dim"><i data-lucide="dices"></i> Topic:</span> Science</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="sliders-horizontal"></i> Diff:</span> Medium</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="list-ordered"></i> Qs:</span> 10</div>
+      <div class="s-tag"><span class="dim"><i data-lucide="clock"></i> Time:</span> 30s</div>
+    </div>
+  </div>
+  <div class="right-tower">
+    <div class="qr-block">
+      <div class="scan-text"><i data-lucide="scan-line"></i> Scan to<br>join instantly</div>
+      <div class="qr">QR CODE</div>
+    </div>
+    <div class="players-block">
+      <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+      <div class="player-list">
+        <div class="player"><span class="pawn"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+        <div class="player"><span class="pawn"></span> BrainiacBee</div>
+        <div class="player"><span class="pawn"></span> QuizWhiz42</div>
+        <div class="player"><span class="pawn"></span> TriviaKing</div>
+        <div class="player"><span class="pawn"></span> NerdHerd99</div>
+      </div>
+    </div>
+    <div class="status">Waiting for VIP to start...</div>
+  </div>
+</div>
+<script>
+lucide.createIcons();
+
+// Three.js floating dice background
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 18;
+
+  // Warm lighting
+  scene.add(new THREE.AmbientLight(0xf59e0b, 0.4));
+  const dirLight = new THREE.DirectionalLight(0xfafaf9, 0.6);
+  dirLight.position.set(5, 8, 10);
+  scene.add(dirLight);
+
+  // Create dice texture with dots
+  function makeDiceFace(num) {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fafaf9';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#1c1917';
+    ctx.strokeStyle = '#a8a29e';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, 124, 124);
+    const dot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill(); };
+    const positions = {
+      1: [[64,64]],
+      2: [[36,36],[92,92]],
+      3: [[36,36],[64,64],[92,92]],
+      4: [[36,36],[92,36],[36,92],[92,92]],
+      5: [[36,36],[92,36],[64,64],[36,92],[92,92]],
+      6: [[36,32],[92,32],[36,64],[92,64],[36,96],[92,96]]
+    };
+    (positions[num] || []).forEach(p => dot(p[0], p[1]));
+    return new THREE.CanvasTexture(c);
+  }
+
+  function makeDice(x, y, z, size) {
+    const mats = [1,2,3,4,5,6].map(n => new THREE.MeshStandardMaterial({
+      map: makeDiceFace(n), roughness: 0.6, metalness: 0.05
+    }));
+    const geo = new THREE.BoxGeometry(size, size, size);
+    const mesh = new THREE.Mesh(geo, mats);
+    mesh.position.set(x, y, z);
+    mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+    mesh.userData = {
+      rx: (Math.random() - 0.5) * 0.008,
+      ry: (Math.random() - 0.5) * 0.008,
+      rz: (Math.random() - 0.5) * 0.005,
+      fy: y,
+      floatSpeed: 0.3 + Math.random() * 0.4,
+      floatAmp: 0.3 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2
+    };
+    scene.add(mesh);
+    return mesh;
+  }
+
+  const dice = [
+    makeDice(-7, 3, -2, 2.2),
+    makeDice(6, -2, -4, 1.8),
+    makeDice(-3, -4, -3, 1.5),
+    makeDice(8, 4, -5, 2.0)
+  ];
+
+  function animate(t) {
+    requestAnimationFrame(animate);
+    const s = t * 0.001;
+    dice.forEach(d => {
+      d.rotation.x += d.userData.rx;
+      d.rotation.y += d.userData.ry;
+      d.rotation.z += d.userData.rz;
+      d.position.y = d.userData.fy + Math.sin(s * d.userData.floatSpeed + d.userData.phase) * d.userData.floatAmp;
+    });
+    renderer.render(scene, camera);
+  }
+  animate(0);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+</body>
+</html>

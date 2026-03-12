@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Sticker Pack</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    overflow: hidden;
+    /* Dot grid pattern */
+    background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  /* Theme label */
+  .theme-label {
+    position: fixed; top: 16px; right: 20px;
+    font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 0.75rem;
+    background: #f8fafc; color: #1e293b;
+    padding: 4px 14px; border-radius: 20px;
+    border: 2px solid #8b5cf6;
+    z-index: 100; transform: rotate(2deg);
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.15);
+  }
+
+  /* Lobby grid */
+  .lobby {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 100px; padding: 44px 80px;
+    min-height: 100vh; align-items: center;
+  }
+  .left-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+  .right-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-end; }
+
+  /* Sticker base mixin — applied via class */
+  .sticker {
+    background: #f8fafc;
+    border-radius: 18px;
+    padding: 22px 26px;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.15), 4px 6px 12px rgba(0,0,0,0.1);
+    color: #1e293b;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .sticker:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.12), 6px 10px 20px rgba(0,0,0,0.15) !important;
+  }
+
+  /* Slap animation */
+  @keyframes slapIn {
+    0% { opacity: 0; transform: translateY(-20px) scale(1.12) var(--rot); }
+    60% { opacity: 1; transform: translateY(2px) scale(0.97) var(--rot); }
+    80% { transform: translateY(-1px) scale(1.01) var(--rot); }
+    100% { opacity: 1; transform: translateY(0) scale(1) var(--rot); }
+  }
+
+  /* Logo sticker */
+  .logo-wrap {
+    --rot: rotate(-2deg);
+    transform: rotate(-2deg);
+    border: 3px solid #8b5cf6;
+    animation: slapIn 0.5s ease-out both;
+  }
+  .logo {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 3rem; font-weight: 700; line-height: 1;
+  }
+  .logo-violet { color: #8b5cf6; }
+  .logo-pink { color: #ec4899; }
+
+  /* Code block sticker */
+  .code-sticker {
+    --rot: rotate(1.5deg);
+    transform: rotate(1.5deg);
+    border: 3px solid #f97316;
+    animation: slapIn 0.5s ease-out 0.08s both;
+  }
+  .code-label {
+    font-size: 0.8rem; font-weight: 600;
+    color: #64748b; margin-bottom: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .code-label i { width: 14px; height: 14px; color: #64748b; }
+  .code-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .code-ch {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 5rem; font-weight: 700; line-height: 1;
+    width: 82px; height: 94px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    border-radius: 14px;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.12), 3px 5px 8px rgba(0,0,0,0.08);
+  }
+  .code-ch:nth-child(1) { background: #8b5cf6; transform: rotate(-2deg); }
+  .code-ch:nth-child(2) { background: #ec4899; transform: rotate(1.5deg); }
+  .code-ch:nth-child(3) { background: #84cc16; transform: rotate(-1deg); }
+  .code-ch:nth-child(4) { background: #38bdf8; transform: rotate(2deg); }
+  .code-ch:nth-child(5) { background: #f97316; transform: rotate(-1.5deg); }
+  .code-ch:nth-child(6) { background: #8b5cf6; transform: rotate(1deg); }
+  .join-url {
+    font-size: 0.9rem; color: #64748b; font-weight: 500;
+  }
+  .join-url b { color: #1e293b; font-weight: 700; }
+
+  /* Settings stickers */
+  .settings-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    animation: slapIn 0.5s ease-out 0.16s both;
+    --rot: rotate(0deg);
+  }
+  .s-tag {
+    font-size: 0.82rem; font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 12px;
+    color: #fff;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.12), 3px 5px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .s-tag:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.1), 5px 8px 14px rgba(0,0,0,0.12) !important;
+  }
+  .s-tag:nth-child(1) { background: #8b5cf6; transform: rotate(-1.5deg); }
+  .s-tag:nth-child(2) { background: #ec4899; transform: rotate(1deg); }
+  .s-tag:nth-child(3) { background: #84cc16; color: #1e293b; transform: rotate(-0.5deg); }
+  .s-tag:nth-child(4) { background: #38bdf8; transform: rotate(2deg); }
+  .s-tag .dim { opacity: 0.8; font-weight: 500; }
+  .s-tag .dim i { width: 12px; height: 12px; vertical-align: -2px; }
+
+  /* QR sticker */
+  .qr-sticker {
+    --rot: rotate(-2.5deg);
+    transform: rotate(-2.5deg);
+    border: 3px solid #38bdf8;
+    text-align: right;
+    animation: slapIn 0.5s ease-out 0.1s both;
+  }
+  .scan-text {
+    font-size: 0.8rem; color: #64748b; font-weight: 600;
+    margin-bottom: 10px; line-height: 1.4;
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  }
+  .scan-text i { width: 14px; height: 14px; color: #64748b; }
+  .qr {
+    width: 180px; height: 180px;
+    background: #fff;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem; color: #94a3b8; font-weight: 600;
+    margin-left: auto;
+    border: 2px dashed #cbd5e1;
+  }
+
+  /* Players sticker */
+  .players-sticker {
+    --rot: rotate(1.8deg);
+    transform: rotate(1.8deg);
+    border: 3px solid #ec4899;
+    animation: slapIn 0.5s ease-out 0.2s both;
+  }
+  .players-label {
+    font-size: 0.8rem; font-weight: 700;
+    color: #64748b; margin-bottom: 12px;
+    text-align: right; text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  }
+  .players-label i { width: 14px; height: 14px; color: #64748b; }
+  .player-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .player {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.05rem; font-weight: 600;
+    padding: 6px 16px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    color: #1e293b;
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+  }
+  .player:nth-child(1) { transform: rotate(-1deg); }
+  .player:nth-child(2) { transform: rotate(0.8deg); }
+  .player:nth-child(3) { transform: rotate(-0.5deg); }
+  .player:nth-child(4) { transform: rotate(1.2deg); }
+  .player:nth-child(5) { transform: rotate(-0.8deg); }
+  .player:hover { transform: translateY(-3px) rotate(0deg) !important; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+  }
+  .player:nth-child(1) .dot { background: #8b5cf6; }
+  .player:nth-child(2) .dot { background: #ec4899; }
+  .player:nth-child(3) .dot { background: #84cc16; }
+  .player:nth-child(4) .dot { background: #38bdf8; }
+  .player:nth-child(5) .dot { background: #f97316; }
+  .vip {
+    font-size: 0.65rem; font-weight: 700;
+    color: #1e293b; text-transform: uppercase;
+    background: #fde047;
+    padding: 2px 10px; border-radius: 10px;
+    display: flex; align-items: center; gap: 3px;
+    letter-spacing: 0.5px;
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+  }
+  .vip i { width: 11px; height: 11px; color: #1e293b; }
+
+  /* Status sticker */
+  .status-wrap {
+    --rot: rotate(-1.2deg);
+    transform: rotate(-1.2deg);
+    border: 3px solid #84cc16;
+    padding: 12px 22px;
+    animation: slapIn 0.5s ease-out 0.3s both;
+  }
+  .status {
+    font-size: 1rem; font-weight: 600;
+    color: #475569; text-align: right;
+  }
+</style>
+</head>
+<body>
+  <div class="theme-label">Sticker Pack</div>
+
+  <div class="lobby">
+    <div class="left-tower">
+      <div class="logo-wrap sticker">
+        <div class="logo"><span class="logo-violet">Buzzer</span><span class="logo-pink">Minds</span></div>
+      </div>
+      <div class="code-sticker sticker">
+        <div class="code-label"><i data-lucide="hash"></i> Room Code</div>
+        <div class="code-row">
+          <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+          <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+        </div>
+        <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+      </div>
+      <div class="settings-row">
+        <div class="s-tag"><span class="dim"><i data-lucide="sparkles"></i> Topic:</span> Science</div>
+        <div class="s-tag"><span class="dim"><i data-lucide="sliders-horizontal"></i> Diff:</span> Medium</div>
+        <div class="s-tag"><span class="dim"><i data-lucide="list-ordered"></i> Qs:</span> 10</div>
+        <div class="s-tag"><span class="dim"><i data-lucide="timer"></i> Time:</span> 30s</div>
+      </div>
+    </div>
+
+    <div class="right-tower">
+      <div class="qr-sticker sticker">
+        <div class="scan-text"><i data-lucide="scan-line"></i> Scan to<br>join instantly</div>
+        <div class="qr">QR CODE</div>
+      </div>
+      <div class="players-sticker sticker">
+        <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+        <div class="player-list">
+          <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+          <div class="player"><span class="dot"></span> BrainiacBee</div>
+          <div class="player"><span class="dot"></span> QuizWhiz42</div>
+          <div class="player"><span class="dot"></span> TriviaKing</div>
+          <div class="player"><span class="dot"></span> NerdHerd99</div>
+        </div>
+      </div>
+      <div class="status-wrap sticker">
+        <div class="status"><i data-lucide="hourglass" style="width:16px;height:16px;vertical-align:-3px;color:#475569"></i> Waiting for VIP to start...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

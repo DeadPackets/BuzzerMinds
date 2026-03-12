@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — M4 Lobby + Slide Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #141414;
+    --surface: rgba(30,30,30,0.65);
+    --panel-bg: rgba(26,26,26,0.97);
+    --amber: #f59e0b;
+    --sage: #4ade80;
+    --rose: #fb7185;
+    --sky: #38bdf8;
+    --cream: #fef3c7;
+    --text-bright: #f5f5f5;
+    --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale; overscroll-behavior: none;
+    overflow: hidden;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 300;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px,
+      transparent 1px, transparent 30px
+    );
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #three-canvas.dimmed { opacity: 0.3; }
+
+  /* ══════════════════════════════════════════════════
+     MOBILE FRAME — LOBBY
+     ══════════════════════════════════════════════════ */
+  .mobile-frame {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 440px;
+    height: 100vh; height: 100dvh;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    padding-top: max(14px, env(safe-area-inset-top));
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .top-bar-left {
+    display: flex; align-items: center; gap: 7px;
+  }
+  .top-bar-left i { width: 16px; height: 16px; color: var(--amber); }
+  .top-bar-logo {
+    font-family: var(--font-display); font-size: 1.05rem; font-weight: 800;
+    color: var(--text-bright);
+  }
+  .room-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.78rem;
+    color: var(--amber); letter-spacing: 0.06em;
+    background: rgba(245,158,11,0.08);
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid rgba(245,158,11,0.15);
+  }
+
+  /* ── Lobby area ── */
+  .lobby {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px;
+    gap: 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Waiting text */
+  .lobby-waiting {
+    font-family: var(--font-display); font-weight: 600; font-size: 1.4rem;
+    color: var(--text-bright);
+    opacity: 0; animation: fadeInUp 0.6s ease 0.1s forwards;
+  }
+
+  /* Pulse ring area */
+  .pulse-area {
+    position: relative;
+    width: 120px; height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; animation: fadeInUp 0.6s ease 0.25s forwards;
+  }
+  .pulse-ring {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 50%;
+    animation: pulseExpand 2.4s ease-out infinite;
+  }
+  .pulse-ring:nth-child(2) {
+    animation-delay: 1.2s;
+  }
+  @keyframes pulseExpand {
+    0% { transform: scale(0.6); opacity: 0.6; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .pulse-count {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .pulse-count-num {
+    font-family: var(--font-display); font-weight: 900; font-size: 3rem;
+    color: var(--amber); line-height: 1;
+  }
+  .pulse-count-label {
+    font-size: 0.72rem; font-weight: 500; color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+
+  /* Player list */
+  .player-list {
+    display: flex; flex-direction: column; gap: 6px;
+    width: 100%; max-width: 320px;
+  }
+  .player-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    opacity: 0;
+    animation: playerEnter 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  .player-card:nth-child(1) { animation-delay: 0.4s; }
+  .player-card:nth-child(2) { animation-delay: 0.55s; }
+  .player-card:nth-child(3) { animation-delay: 0.7s; }
+  .player-card:nth-child(4) { animation-delay: 0.85s; }
+
+  @keyframes playerEnter {
+    from { opacity: 0; transform: translateX(-16px) scale(0.95); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+  }
+
+  .player-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .player-name {
+    flex: 1; font-weight: 600; font-size: 0.88rem;
+    color: var(--text-bright);
+  }
+  .player-badge {
+    font-family: var(--font-display); font-size: 0.58rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .player-badge.vip {
+    background: rgba(245,158,11,0.12);
+    color: var(--amber);
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+  .player-badge.player {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Bottom buttons ── */
+  .bottom-bar {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  .bottom-btns {
+    display: flex; gap: 10px; margin-bottom: 6px;
+  }
+  .btn-configure {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 14px 0;
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    color: var(--text-bright); font-family: var(--font-display);
+    font-weight: 700; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-configure i { width: 16px; height: 16px; }
+  .btn-configure:hover { border-color: rgba(245,158,11,0.3); color: var(--amber); }
+  .btn-configure:active { transform: scale(0.97); }
+
+  .btn-start {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 14px 0;
+    background: var(--amber); border: none; border-radius: 12px;
+    color: #141414; font-family: var(--font-display);
+    font-weight: 800; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-start i { width: 17px; height: 17px; }
+  .btn-start:hover { filter: brightness(1.08); }
+  .btn-start:active { transform: scale(0.97); }
+
+  .blocker-text {
+    text-align: center; font-size: 0.65rem; color: var(--text-dim);
+    line-height: 1.4; padding-top: 2px;
+  }
+
+  /* ── Fade-in helper ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ══════════════════════════════════════════════════
+     SCRIM
+     ══════════════════════════════════════════════════ */
+  .scrim {
+    position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .scrim.active { opacity: 1; pointer-events: auto; }
+
+  /* ══════════════════════════════════════════════════
+     SETTINGS PANEL — SLIDE UP
+     ══════════════════════════════════════════════════ */
+  .settings-panel {
+    position: fixed;
+    bottom: 0; left: 50%;
+    width: 100%; max-width: 440px;
+    max-height: 85vh; max-height: 85dvh;
+    transform: translateX(-50%) translateY(100%);
+    z-index: 100;
+    transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+    display: flex; flex-direction: column;
+  }
+  .settings-panel.open {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .panel-surface {
+    background: var(--panel-bg);
+    backdrop-filter: blur(24px);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column;
+    max-height: 85vh; max-height: 85dvh;
+    overflow: hidden;
+  }
+
+  /* ── Drag handle ── */
+  .panel-handle {
+    flex-shrink: 0;
+    padding: 10px 0 4px;
+    display: flex; justify-content: center;
+  }
+  .drag-bar {
+    width: 40px; height: 4px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 2px;
+  }
+
+  /* ── Panel header ── */
+  .panel-header {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 20px 12px;
+  }
+  .panel-title {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.15rem;
+  }
+  .panel-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .panel-close i { width: 16px; height: 16px; }
+  .panel-close:hover { color: var(--text-bright); background: rgba(255,255,255,0.1); }
+
+  /* ── Segmented control ── */
+  .seg-control {
+    margin: 0 20px 6px;
+    position: relative;
+    background: rgba(30,30,30,0.8);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex; padding: 4px; gap: 4px;
+  }
+  .seg-indicator {
+    position: absolute; top: 4px; left: 4px;
+    width: calc(50% - 6px);
+    height: calc(100% - 8px);
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 9px;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 1;
+  }
+  .seg-indicator.advanced {
+    transform: translateX(calc(100% + 4px));
+  }
+  .seg-btn {
+    flex: 1; position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 0;
+    border: none; background: none; outline: none;
+    font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer; transition: color 0.25s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .seg-btn i { width: 15px; height: 15px; }
+  .seg-btn.active { color: var(--amber); }
+
+  /* ── Panel scrollable body ── */
+  .panel-body {
+    flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    padding: 0 20px 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.08); border-radius: 2px;
+  }
+
+  /* ── Panel footer ── */
+  .panel-footer {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+  }
+  .btn-apply {
+    width: 100%; padding: 14px 0;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--amber); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 800; font-size: 0.95rem;
+    color: #141414; cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-apply i { width: 18px; height: 18px; }
+  .btn-apply:hover { filter: brightness(1.08); }
+  .btn-apply:active { transform: scale(0.97); }
+
+  /* ══════════════════════════════════════════════════
+     QUICK VIEW
+     ══════════════════════════════════════════════════ */
+  .view-panel { transition: opacity 0.3s ease, transform 0.3s ease; }
+  .view-panel.hidden { display: none; }
+  .view-panel.entering { animation: viewEnter 0.35s ease forwards; }
+  @keyframes viewEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .quick-view { padding: 14px 0 10px; }
+
+  .q-section-label {
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .q-section-label i { width: 13px; height: 13px; color: var(--amber); }
+
+  /* Model pills */
+  .q-model-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 22px;
+  }
+  .q-model-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 18px 8px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent; user-select: none;
+    position: relative; overflow: hidden;
+  }
+  .q-model-card:hover { transform: translateY(-2px); }
+  .q-model-card:active { transform: scale(0.96); }
+  .q-model-card .model-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 0.65rem;
+    letter-spacing: 0.04em; transition: all 0.25s;
+  }
+  .q-model-card .model-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    transition: color 0.25s;
+  }
+  .q-model-card .model-sub {
+    font-size: 0.62rem; color: var(--text-dim); font-weight: 500;
+    transition: color 0.25s;
+  }
+  .q-model-card .check-badge {
+    position: absolute; top: 8px; right: 8px;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(0);
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .q-model-card .check-badge i { width: 11px; height: 11px; }
+  .q-model-card.active .check-badge { opacity: 1; transform: scale(1); }
+
+  /* GPT-4o — sage */
+  .q-model-card[data-model="gpt4o"] .model-icon { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .q-model-card[data-model="gpt4o"].active {
+    border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06);
+  }
+  .q-model-card[data-model="gpt4o"].active .model-name { color: var(--sage); }
+  .q-model-card[data-model="gpt4o"] .check-badge { background: rgba(74,222,128,0.15); color: var(--sage); }
+
+  /* Claude — sky */
+  .q-model-card[data-model="claude"] .model-icon { background: rgba(56,189,248,0.12); color: var(--sky); }
+  .q-model-card[data-model="claude"].active {
+    border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.06);
+  }
+  .q-model-card[data-model="claude"].active .model-name { color: var(--sky); }
+  .q-model-card[data-model="claude"] .check-badge { background: rgba(56,189,248,0.15); color: var(--sky); }
+
+  /* Gemini — amber */
+  .q-model-card[data-model="gemini"] .model-icon { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .q-model-card[data-model="gemini"].active {
+    border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06);
+  }
+  .q-model-card[data-model="gemini"].active .model-name { color: var(--amber); }
+  .q-model-card[data-model="gemini"] .check-badge { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+  /* ── Rounds stepper ── */
+  .q-rounds { margin-bottom: 22px; }
+  .q-stepper {
+    display: flex; align-items: center;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .q-stepper-btn {
+    width: 60px; height: 60px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none; outline: none;
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .q-stepper-btn i { width: 22px; height: 22px; }
+  .q-stepper-btn:hover { color: var(--amber); background: rgba(245,158,11,0.06); }
+  .q-stepper-btn:active { transform: scale(0.9); }
+  .q-stepper-sep { width: 1px; height: 28px; background: var(--border); }
+  .q-stepper-display {
+    flex: 1; text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 0;
+  }
+  .q-stepper-num {
+    font-family: var(--font-display); font-weight: 900; font-size: 2rem;
+    color: var(--amber); line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .q-stepper-num.bump { transform: scale(1.15); }
+  .q-stepper-unit {
+    font-size: 0.62rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  /* ── Difficulty pills ── */
+  .q-difficulty { margin-bottom: 22px; }
+  .q-diff-pills {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .q-diff-pill {
+    padding: 14px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .q-diff-pill:hover { transform: translateY(-1px); }
+  .q-diff-pill:active { transform: scale(0.96); }
+  .q-diff-pill .diff-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  .q-diff-pill .diff-icon i { width: 16px; height: 16px; }
+  .q-diff-pill .diff-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    transition: color 0.25s;
+  }
+  .q-diff-pill .diff-sub {
+    font-size: 0.58rem; color: var(--text-dim); font-weight: 500;
+    text-align: center; line-height: 1.3;
+  }
+
+  /* Easy — sage */
+  .q-diff-pill[data-diff="easy"] .diff-icon { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .q-diff-pill[data-diff="easy"].active {
+    border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06);
+  }
+  .q-diff-pill[data-diff="easy"].active .diff-name { color: var(--sage); }
+
+  /* Normal — amber */
+  .q-diff-pill[data-diff="normal"] .diff-icon { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .q-diff-pill[data-diff="normal"].active {
+    border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06);
+  }
+  .q-diff-pill[data-diff="normal"].active .diff-name { color: var(--amber); }
+
+  /* Hard — rose */
+  .q-diff-pill[data-diff="hard"] .diff-icon { background: rgba(251,113,133,0.12); color: var(--rose); }
+  .q-diff-pill[data-diff="hard"].active {
+    border-color: rgba(251,113,133,0.3); background: rgba(251,113,133,0.06);
+  }
+  .q-diff-pill[data-diff="hard"].active .diff-name { color: var(--rose); }
+
+  /* ── Audio master toggle ── */
+  .q-audio { margin-bottom: 10px; }
+  .q-audio-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer; transition: all 0.25s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .q-audio-toggle:hover { border-color: rgba(255,255,255,0.1); }
+  .q-audio-toggle.active {
+    border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.04);
+  }
+  .q-audio-left { display: flex; align-items: center; gap: 12px; }
+  .q-audio-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(245,158,11,0.1); transition: all 0.25s;
+  }
+  .q-audio-icon i { width: 18px; height: 18px; color: var(--amber); transition: color 0.25s; }
+  .q-audio-toggle:not(.active) .q-audio-icon { background: rgba(255,255,255,0.05); }
+  .q-audio-toggle:not(.active) .q-audio-icon i { color: var(--text-dim); }
+  .q-audio-text { display: flex; flex-direction: column; gap: 2px; }
+  .q-audio-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+    transition: color 0.25s;
+  }
+  .q-audio-toggle:not(.active) .q-audio-title { color: var(--text-dim); }
+  .q-audio-sub { font-size: 0.65rem; color: var(--text-dim); }
+  .q-switch {
+    width: 46px; height: 26px; border-radius: 13px;
+    background: rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .q-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+  }
+  .q-audio-toggle.active .q-switch { background: rgba(245,158,11,0.3); }
+  .q-audio-toggle.active .q-switch::after {
+    transform: translateX(20px); background: var(--amber);
+  }
+
+  /* ── Stagger children ── */
+  .stagger-in > * {
+    animation: staggerFade 0.4s ease forwards;
+    opacity: 0;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.04s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.16s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.20s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.24s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.28s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.32s; }
+  @keyframes staggerFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ══════════════════════════════════════════════════
+     ADVANCED VIEW — ACCORDION SECTIONS
+     ══════════════════════════════════════════════════ */
+  .advanced-view { padding: 8px 0 10px; }
+
+  .accordion {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    background: rgba(20,20,20,0.4);
+  }
+  .accordion-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    cursor: pointer; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+  }
+  .accordion-header:hover { background: rgba(255,255,255,0.02); }
+  .accordion-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .accordion-icon i { width: 16px; height: 16px; }
+  .accordion-icon.amber { background: rgba(245,158,11,0.1); color: var(--amber); }
+  .accordion-icon.sage { background: rgba(74,222,128,0.1); color: var(--sage); }
+  .accordion-icon.sky { background: rgba(56,189,248,0.1); color: var(--sky); }
+  .accordion-icon.rose { background: rgba(251,113,133,0.1); color: var(--rose); }
+  .accordion-title {
+    flex: 1;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+    color: var(--text-bright);
+  }
+  .accordion-count {
+    font-size: 0.6rem; font-weight: 600; color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 7px; border-radius: 6px;
+  }
+  .accordion-chevron {
+    color: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .accordion-chevron i { width: 16px; height: 16px; }
+  .accordion.open .accordion-chevron { transform: rotate(180deg); }
+
+  .accordion-body {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .accordion.open .accordion-body {
+    max-height: 600px;
+  }
+  .accordion-content {
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Advanced field rows ── */
+  .adv-field { margin-bottom: 14px; }
+  .adv-field:last-child { margin-bottom: 4px; }
+
+  .adv-field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.04em; margin-bottom: 7px; margin-top: 14px;
+  }
+  .adv-field-label i { width: 12px; height: 12px; color: var(--amber); }
+  .adv-field-label .adv-hint {
+    margin-left: auto; font-weight: 400; font-size: 0.62rem;
+    color: rgba(115,115,115,0.7);
+  }
+
+  /* Select */
+  .adv-select-wrap { position: relative; }
+  .adv-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .adv-select {
+    width: 100%; padding: 11px 36px 11px 14px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .adv-select:focus { border-color: rgba(245,158,11,0.4); }
+  .adv-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* Range slider */
+  .adv-range-row { display: flex; align-items: center; gap: 12px; }
+  .adv-range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(to right,
+      var(--amber) 0%, var(--amber) var(--fill, 50%),
+      rgba(255,255,255,0.08) var(--fill, 50%), rgba(255,255,255,0.08) 100%
+    );
+    outline: none; cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .adv-range-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .adv-range-slider::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e; cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+  .adv-range-slider::-moz-range-track {
+    height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08);
+  }
+  .adv-range-value {
+    min-width: 36px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 4px 8px;
+  }
+
+  /* Pill groups */
+  .adv-pill-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .adv-pill {
+    flex: 1; min-width: 0;
+    padding: 9px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font-body); font-size: 0.76rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .adv-pill:hover { border-color: rgba(245,158,11,0.2); color: var(--text-bright); }
+  .adv-pill.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber); font-weight: 600;
+  }
+
+  /* Toggle rows */
+  .adv-toggles { display: flex; gap: 10px; flex-wrap: wrap; }
+  .adv-toggle-item {
+    flex: 1; min-width: 85px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 13px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .adv-toggle-item:hover { border-color: rgba(255,255,255,0.1); }
+  .adv-toggle-item.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .adv-toggle-item i {
+    width: 18px; height: 18px; color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .adv-toggle-item.active i { color: var(--amber); }
+  .adv-toggle-label {
+    font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .adv-toggle-item.active .adv-toggle-label { color: var(--text-bright); }
+  .adv-toggle-switch {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: rgba(255,255,255,0.1);
+    position: relative; transition: background 0.25s;
+  }
+  .adv-toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .adv-toggle-item.active .adv-toggle-switch { background: rgba(245,158,11,0.3); }
+  .adv-toggle-item.active .adv-toggle-switch::after {
+    transform: translateX(16px); background: var(--amber);
+  }
+
+  /* ── Conditional fields ── */
+  .conditional-field {
+    display: none; opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .conditional-field.visible {
+    display: block; opacity: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">M4 — Lobby + Slide Settings</div>
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<!-- ══════════════════════════════════════════════════
+     LOBBY — MAIN VIEW
+     ══════════════════════════════════════════════════ -->
+<div class="mobile-frame">
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <i data-lucide="sparkles"></i>
+      <div class="top-bar-logo">BuzzerMinds</div>
+    </div>
+    <div class="room-code">#X7KQ9W</div>
+  </div>
+
+  <!-- Lobby center -->
+  <div class="lobby">
+    <div class="lobby-waiting">Waiting for players</div>
+
+    <div class="pulse-area">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-count">
+        <div class="pulse-count-num">4</div>
+        <div class="pulse-count-label">players joined</div>
+      </div>
+    </div>
+
+    <div class="player-list">
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--sky);"></div>
+        <div class="player-name">Daniel K.</div>
+        <div class="player-badge vip">VIP</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--amber);"></div>
+        <div class="player-name">Maria L.</div>
+        <div class="player-badge player">Player</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--sage);"></div>
+        <div class="player-name">Jake R.</div>
+        <div class="player-badge player">Player</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--cream);"></div>
+        <div class="player-name">Sam T.</div>
+        <div class="player-badge player">Player</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom buttons -->
+  <div class="bottom-bar">
+    <div class="bottom-btns">
+      <button class="btn-configure" id="configureBtn">
+        <i data-lucide="sliders-horizontal"></i>
+        Configure
+      </button>
+      <button class="btn-start" id="startBtn">
+        <i data-lucide="play"></i>
+        Start Match
+      </button>
+    </div>
+    <div class="blocker-text">Tap Configure to adjust game settings before starting</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCRIM
+     ══════════════════════════════════════════════════ -->
+<div class="scrim" id="scrim"></div>
+
+<!-- ══════════════════════════════════════════════════
+     SETTINGS PANEL — SLIDES UP
+     ══════════════════════════════════════════════════ -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="panel-surface">
+
+    <!-- Drag handle -->
+    <div class="panel-handle"><div class="drag-bar"></div></div>
+
+    <!-- Header -->
+    <div class="panel-header">
+      <div class="panel-title">Game Settings</div>
+      <button class="panel-close" id="panelClose">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <!-- Segmented control -->
+    <div class="seg-control" id="segControl">
+      <div class="seg-indicator" id="segIndicator"></div>
+      <button class="seg-btn active" data-view="quick" id="segQuick">
+        <i data-lucide="zap"></i>
+        Quick
+      </button>
+      <button class="seg-btn" data-view="advanced" id="segAdvanced">
+        <i data-lucide="sliders-horizontal"></i>
+        Advanced
+      </button>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="panel-body">
+
+      <!-- ── QUICK VIEW ── -->
+      <div class="view-panel quick-view stagger-in" id="quickView">
+
+        <!-- AI Model -->
+        <div class="q-section-label"><i data-lucide="sparkles"></i> AI Model</div>
+        <div class="q-model-row" id="modelGroup">
+          <div class="q-model-card active" data-model="gpt4o">
+            <div class="check-badge"><i data-lucide="check"></i></div>
+            <div class="model-icon">GPT</div>
+            <div class="model-name">GPT-4o</div>
+            <div class="model-sub">OpenAI</div>
+          </div>
+          <div class="q-model-card" data-model="claude">
+            <div class="check-badge"><i data-lucide="check"></i></div>
+            <div class="model-icon">CL</div>
+            <div class="model-name">Claude</div>
+            <div class="model-sub">Anthropic</div>
+          </div>
+          <div class="q-model-card" data-model="gemini">
+            <div class="check-badge"><i data-lucide="check"></i></div>
+            <div class="model-icon">GE</div>
+            <div class="model-name">Gemini</div>
+            <div class="model-sub">Google</div>
+          </div>
+        </div>
+
+        <!-- Rounds -->
+        <div class="q-rounds">
+          <div class="q-section-label"><i data-lucide="repeat"></i> Rounds</div>
+          <div class="q-stepper">
+            <button class="q-stepper-btn" id="roundsMinus"><i data-lucide="minus"></i></button>
+            <div class="q-stepper-sep"></div>
+            <div class="q-stepper-display">
+              <div class="q-stepper-num" id="roundsNum">5</div>
+              <div class="q-stepper-unit">Rounds</div>
+            </div>
+            <div class="q-stepper-sep"></div>
+            <button class="q-stepper-btn" id="roundsPlus"><i data-lucide="plus"></i></button>
+          </div>
+        </div>
+
+        <!-- Difficulty -->
+        <div class="q-difficulty">
+          <div class="q-section-label"><i data-lucide="gauge"></i> Difficulty</div>
+          <div class="q-diff-pills" id="diffGroup">
+            <div class="q-diff-pill" data-diff="easy" data-answer="90" data-nobuzz="5" data-bonus="40">
+              <div class="diff-icon"><i data-lucide="smile"></i></div>
+              <div class="diff-name">Easy</div>
+              <div class="diff-sub">90s answer<br>Relaxed pace</div>
+            </div>
+            <div class="q-diff-pill active" data-diff="normal" data-answer="45" data-nobuzz="3" data-bonus="20">
+              <div class="diff-icon"><i data-lucide="target"></i></div>
+              <div class="diff-name">Normal</div>
+              <div class="diff-sub">45s answer<br>Balanced</div>
+            </div>
+            <div class="q-diff-pill" data-diff="hard" data-answer="20" data-nobuzz="1" data-bonus="15">
+              <div class="diff-icon"><i data-lucide="flame"></i></div>
+              <div class="diff-name">Hard</div>
+              <div class="diff-sub">20s answer<br>Fast & intense</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio -->
+        <div class="q-audio">
+          <div class="q-section-label"><i data-lucide="volume-2"></i> Audio</div>
+          <div class="q-audio-toggle active" id="audioMaster">
+            <div class="q-audio-left">
+              <div class="q-audio-icon"><i data-lucide="volume-2" id="audioIcon"></i></div>
+              <div class="q-audio-text">
+                <div class="q-audio-title" id="audioLabel">Audio On</div>
+                <div class="q-audio-sub">Narration, SFX &amp; Music</div>
+              </div>
+            </div>
+            <div class="q-switch"></div>
+          </div>
+        </div>
+
+      </div><!-- /quick-view -->
+
+      <!-- ── ADVANCED VIEW ── -->
+      <div class="view-panel advanced-view hidden" id="advancedView">
+
+        <!-- 1. AI & Content -->
+        <div class="accordion open" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon amber"><i data-lucide="sparkles"></i></div>
+            <div class="accordion-title">AI & Content</div>
+            <div class="accordion-count">2 settings</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="cpu"></i> Model</div>
+                <div class="adv-select-wrap">
+                  <select class="adv-select" id="advModel">
+                    <option value="gpt4o" selected>GPT-4o (OpenAI)</option>
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="gemini">Gemini (Google)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="shield-check"></i> Moderation</div>
+                <div class="adv-select-wrap">
+                  <select class="adv-select">
+                    <option value="off">Off</option>
+                    <option value="auto" selected>Auto</option>
+                    <option value="strict">Strict</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Game Rules -->
+        <div class="accordion" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon sage"><i data-lucide="gamepad-2"></i></div>
+            <div class="accordion-title">Game Rules</div>
+            <div class="accordion-count">5 settings</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="book-open"></i> Topic Pool</div>
+                <div class="adv-select-wrap">
+                  <select class="adv-select">
+                    <option>General Knowledge</option>
+                    <option>Science & Nature</option>
+                    <option>History & Geography</option>
+                    <option>Pop Culture</option>
+                    <option>Technology</option>
+                    <option>Mixed — All Topics</option>
+                  </select>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="repeat"></i> Rounds
+                  <span class="adv-hint" id="advRoundsHint">5</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="1" max="20" value="5" data-display="advRoundsHint" id="advRoundsSlider">
+                  <div class="adv-range-value" id="advRoundsVal">5</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="eye"></i> Reveal Mode</div>
+                <div class="adv-pill-group" data-pill-group="reveal-mode">
+                  <div class="adv-pill active" data-value="after-each">After Each</div>
+                  <div class="adv-pill" data-value="end-of-round">End of Round</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="flag"></i> End Mode</div>
+                <div class="adv-pill-group" data-pill-group="end-mode">
+                  <div class="adv-pill active" data-value="rounds">By Rounds</div>
+                  <div class="adv-pill" data-value="timer">By Timer</div>
+                </div>
+              </div>
+              <div class="adv-field conditional-field" id="advTimerMinutes">
+                <div class="adv-field-label">
+                  <i data-lucide="clock"></i> Timer Minutes
+                  <span class="adv-hint" id="advTimerHint">10</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="3" max="30" value="10" data-display="advTimerHint" id="advTimerSlider">
+                  <div class="adv-range-value" id="advTimerVal">10</div>
+                </div>
+              </div>
+              <div class="adv-field conditional-field" id="advTimerExpiry">
+                <div class="adv-field-label"><i data-lucide="alert-triangle"></i> Timer Expiry</div>
+                <div class="adv-pill-group" data-pill-group="timer-expiry">
+                  <div class="adv-pill active" data-value="finish-round">Finish Round</div>
+                  <div class="adv-pill" data-value="immediate">Immediate</div>
+                  <div class="adv-pill" data-value="sudden-death">Sudden Death</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Timing -->
+        <div class="accordion" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon sky"><i data-lucide="timer"></i></div>
+            <div class="accordion-title">Timing</div>
+            <div class="accordion-count">3 settings</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="hourglass"></i> Answer Time
+                  <span class="adv-hint" id="advAnswerHint">45s</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="10" max="120" value="45" step="5" data-display="advAnswerHint" data-suffix="s" id="advAnswerSlider">
+                  <div class="adv-range-value" id="advAnswerVal">45s</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="shield-off"></i> No-Buzz Window
+                  <span class="adv-hint" id="advNobuzzHint">3s</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="0" max="10" value="3" data-display="advNobuzzHint" data-suffix="s" id="advNobuzzSlider">
+                  <div class="adv-range-value" id="advNobuzzVal">3s</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="trophy"></i> Bonus Time
+                  <span class="adv-hint" id="advBonusHint">20s</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="5" max="60" value="20" step="5" data-display="advBonusHint" data-suffix="s" id="advBonusSlider">
+                  <div class="adv-range-value" id="advBonusVal">20s</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Audio -->
+        <div class="accordion" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon rose"><i data-lucide="volume-2"></i></div>
+            <div class="accordion-title">Audio</div>
+            <div class="accordion-count">3 toggles</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field" style="margin-top: 14px;">
+                <div class="adv-toggles">
+                  <div class="adv-toggle-item active" data-toggle="narration">
+                    <i data-lucide="mic"></i>
+                    <div class="adv-toggle-label">Narration</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                  <div class="adv-toggle-item active" data-toggle="sfx">
+                    <i data-lucide="bell-ring"></i>
+                    <div class="adv-toggle-label">SFX</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                  <div class="adv-toggle-item active" data-toggle="music">
+                    <i data-lucide="music"></i>
+                    <div class="adv-toggle-label">Music</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /advanced-view -->
+
+    </div><!-- /panel-body -->
+
+    <!-- Footer -->
+    <div class="panel-footer">
+      <button class="btn-apply" id="applyBtn">
+        <i data-lucide="check-circle"></i>
+        Apply & Close
+      </button>
+    </div>
+
+  </div><!-- /panel-surface -->
+</div><!-- /settings-panel -->
+
+
+<script>
+  // ══════════════════════════════════════════════════
+  // Init Lucide icons
+  // ══════════════════════════════════════════════════
+  lucide.createIcons();
+
+  // ══════════════════════════════════════════════════
+  // Panel open / close
+  // ══════════════════════════════════════════════════
+  const settingsPanel = document.getElementById('settingsPanel');
+  const scrim = document.getElementById('scrim');
+  const configureBtn = document.getElementById('configureBtn');
+  const panelClose = document.getElementById('panelClose');
+  const applyBtn = document.getElementById('applyBtn');
+  const threeCanvas = document.getElementById('three-canvas');
+
+  function openPanel() {
+    settingsPanel.classList.add('open');
+    scrim.classList.add('active');
+    threeCanvas.classList.add('dimmed');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePanel() {
+    settingsPanel.classList.remove('open');
+    scrim.classList.remove('active');
+    threeCanvas.classList.remove('dimmed');
+    document.body.style.overflow = '';
+  }
+
+  configureBtn.addEventListener('click', openPanel);
+  panelClose.addEventListener('click', closePanel);
+  applyBtn.addEventListener('click', closePanel);
+  scrim.addEventListener('click', closePanel);
+
+  // ══════════════════════════════════════════════════
+  // Segmented control: Quick / Advanced
+  // ══════════════════════════════════════════════════
+  const segQuick = document.getElementById('segQuick');
+  const segAdvanced = document.getElementById('segAdvanced');
+  const segIndicator = document.getElementById('segIndicator');
+  const quickView = document.getElementById('quickView');
+  const advancedView = document.getElementById('advancedView');
+
+  let currentView = 'quick';
+
+  function switchView(target) {
+    if (target === currentView) return;
+    currentView = target;
+
+    segQuick.classList.toggle('active', target === 'quick');
+    segAdvanced.classList.toggle('active', target === 'advanced');
+    segIndicator.classList.toggle('advanced', target === 'advanced');
+
+    const outgoing = target === 'quick' ? advancedView : quickView;
+    const incoming = target === 'quick' ? quickView : advancedView;
+
+    outgoing.style.opacity = '0';
+    outgoing.style.transform = 'translateY(6px)';
+    outgoing.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+
+    setTimeout(() => {
+      outgoing.classList.add('hidden');
+      outgoing.style.opacity = '';
+      outgoing.style.transform = '';
+      outgoing.style.transition = '';
+
+      incoming.classList.remove('hidden');
+      incoming.classList.add('entering');
+
+      if (target === 'quick') {
+        incoming.classList.remove('stagger-in');
+        void incoming.offsetWidth;
+        incoming.classList.add('stagger-in');
+      }
+
+      if (target === 'advanced') {
+        syncQuickToAdvanced();
+      }
+
+      setTimeout(() => {
+        incoming.classList.remove('entering');
+      }, 400);
+    }, 220);
+  }
+
+  segQuick.addEventListener('click', () => switchView('quick'));
+  segAdvanced.addEventListener('click', () => switchView('advanced'));
+
+  // ══════════════════════════════════════════════════
+  // Quick View: AI Model cards
+  // ══════════════════════════════════════════════════
+  const modelGroup = document.getElementById('modelGroup');
+  const modelCards = modelGroup.querySelectorAll('.q-model-card');
+  modelCards.forEach(card => {
+    card.addEventListener('click', () => {
+      modelCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Rounds stepper
+  // ══════════════════════════════════════════════════
+  let roundsValue = 5;
+  const roundsNum = document.getElementById('roundsNum');
+  const roundsMinus = document.getElementById('roundsMinus');
+  const roundsPlus = document.getElementById('roundsPlus');
+
+  function updateRounds(val) {
+    roundsValue = Math.max(1, Math.min(20, val));
+    roundsNum.textContent = roundsValue;
+    roundsNum.classList.add('bump');
+    setTimeout(() => roundsNum.classList.remove('bump'), 200);
+  }
+
+  roundsMinus.addEventListener('click', () => updateRounds(roundsValue - 1));
+  roundsPlus.addEventListener('click', () => updateRounds(roundsValue + 1));
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Difficulty pills
+  // ══════════════════════════════════════════════════
+  const diffGroup = document.getElementById('diffGroup');
+  const diffPills = diffGroup.querySelectorAll('.q-diff-pill');
+  diffPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      diffPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Audio master toggle
+  // ══════════════════════════════════════════════════
+  const audioMaster = document.getElementById('audioMaster');
+  const audioLabel = document.getElementById('audioLabel');
+  const audioIconEl = document.getElementById('audioIcon');
+
+  audioMaster.addEventListener('click', () => {
+    const isActive = audioMaster.classList.toggle('active');
+    audioLabel.textContent = isActive ? 'Audio On' : 'Audio Off';
+    audioIconEl.setAttribute('data-lucide', isActive ? 'volume-2' : 'volume-x');
+    lucide.createIcons();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Sync Quick → Advanced
+  // ══════════════════════════════════════════════════
+  function syncQuickToAdvanced() {
+    const activeModel = modelGroup.querySelector('.q-model-card.active');
+    if (activeModel) {
+      document.getElementById('advModel').value = activeModel.dataset.model;
+    }
+
+    const advRoundsSlider = document.getElementById('advRoundsSlider');
+    advRoundsSlider.value = roundsValue;
+    updateSliderDisplay(advRoundsSlider);
+
+    const activeDiff = diffGroup.querySelector('.q-diff-pill.active');
+    if (activeDiff) {
+      const answerSlider = document.getElementById('advAnswerSlider');
+      const nobuzzSlider = document.getElementById('advNobuzzSlider');
+      const bonusSlider = document.getElementById('advBonusSlider');
+
+      answerSlider.value = activeDiff.dataset.answer;
+      nobuzzSlider.value = activeDiff.dataset.nobuzz;
+      bonusSlider.value = activeDiff.dataset.bonus;
+
+      updateSliderDisplay(answerSlider);
+      updateSliderDisplay(nobuzzSlider);
+      updateSliderDisplay(bonusSlider);
+    }
+
+    const isAudioOn = audioMaster.classList.contains('active');
+    advancedView.querySelectorAll('.adv-toggle-item').forEach(t => {
+      t.classList.toggle('active', isAudioOn);
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // Advanced View: Range sliders
+  // ══════════════════════════════════════════════════
+  function updateSliderDisplay(slider) {
+    const suffix = slider.dataset.suffix || '';
+    const hintEl = document.getElementById(slider.dataset.display);
+    const valEl = slider.id ? document.getElementById(slider.id.replace('Slider', 'Val')) : null;
+    const display = slider.value + suffix;
+
+    if (hintEl) hintEl.textContent = display;
+    if (valEl) valEl.textContent = display;
+
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    const pct = ((parseFloat(slider.value) - min) / (max - min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+  }
+
+  document.querySelectorAll('.adv-range-slider').forEach(slider => {
+    slider.addEventListener('input', () => updateSliderDisplay(slider));
+    updateSliderDisplay(slider);
+  });
+
+  // ══════════════════════════════════════════════════
+  // Advanced View: Pill groups
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.adv-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        if (group.dataset.pillGroup === 'end-mode') {
+          const isTimer = pill.dataset.value === 'timer';
+          const timerField = document.getElementById('advTimerMinutes');
+          const expiryField = document.getElementById('advTimerExpiry');
+          if (timerField) timerField.classList.toggle('visible', isTimer);
+          if (expiryField) expiryField.classList.toggle('visible', isTimer);
+        }
+      });
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Advanced View: Audio toggles
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-toggle-item').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Accordion sections
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('[data-accordion]').forEach(accordion => {
+    const header = accordion.querySelector('.accordion-header');
+    header.addEventListener('click', () => {
+      accordion.classList.toggle('open');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Start button
+  // ══════════════════════════════════════════════════
+  const startBtn = document.getElementById('startBtn');
+  startBtn.addEventListener('click', () => {
+    startBtn.style.transform = 'scale(0.96)';
+    setTimeout(() => { startBtn.style.transform = ''; }, 150);
+  });
+
+  // ══════════════════════════════════════════════════
+  // Three.js wireframe octahedrons
+  // ══════════════════════════════════════════════════
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

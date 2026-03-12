@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Sunset Fiesta</title>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Quicksand', sans-serif;
+    background: #1a0f1e;
+    color: #fef3c7;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated warm gradient bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 600px 600px at 20% 30%, rgba(255,107,107,0.06), transparent),
+      radial-gradient(ellipse 500px 500px at 80% 70%, rgba(245,158,11,0.05), transparent),
+      radial-gradient(ellipse 400px 400px at 50% 50%, rgba(236,72,153,0.04), transparent),
+      radial-gradient(ellipse 300px 300px at 70% 20%, rgba(251,146,60,0.05), transparent);
+    animation: bgShift 20s ease-in-out infinite alternate;
+    z-index: 0;
+  }
+  @keyframes bgShift {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-30px, 20px) scale(1.05); }
+    100% { transform: translate(20px, -15px) scale(1); }
+  }
+
+  /* Floating diamond shapes */
+  .diamond {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: rgba(245,158,11,0.12);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    animation: floatDiamond 12s ease-in-out infinite;
+    z-index: 0;
+  }
+  .diamond:nth-child(1) { top: 15%; left: 10%; animation-delay: 0s; animation-duration: 14s; width: 12px; height: 12px; background: rgba(255,107,107,0.1); }
+  .diamond:nth-child(2) { top: 60%; left: 85%; animation-delay: -3s; animation-duration: 16s; width: 8px; height: 8px; background: rgba(236,72,153,0.1); }
+  .diamond:nth-child(3) { top: 80%; left: 30%; animation-delay: -7s; animation-duration: 13s; background: rgba(251,146,60,0.1); }
+  .diamond:nth-child(4) { top: 25%; left: 70%; animation-delay: -5s; width: 14px; height: 14px; background: rgba(245,158,11,0.08); }
+  .diamond:nth-child(5) { top: 45%; left: 50%; animation-delay: -9s; animation-duration: 18s; width: 6px; height: 6px; background: rgba(255,107,107,0.08); }
+  @keyframes floatDiamond {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+    50% { transform: translateY(-40px) rotate(45deg); opacity: 1; }
+  }
+
+  /* Theme label */
+  .theme-label {
+    position: fixed; top: 16px; right: 20px;
+    font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 0.75rem;
+    background: rgba(245,158,11,0.2); color: #f59e0b;
+    padding: 4px 14px; border-radius: 20px;
+    border: 1px solid rgba(245,158,11,0.3);
+    z-index: 100; letter-spacing: 0.5px;
+  }
+
+  /* Lobby grid */
+  .lobby {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 100px; padding: 44px 80px;
+    min-height: 100vh; align-items: center;
+  }
+  .left-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+  .right-tower { display: flex; flex-direction: column; gap: 28px; align-items: flex-end; }
+
+  /* Warm glass panel */
+  .warm-panel {
+    background: rgba(40,20,30,0.6);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 18px;
+    padding: 24px 28px;
+  }
+
+  /* Logo */
+  .logo {
+    font-family: 'Lilita One', sans-serif;
+    font-size: 3.2rem; line-height: 1;
+    color: #ff6b6b;
+    position: relative;
+    animation: floatUp 0.8s ease-out both;
+  }
+  .logo span { color: #f59e0b; }
+  .logo .star {
+    font-family: serif;
+    color: #f59e0b;
+    font-size: 1.4rem;
+    display: inline-block;
+    margin-left: 4px;
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  .logo .star-before {
+    position: absolute; left: -28px; top: 4px;
+    font-size: 1rem; color: #fb923c;
+    animation: twinkle 2.5s ease-in-out infinite 0.5s;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* Code block */
+  .code-block {
+    animation: floatUp 0.8s ease-out 0.1s both;
+  }
+  .code-label {
+    font-size: 0.85rem; font-weight: 600;
+    color: #9d7a6a; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .code-label i { width: 16px; height: 16px; }
+  .code-row {
+    display: flex; gap: 12px; margin-bottom: 12px;
+    position: relative;
+  }
+  .code-row::after {
+    content: '';
+    position: absolute; inset: -4px;
+    background: linear-gradient(90deg, rgba(255,107,107,0.08), rgba(245,158,11,0.08), rgba(255,107,107,0.08));
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+    border-radius: 18px; z-index: -1;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .code-ch {
+    font-family: 'Lilita One', sans-serif;
+    font-size: 5.5rem; line-height: 1;
+    width: 90px; height: 100px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(40,20,30,0.7);
+    border: 2px solid rgba(245,158,11,0.15);
+    border-radius: 14px;
+  }
+  .code-ch:nth-child(odd) { color: #ff6b6b; }
+  .code-ch:nth-child(even) { color: #f59e0b; }
+  .join-url {
+    font-size: 0.95rem; color: #9d7a6a; font-weight: 500;
+  }
+  .join-url b { color: #fef3c7; font-weight: 700; }
+
+  /* Settings tags — papel picado style */
+  .settings-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    animation: floatUp 0.8s ease-out 0.2s both;
+  }
+  .s-tag {
+    font-size: 0.85rem; font-weight: 600;
+    padding: 8px 16px 12px;
+    border-radius: 10px 10px 0 0;
+    position: relative;
+    animation: sway 4s ease-in-out infinite;
+  }
+  .s-tag::after {
+    content: '';
+    position: absolute; bottom: -8px; left: 0; right: 0; height: 8px;
+    background: inherit;
+    clip-path: polygon(0% 0%, 10% 100%, 20% 0%, 30% 100%, 40% 0%, 50% 100%, 60% 0%, 70% 100%, 80% 0%, 90% 100%, 100% 0%);
+  }
+  .s-tag:nth-child(1) { background: rgba(255,107,107,0.15); border: 1px solid rgba(255,107,107,0.25); border-bottom: none; animation-delay: 0s; }
+  .s-tag:nth-child(1)::after { background: rgba(255,107,107,0.15); }
+  .s-tag:nth-child(2) { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.25); border-bottom: none; animation-delay: 0.3s; }
+  .s-tag:nth-child(2)::after { background: rgba(245,158,11,0.15); }
+  .s-tag:nth-child(3) { background: rgba(236,72,153,0.15); border: 1px solid rgba(236,72,153,0.25); border-bottom: none; animation-delay: 0.6s; }
+  .s-tag:nth-child(3)::after { background: rgba(236,72,153,0.15); }
+  .s-tag:nth-child(4) { background: rgba(251,146,60,0.15); border: 1px solid rgba(251,146,60,0.25); border-bottom: none; animation-delay: 0.9s; }
+  .s-tag:nth-child(4)::after { background: rgba(251,146,60,0.15); }
+  .s-tag .dim { color: #9d7a6a; font-weight: 500; }
+  .s-tag .dim i { width: 13px; height: 13px; vertical-align: -2px; }
+  @keyframes sway {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(1.2deg); }
+    75% { transform: rotate(-1.2deg); }
+  }
+
+  /* QR block */
+  .qr-block {
+    text-align: right;
+    animation: floatUp 0.8s ease-out 0.15s both;
+  }
+  .scan-text {
+    font-size: 0.85rem; color: #9d7a6a; font-weight: 600;
+    margin-bottom: 10px; line-height: 1.4;
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .scan-text i { width: 16px; height: 16px; }
+  .qr {
+    width: 180px; height: 180px;
+    background: #fef3c7;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Lilita One', sans-serif;
+    font-size: 1rem; color: #1a0f1e;
+    margin-left: auto;
+    border: 3px solid rgba(245,158,11,0.3);
+  }
+
+  /* Players block */
+  .players-block {
+    animation: floatUp 0.8s ease-out 0.25s both;
+  }
+  .players-label {
+    font-size: 0.85rem; font-weight: 700;
+    color: #9d7a6a; margin-bottom: 12px;
+    text-align: right; text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+  }
+  .players-label i { width: 16px; height: 16px; }
+  .player-list { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .player {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.05rem; font-weight: 600;
+    padding: 8px 18px;
+    background: rgba(40,20,30,0.5);
+    border-radius: 30px;
+    border: 1px solid rgba(245,158,11,0.12);
+    backdrop-filter: blur(6px);
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+  }
+  .player:nth-child(1) .dot { background: #ff6b6b; }
+  .player:nth-child(2) .dot { background: #f59e0b; }
+  .player:nth-child(3) .dot { background: #ec4899; }
+  .player:nth-child(4) .dot { background: #fb923c; }
+  .player:nth-child(5) .dot { background: #ff6b6b; }
+  .vip {
+    font-size: 0.7rem; font-weight: 700;
+    color: #f59e0b; text-transform: uppercase;
+    background: rgba(245,158,11,0.15);
+    padding: 2px 10px; border-radius: 12px;
+    display: flex; align-items: center; gap: 4px;
+    letter-spacing: 0.5px;
+  }
+  .vip i { width: 12px; height: 12px; }
+
+  /* Status */
+  .status {
+    font-size: 1rem; font-weight: 600;
+    color: #9d7a6a; text-align: right;
+    animation: floatUp 0.8s ease-out 0.35s both;
+  }
+
+  /* Float up entrance */
+  @keyframes floatUp {
+    from { opacity: 0; transform: translateY(25px) rotate(-1deg); }
+    to { opacity: 1; transform: translateY(0) rotate(0deg); }
+  }
+</style>
+</head>
+<body>
+  <div class="diamond"></div>
+  <div class="diamond"></div>
+  <div class="diamond"></div>
+  <div class="diamond"></div>
+  <div class="diamond"></div>
+  <div class="theme-label">Sunset Fiesta</div>
+
+  <div class="lobby">
+    <div class="left-tower">
+      <div class="logo">
+        <span class="star-before">&#10022;</span>
+        Buzzer<span>Minds</span><span class="star">&#10022;</span>
+      </div>
+      <div class="code-block warm-panel">
+        <div class="code-label"><i data-lucide="hash" style="width:16px;height:16px"></i> Room Code</div>
+        <div class="code-row">
+          <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+          <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+        </div>
+        <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+      </div>
+      <div class="settings-row">
+        <div class="s-tag"><span class="dim"><i data-lucide="sparkles"></i> Topic:</span> Science</div>
+        <div class="s-tag"><span class="dim"><i data-lucide="sliders-horizontal"></i> Diff:</span> Medium</div>
+        <div class="s-tag"><span class="dim"><i data-lucide="list-ordered"></i> Qs:</span> 10</div>
+        <div class="s-tag"><span class="dim"><i data-lucide="timer"></i> Time:</span> 30s</div>
+      </div>
+    </div>
+
+    <div class="right-tower">
+      <div class="qr-block">
+        <div class="scan-text"><i data-lucide="scan-line" style="width:16px;height:16px"></i> Scan to<br>join instantly</div>
+        <div class="qr">QR CODE</div>
+      </div>
+      <div class="players-block">
+        <div class="players-label"><i data-lucide="users" style="width:16px;height:16px"></i> Players (5 joined)</div>
+        <div class="player-list">
+          <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+          <div class="player"><span class="dot"></span> BrainiacBee</div>
+          <div class="player"><span class="dot"></span> QuizWhiz42</div>
+          <div class="player"><span class="dot"></span> TriviaKing</div>
+          <div class="player"><span class="dot"></span> NerdHerd99</div>
+        </div>
+      </div>
+      <div class="status"><i data-lucide="party-popper" style="width:16px;height:16px;vertical-align:-3px"></i> Waiting for VIP to start...</div>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — 10 Quick / Advanced</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7; --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Settings card ── */
+  .settings-card {
+    width: 100%; max-width: 440px;
+    position: relative;
+    margin: 16px 0;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Card frame ── */
+  .card-frame {
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .card-inner {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+  }
+
+  /* ── Top strip ── */
+  .card-strip {
+    padding: 12px 16px;
+    background: rgba(245,158,11,0.06);
+    border-bottom: 1px solid rgba(245,158,11,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-strip-left {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--amber);
+  }
+  .card-strip-left i { width: 13px; height: 13px; }
+  .card-strip-right { display: flex; gap: 5px; }
+  .strip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* ── Header ── */
+  .card-header {
+    padding: 22px 20px 14px; text-align: center;
+  }
+  .card-pre {
+    font-family: var(--font-display); font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .card-title {
+    font-family: var(--font-display); font-weight: 900; font-size: 1.5rem;
+    letter-spacing: -0.02em; line-height: 1.1;
+    color: var(--text-bright);
+  }
+  .card-title .amber { color: var(--amber); }
+  .card-desc {
+    margin-top: 10px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.5;
+  }
+
+  /* ── Ornament divider ── */
+  .ornament {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 20px;
+  }
+  .ornament-line { flex: 1; height: 1px; background: rgba(245,158,11,0.12); }
+  .ornament-diamond {
+    width: 7px; height: 7px; background: var(--amber);
+    transform: rotate(45deg); border-radius: 1px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     SEGMENTED CONTROL
+     ══════════════════════════════════════════════════ */
+  .segmented-control {
+    margin: 6px 20px 2px;
+    position: relative;
+    background: rgba(30,30,30,0.8);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    padding: 4px;
+    gap: 4px;
+  }
+  .seg-indicator {
+    position: absolute; top: 4px; left: 4px;
+    width: calc(50% - 6px);
+    height: calc(100% - 8px);
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 9px;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 1;
+  }
+  .seg-indicator.advanced {
+    transform: translateX(calc(100% + 4px));
+  }
+  .seg-btn {
+    flex: 1; position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 0;
+    border: none; background: none; outline: none;
+    font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer; transition: color 0.25s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .seg-btn i { width: 15px; height: 15px; }
+  .seg-btn.active { color: var(--amber); }
+
+  /* ══════════════════════════════════════════════════
+     VIEW CONTAINER — cross-fade
+     ══════════════════════════════════════════════════ */
+  .view-container {
+    position: relative;
+    overflow: hidden;
+  }
+  .view-panel {
+    padding: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .view-panel.hidden {
+    display: none;
+  }
+  .view-panel.entering {
+    animation: viewEnter 0.35s ease forwards;
+  }
+  @keyframes viewEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ══════════════════════════════════════════════════
+     QUICK VIEW
+     ══════════════════════════════════════════════════ */
+  .quick-view {
+    padding: 14px 20px 10px;
+  }
+
+  /* ── Quick section label ── */
+  .q-section-label {
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .q-section-label i { width: 13px; height: 13px; color: var(--amber); }
+
+  /* ── AI Model cards ── */
+  .q-model-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 22px;
+  }
+  .q-model-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 18px 8px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .q-model-card:hover { transform: translateY(-2px); }
+  .q-model-card:active { transform: scale(0.96); }
+  .q-model-card .model-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 0.65rem;
+    letter-spacing: 0.04em;
+    transition: all 0.25s;
+  }
+  .q-model-card .model-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    transition: color 0.25s;
+  }
+  .q-model-card .model-sub {
+    font-size: 0.62rem; color: var(--text-dim); font-weight: 500;
+    transition: color 0.25s;
+  }
+
+  /* Check badge */
+  .q-model-card .check-badge {
+    position: absolute; top: 8px; right: 8px;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(0);
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .q-model-card .check-badge i { width: 11px; height: 11px; }
+  .q-model-card.active .check-badge {
+    opacity: 1; transform: scale(1);
+  }
+
+  /* GPT-4o — sage */
+  .q-model-card[data-model="gpt4o"] .model-icon { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .q-model-card[data-model="gpt4o"].active {
+    border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06);
+  }
+  .q-model-card[data-model="gpt4o"].active .model-name { color: var(--sage); }
+  .q-model-card[data-model="gpt4o"] .check-badge { background: rgba(74,222,128,0.15); color: var(--sage); }
+
+  /* Claude — sky */
+  .q-model-card[data-model="claude"] .model-icon { background: rgba(56,189,248,0.12); color: var(--sky); }
+  .q-model-card[data-model="claude"].active {
+    border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.06);
+  }
+  .q-model-card[data-model="claude"].active .model-name { color: var(--sky); }
+  .q-model-card[data-model="claude"] .check-badge { background: rgba(56,189,248,0.15); color: var(--sky); }
+
+  /* Gemini — amber */
+  .q-model-card[data-model="gemini"] .model-icon { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .q-model-card[data-model="gemini"].active {
+    border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06);
+  }
+  .q-model-card[data-model="gemini"].active .model-name { color: var(--amber); }
+  .q-model-card[data-model="gemini"] .check-badge { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+  /* ── Rounds stepper ── */
+  .q-rounds {
+    margin-bottom: 22px;
+  }
+  .q-stepper {
+    display: flex; align-items: center; gap: 0;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .q-stepper-btn {
+    width: 60px; height: 60px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none; outline: none;
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-stepper-btn i { width: 22px; height: 22px; }
+  .q-stepper-btn:hover { color: var(--amber); background: rgba(245,158,11,0.06); }
+  .q-stepper-btn:active { transform: scale(0.9); }
+  .q-stepper-display {
+    flex: 1; text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 0;
+  }
+  .q-stepper-num {
+    font-family: var(--font-display); font-weight: 900; font-size: 2rem;
+    color: var(--amber); line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .q-stepper-num.bump { transform: scale(1.15); }
+  .q-stepper-unit {
+    font-size: 0.62rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .q-stepper-sep {
+    width: 1px; height: 28px; background: var(--border);
+  }
+
+  /* ── Difficulty pills ── */
+  .q-difficulty {
+    margin-bottom: 22px;
+  }
+  .q-diff-pills {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .q-diff-pill {
+    padding: 14px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-diff-pill:hover { transform: translateY(-1px); }
+  .q-diff-pill:active { transform: scale(0.96); }
+  .q-diff-pill .diff-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  .q-diff-pill .diff-icon i { width: 16px; height: 16px; }
+  .q-diff-pill .diff-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    transition: color 0.25s;
+  }
+  .q-diff-pill .diff-sub {
+    font-size: 0.58rem; color: var(--text-dim); font-weight: 500;
+    text-align: center; line-height: 1.3;
+  }
+
+  /* Easy — sage */
+  .q-diff-pill[data-diff="easy"] .diff-icon { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .q-diff-pill[data-diff="easy"].active {
+    border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06);
+  }
+  .q-diff-pill[data-diff="easy"].active .diff-name { color: var(--sage); }
+
+  /* Normal — amber */
+  .q-diff-pill[data-diff="normal"] .diff-icon { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .q-diff-pill[data-diff="normal"].active {
+    border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06);
+  }
+  .q-diff-pill[data-diff="normal"].active .diff-name { color: var(--amber); }
+
+  /* Hard — rose */
+  .q-diff-pill[data-diff="hard"] .diff-icon { background: rgba(251,113,133,0.12); color: var(--rose); }
+  .q-diff-pill[data-diff="hard"].active {
+    border-color: rgba(251,113,133,0.3); background: rgba(251,113,133,0.06);
+  }
+  .q-diff-pill[data-diff="hard"].active .diff-name { color: var(--rose); }
+
+  /* ── Audio toggle ── */
+  .q-audio {
+    margin-bottom: 10px;
+  }
+  .q-audio-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-audio-toggle:hover { border-color: rgba(255,255,255,0.1); }
+  .q-audio-toggle.active {
+    border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.04);
+  }
+  .q-audio-left {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .q-audio-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(245,158,11,0.1);
+    transition: all 0.25s;
+  }
+  .q-audio-icon i { width: 18px; height: 18px; color: var(--amber); transition: color 0.25s; }
+  .q-audio-toggle:not(.active) .q-audio-icon {
+    background: rgba(255,255,255,0.05);
+  }
+  .q-audio-toggle:not(.active) .q-audio-icon i { color: var(--text-dim); }
+  .q-audio-text {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .q-audio-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+    transition: color 0.25s;
+  }
+  .q-audio-toggle:not(.active) .q-audio-title { color: var(--text-dim); }
+  .q-audio-sub {
+    font-size: 0.65rem; color: var(--text-dim);
+  }
+  /* Switch */
+  .q-switch {
+    width: 46px; height: 26px; border-radius: 13px;
+    background: rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .q-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+  }
+  .q-audio-toggle.active .q-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .q-audio-toggle.active .q-switch::after {
+    transform: translateX(20px);
+    background: var(--amber);
+  }
+
+  /* ══════════════════════════════════════════════════
+     ADVANCED VIEW
+     ══════════════════════════════════════════════════ */
+  .advanced-view {
+    padding: 8px 20px 10px;
+  }
+
+  /* ── Section headers in advanced ── */
+  .adv-section-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 0 8px;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+  }
+  .adv-section-header i { width: 13px; height: 13px; color: var(--amber); }
+
+  .adv-section { margin-bottom: 6px; }
+
+  /* ── Field rows ── */
+  .adv-field { margin-bottom: 12px; }
+  .adv-field:last-child { margin-bottom: 4px; }
+
+  .adv-field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.04em; margin-bottom: 6px;
+  }
+  .adv-field-label i { width: 12px; height: 12px; color: var(--amber); }
+  .adv-field-label .adv-hint {
+    margin-left: auto; font-weight: 400; font-size: 0.6rem; color: rgba(115,115,115,0.7);
+  }
+
+  /* ── Select ── */
+  .adv-select-wrap {
+    position: relative;
+  }
+  .adv-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .adv-select {
+    width: 100%; padding: 11px 36px 11px 14px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .adv-select:focus { border-color: rgba(245,158,11,0.4); }
+  .adv-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* ── Range slider ── */
+  .adv-range-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .adv-range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    outline: none; cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .adv-range-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .adv-range-slider::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+  .adv-range-slider::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+  .adv-range-value {
+    min-width: 36px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 4px 8px;
+  }
+
+  /* ── Pill groups ── */
+  .adv-pill-group {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .adv-pill {
+    flex: 1; min-width: 0;
+    padding: 9px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font-body); font-size: 0.76rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .adv-pill:hover { border-color: rgba(245,158,11,0.2); color: var(--text-bright); }
+  .adv-pill.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber); font-weight: 600;
+  }
+
+  /* ── Toggle rows ── */
+  .adv-toggles {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .adv-toggle-item {
+    flex: 1; min-width: 85px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 13px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .adv-toggle-item:hover { border-color: rgba(255,255,255,0.1); }
+  .adv-toggle-item.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .adv-toggle-item i {
+    width: 18px; height: 18px; color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .adv-toggle-item.active i { color: var(--amber); }
+  .adv-toggle-label {
+    font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .adv-toggle-item.active .adv-toggle-label { color: var(--text-bright); }
+  .adv-toggle-switch {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    transition: background 0.25s;
+  }
+  .adv-toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .adv-toggle-item.active .adv-toggle-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .adv-toggle-item.active .adv-toggle-switch::after {
+    transform: translateX(16px);
+    background: var(--amber);
+  }
+
+  /* ── Thin divider ── */
+  .adv-divider {
+    height: 1px; background: var(--border);
+    margin: 10px 0;
+  }
+
+  /* ══════════════════════════════════════════════════
+     START BUTTON
+     ══════════════════════════════════════════════════ */
+  .cta-area {
+    padding: 14px 20px 20px;
+  }
+  .start-btn {
+    width: 100%; padding: 16px 0;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--amber);
+    border: none; border-radius: 14px;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    letter-spacing: 0.02em; color: #141414;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative; overflow: hidden;
+  }
+  .start-btn i { width: 20px; height: 20px; }
+  .start-btn:hover { opacity: 0.92; }
+  .start-btn:active { transform: scale(0.97); }
+
+  /* ── Hint text ── */
+  .mode-hint {
+    text-align: center;
+    padding: 4px 20px 6px;
+    font-size: 0.62rem; color: rgba(115,115,115,0.6);
+    line-height: 1.5;
+  }
+
+  /* ── Stagger children animation ── */
+  .stagger-in > * {
+    animation: staggerFade 0.4s ease forwards;
+    opacity: 0;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.04s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.16s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.20s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.24s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.28s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.32s; }
+
+  @keyframes staggerFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Range fill styling ── */
+  .adv-range-slider {
+    background: linear-gradient(to right, var(--amber) 0%, var(--amber) var(--fill, 50%), rgba(255,255,255,0.08) var(--fill, 50%), rgba(255,255,255,0.08) 100%);
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">10 — Quick / Advanced</div>
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+  <div class="settings-card">
+    <div class="card-frame">
+      <div class="card-inner">
+
+        <!-- ── Strip ── -->
+        <div class="card-strip">
+          <div class="card-strip-left">
+            <i data-lucide="crown"></i>
+            VIP Controls
+          </div>
+          <div class="card-strip-right">
+            <div class="strip-dot" style="background: var(--sage);"></div>
+            <div class="strip-dot" style="background: var(--amber);"></div>
+            <div class="strip-dot" style="background: var(--rose);"></div>
+          </div>
+        </div>
+
+        <!-- ── Header ── -->
+        <div class="card-header">
+          <div class="card-pre">Game Configuration</div>
+          <h1 class="card-title">Match <span class="amber">Settings</span></h1>
+          <p class="card-desc">Set up your trivia match — quick or detailed</p>
+        </div>
+
+        <div class="ornament">
+          <div class="ornament-line"></div>
+          <div class="ornament-diamond"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <!-- ══ Segmented Control ══ -->
+        <div class="segmented-control" id="seg-control">
+          <div class="seg-indicator" id="seg-indicator"></div>
+          <button class="seg-btn active" data-view="quick" id="seg-quick">
+            <i data-lucide="zap"></i>
+            Quick
+          </button>
+          <button class="seg-btn" data-view="advanced" id="seg-advanced">
+            <i data-lucide="sliders-horizontal"></i>
+            Advanced
+          </button>
+        </div>
+
+        <!-- ══ View Container ══ -->
+        <div class="view-container">
+
+          <!-- ── QUICK VIEW ── -->
+          <div class="view-panel quick-view stagger-in" id="quick-view">
+
+            <!-- AI Model -->
+            <div class="q-section-label"><i data-lucide="sparkles"></i> AI Model</div>
+            <div class="q-model-row" id="model-group">
+              <div class="q-model-card active" data-model="gpt4o">
+                <div class="check-badge"><i data-lucide="check"></i></div>
+                <div class="model-icon">GPT</div>
+                <div class="model-name">GPT-4o</div>
+                <div class="model-sub">OpenAI</div>
+              </div>
+              <div class="q-model-card" data-model="claude">
+                <div class="check-badge"><i data-lucide="check"></i></div>
+                <div class="model-icon">CL</div>
+                <div class="model-name">Claude</div>
+                <div class="model-sub">Anthropic</div>
+              </div>
+              <div class="q-model-card" data-model="gemini">
+                <div class="check-badge"><i data-lucide="check"></i></div>
+                <div class="model-icon">GE</div>
+                <div class="model-name">Gemini</div>
+                <div class="model-sub">Google</div>
+              </div>
+            </div>
+
+            <!-- Rounds -->
+            <div class="q-rounds">
+              <div class="q-section-label"><i data-lucide="repeat"></i> Rounds</div>
+              <div class="q-stepper">
+                <button class="q-stepper-btn" id="rounds-minus"><i data-lucide="minus"></i></button>
+                <div class="q-stepper-sep"></div>
+                <div class="q-stepper-display">
+                  <div class="q-stepper-num" id="rounds-num">5</div>
+                  <div class="q-stepper-unit">Rounds</div>
+                </div>
+                <div class="q-stepper-sep"></div>
+                <button class="q-stepper-btn" id="rounds-plus"><i data-lucide="plus"></i></button>
+              </div>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="q-difficulty">
+              <div class="q-section-label"><i data-lucide="gauge"></i> Difficulty</div>
+              <div class="q-diff-pills" id="diff-group">
+                <div class="q-diff-pill" data-diff="easy" data-answer="90" data-nobuzz="5" data-bonus="40">
+                  <div class="diff-icon"><i data-lucide="smile"></i></div>
+                  <div class="diff-name">Easy</div>
+                  <div class="diff-sub">90s answer<br>Relaxed pace</div>
+                </div>
+                <div class="q-diff-pill active" data-diff="normal" data-answer="45" data-nobuzz="3" data-bonus="20">
+                  <div class="diff-icon"><i data-lucide="target"></i></div>
+                  <div class="diff-name">Normal</div>
+                  <div class="diff-sub">45s answer<br>Balanced</div>
+                </div>
+                <div class="q-diff-pill" data-diff="hard" data-answer="20" data-nobuzz="1" data-bonus="15">
+                  <div class="diff-icon"><i data-lucide="flame"></i></div>
+                  <div class="diff-name">Hard</div>
+                  <div class="diff-sub">20s answer<br>Fast & intense</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Audio -->
+            <div class="q-audio">
+              <div class="q-section-label"><i data-lucide="volume-2"></i> Audio</div>
+              <div class="q-audio-toggle active" id="audio-master">
+                <div class="q-audio-left">
+                  <div class="q-audio-icon"><i data-lucide="volume-2" id="audio-icon"></i></div>
+                  <div class="q-audio-text">
+                    <div class="q-audio-title" id="audio-label">Audio On</div>
+                    <div class="q-audio-sub">Narration, SFX &amp; Music</div>
+                  </div>
+                </div>
+                <div class="q-switch"></div>
+              </div>
+            </div>
+
+          </div><!-- /quick-view -->
+
+          <!-- ── ADVANCED VIEW ── -->
+          <div class="view-panel advanced-view hidden" id="advanced-view">
+
+            <!-- Game section -->
+            <div class="adv-section">
+              <div class="adv-section-header"><i data-lucide="gamepad-2"></i> Game</div>
+
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="sparkles"></i> Model Preset</div>
+                <div class="adv-select-wrap">
+                  <select class="adv-select" id="adv-model">
+                    <option value="gpt4o" selected>GPT-4o (OpenAI)</option>
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="gemini">Gemini (Google)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="book-open"></i> Topic Pool</div>
+                <div class="adv-select-wrap">
+                  <select class="adv-select">
+                    <option>General Knowledge</option>
+                    <option>Science & Nature</option>
+                    <option>History & Geography</option>
+                    <option>Pop Culture</option>
+                    <option>Technology</option>
+                    <option>Mixed — All Topics</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="repeat"></i> Rounds
+                  <span class="adv-hint" id="adv-rounds-hint">5</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="1" max="20" value="5" data-display="adv-rounds-hint" id="adv-rounds-slider">
+                  <div class="adv-range-value" id="adv-rounds-val">5</div>
+                </div>
+              </div>
+
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="eye"></i> Reveal Mode</div>
+                <div class="adv-pill-group" data-pill-group="reveal-mode">
+                  <div class="adv-pill active" data-value="after-each">After Each</div>
+                  <div class="adv-pill" data-value="end-of-round">End of Round</div>
+                </div>
+              </div>
+
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="flag"></i> End Mode</div>
+                <div class="adv-pill-group" data-pill-group="end-mode">
+                  <div class="adv-pill active" data-value="rounds">By Rounds</div>
+                  <div class="adv-pill" data-value="timer">By Timer</div>
+                </div>
+              </div>
+
+              <div class="adv-field" id="adv-timer-minutes" style="display: none; opacity: 0; transition: opacity 0.25s;">
+                <div class="adv-field-label">
+                  <i data-lucide="clock"></i> Timer Minutes
+                  <span class="adv-hint" id="adv-timer-hint">10</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="3" max="30" value="10" data-display="adv-timer-hint" id="adv-timer-slider">
+                  <div class="adv-range-value" id="adv-timer-val">10</div>
+                </div>
+              </div>
+
+              <div class="adv-field" id="adv-timer-expiry" style="display: none; opacity: 0; transition: opacity 0.25s;">
+                <div class="adv-field-label"><i data-lucide="alert-triangle"></i> Timer Expiry</div>
+                <div class="adv-pill-group" data-pill-group="timer-expiry">
+                  <div class="adv-pill active" data-value="finish-round">Finish Round</div>
+                  <div class="adv-pill" data-value="immediate">Immediate</div>
+                  <div class="adv-pill" data-value="sudden-death">Sudden Death</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="adv-divider"></div>
+
+            <!-- Timing section -->
+            <div class="adv-section">
+              <div class="adv-section-header"><i data-lucide="timer"></i> Timing</div>
+
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="hourglass"></i> Answer Time
+                  <span class="adv-hint" id="adv-answer-hint">45s</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="10" max="120" value="45" step="5" data-display="adv-answer-hint" data-suffix="s" id="adv-answer-slider">
+                  <div class="adv-range-value" id="adv-answer-val">45s</div>
+                </div>
+              </div>
+
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="shield-off"></i> No-Buzz Window
+                  <span class="adv-hint" id="adv-nobuzz-hint">3s</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="0" max="10" value="3" data-display="adv-nobuzz-hint" data-suffix="s" id="adv-nobuzz-slider">
+                  <div class="adv-range-value" id="adv-nobuzz-val">3s</div>
+                </div>
+              </div>
+
+              <div class="adv-field">
+                <div class="adv-field-label">
+                  <i data-lucide="trophy"></i> Bonus Time
+                  <span class="adv-hint" id="adv-bonus-hint">20s</span>
+                </div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="5" max="60" value="20" step="5" data-display="adv-bonus-hint" data-suffix="s" id="adv-bonus-slider">
+                  <div class="adv-range-value" id="adv-bonus-val">20s</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="adv-divider"></div>
+
+            <!-- Moderation section -->
+            <div class="adv-section">
+              <div class="adv-section-header"><i data-lucide="shield-check"></i> Moderation</div>
+
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="shield"></i> Moderation Mode</div>
+                <div class="adv-pill-group" data-pill-group="moderation">
+                  <div class="adv-pill" data-value="off">Off</div>
+                  <div class="adv-pill active" data-value="auto">Auto</div>
+                  <div class="adv-pill" data-value="strict">Strict</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="adv-divider"></div>
+
+            <!-- Audio section -->
+            <div class="adv-section">
+              <div class="adv-section-header"><i data-lucide="volume-2"></i> Audio</div>
+
+              <div class="adv-field">
+                <div class="adv-toggles">
+                  <div class="adv-toggle-item active" data-toggle="narration">
+                    <i data-lucide="mic"></i>
+                    <div class="adv-toggle-label">Narration</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                  <div class="adv-toggle-item active" data-toggle="sfx">
+                    <i data-lucide="bell-ring"></i>
+                    <div class="adv-toggle-label">SFX</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                  <div class="adv-toggle-item active" data-toggle="music">
+                    <i data-lucide="music"></i>
+                    <div class="adv-toggle-label">Music</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /advanced-view -->
+
+        </div><!-- /view-container -->
+
+        <div class="mode-hint" id="mode-hint">
+          <span id="hint-quick">4 settings, zero fuss — switch to Advanced for full control</span>
+          <span id="hint-advanced" style="display:none;">Full control over every setting — switch to Quick for simplicity</span>
+        </div>
+
+        <!-- ── CTA ── -->
+        <div class="cta-area">
+          <button class="start-btn" id="start-btn">
+            <i data-lucide="play"></i>
+            Start Match
+          </button>
+        </div>
+
+      </div><!-- /card-inner -->
+    </div><!-- /card-frame -->
+  </div><!-- /settings-card -->
+</div><!-- /page -->
+
+<script>
+  // ── Lucide ──
+  lucide.createIcons();
+
+  // ══════════════════════════════════════════════════
+  // Segmented control: Quick / Advanced toggle
+  // ══════════════════════════════════════════════════
+  const segQuick = document.getElementById('seg-quick');
+  const segAdvanced = document.getElementById('seg-advanced');
+  const segIndicator = document.getElementById('seg-indicator');
+  const quickView = document.getElementById('quick-view');
+  const advancedView = document.getElementById('advanced-view');
+  const hintQuick = document.getElementById('hint-quick');
+  const hintAdvanced = document.getElementById('hint-advanced');
+
+  let currentView = 'quick';
+
+  function switchView(target) {
+    if (target === currentView) return;
+    currentView = target;
+
+    // Update segmented buttons
+    segQuick.classList.toggle('active', target === 'quick');
+    segAdvanced.classList.toggle('active', target === 'advanced');
+
+    // Slide indicator
+    segIndicator.classList.toggle('advanced', target === 'advanced');
+
+    // Hints
+    hintQuick.style.display = target === 'quick' ? '' : 'none';
+    hintAdvanced.style.display = target === 'advanced' ? '' : 'none';
+
+    // Cross-fade views
+    const outgoing = target === 'quick' ? advancedView : quickView;
+    const incoming = target === 'quick' ? quickView : advancedView;
+
+    // Fade out outgoing
+    outgoing.style.opacity = '0';
+    outgoing.style.transform = 'translateY(6px)';
+    outgoing.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+
+    setTimeout(() => {
+      outgoing.classList.add('hidden');
+      outgoing.style.opacity = '';
+      outgoing.style.transform = '';
+      outgoing.style.transition = '';
+
+      incoming.classList.remove('hidden');
+      incoming.classList.add('entering');
+
+      // Re-trigger stagger animation for quick view
+      if (target === 'quick') {
+        incoming.classList.remove('stagger-in');
+        void incoming.offsetWidth;
+        incoming.classList.add('stagger-in');
+      }
+
+      // Sync values when switching to advanced from quick
+      if (target === 'advanced') {
+        syncQuickToAdvanced();
+      }
+
+      setTimeout(() => {
+        incoming.classList.remove('entering');
+      }, 400);
+    }, 220);
+  }
+
+  segQuick.addEventListener('click', () => switchView('quick'));
+  segAdvanced.addEventListener('click', () => switchView('advanced'));
+
+  // ══════════════════════════════════════════════════
+  // Quick View: AI Model cards
+  // ══════════════════════════════════════════════════
+  const modelGroup = document.getElementById('model-group');
+  const modelCards = modelGroup.querySelectorAll('.q-model-card');
+  modelCards.forEach(card => {
+    card.addEventListener('click', () => {
+      modelCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Rounds stepper
+  // ══════════════════════════════════════════════════
+  let roundsValue = 5;
+  const roundsNum = document.getElementById('rounds-num');
+  const roundsMinus = document.getElementById('rounds-minus');
+  const roundsPlus = document.getElementById('rounds-plus');
+
+  function updateRounds(val) {
+    roundsValue = Math.max(1, Math.min(20, val));
+    roundsNum.textContent = roundsValue;
+    // Bump animation
+    roundsNum.classList.add('bump');
+    setTimeout(() => roundsNum.classList.remove('bump'), 200);
+  }
+
+  roundsMinus.addEventListener('click', () => updateRounds(roundsValue - 1));
+  roundsPlus.addEventListener('click', () => updateRounds(roundsValue + 1));
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Difficulty pills
+  // ══════════════════════════════════════════════════
+  const diffGroup = document.getElementById('diff-group');
+  const diffPills = diffGroup.querySelectorAll('.q-diff-pill');
+  diffPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      diffPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Audio master toggle
+  // ══════════════════════════════════════════════════
+  const audioMaster = document.getElementById('audio-master');
+  const audioLabel = document.getElementById('audio-label');
+  const audioIconEl = document.getElementById('audio-icon');
+
+  audioMaster.addEventListener('click', () => {
+    const isActive = audioMaster.classList.toggle('active');
+    audioLabel.textContent = isActive ? 'Audio On' : 'Audio Off';
+    // Swap icon
+    audioIconEl.setAttribute('data-lucide', isActive ? 'volume-2' : 'volume-x');
+    lucide.createIcons();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Sync Quick → Advanced values
+  // ══════════════════════════════════════════════════
+  function syncQuickToAdvanced() {
+    // Model
+    const activeModel = modelGroup.querySelector('.q-model-card.active');
+    if (activeModel) {
+      const advModel = document.getElementById('adv-model');
+      advModel.value = activeModel.dataset.model;
+    }
+
+    // Rounds
+    const advRoundsSlider = document.getElementById('adv-rounds-slider');
+    advRoundsSlider.value = roundsValue;
+    updateSliderDisplay(advRoundsSlider);
+
+    // Difficulty → timing presets
+    const activeDiff = diffGroup.querySelector('.q-diff-pill.active');
+    if (activeDiff) {
+      const answerSlider = document.getElementById('adv-answer-slider');
+      const nobuzzSlider = document.getElementById('adv-nobuzz-slider');
+      const bonusSlider = document.getElementById('adv-bonus-slider');
+
+      answerSlider.value = activeDiff.dataset.answer;
+      nobuzzSlider.value = activeDiff.dataset.nobuzz;
+      bonusSlider.value = activeDiff.dataset.bonus;
+
+      updateSliderDisplay(answerSlider);
+      updateSliderDisplay(nobuzzSlider);
+      updateSliderDisplay(bonusSlider);
+    }
+
+    // Audio
+    const isAudioOn = audioMaster.classList.contains('active');
+    const audioToggles = advancedView.querySelectorAll('.adv-toggle-item');
+    audioToggles.forEach(t => {
+      t.classList.toggle('active', isAudioOn);
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // Advanced View: Range sliders
+  // ══════════════════════════════════════════════════
+  function updateSliderDisplay(slider) {
+    const suffix = slider.dataset.suffix || '';
+    const hintEl = document.getElementById(slider.dataset.display);
+    const valEl = slider.id ? document.getElementById(slider.id.replace('-slider', '-val')) : null;
+    const display = slider.value + suffix;
+
+    if (hintEl) hintEl.textContent = display;
+    if (valEl) valEl.textContent = display;
+
+    // Fill track
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    const pct = ((parseFloat(slider.value) - min) / (max - min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+  }
+
+  document.querySelectorAll('.adv-range-slider').forEach(slider => {
+    slider.addEventListener('input', () => updateSliderDisplay(slider));
+    updateSliderDisplay(slider); // init
+  });
+
+  // ══════════════════════════════════════════════════
+  // Advanced View: Pill groups
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.adv-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        // Show/hide timer fields based on end mode
+        if (group.dataset.pillGroup === 'end-mode') {
+          const isTimer = pill.dataset.value === 'timer';
+          const timerField = document.getElementById('adv-timer-minutes');
+          const expiryField = document.getElementById('adv-timer-expiry');
+          if (timerField) {
+            timerField.style.display = isTimer ? '' : 'none';
+            timerField.style.opacity = isTimer ? '1' : '0';
+          }
+          if (expiryField) {
+            expiryField.style.display = isTimer ? '' : 'none';
+            expiryField.style.opacity = isTimer ? '1' : '0';
+          }
+        }
+      });
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Advanced View: Audio toggles
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-toggle-item').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Start button ripple
+  // ══════════════════════════════════════════════════
+  const startBtn = document.getElementById('start-btn');
+  startBtn.addEventListener('click', () => {
+    startBtn.style.transform = 'scale(0.96)';
+    setTimeout(() => { startBtn.style.transform = ''; }, 150);
+  });
+
+  // ══════════════════════════════════════════════════
+  // Three.js wireframe octahedrons
+  // ══════════════════════════════════════════════════
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

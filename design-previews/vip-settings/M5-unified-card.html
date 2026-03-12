@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — M5 Unified Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(245,158,11,0.03) 0px,
+      rgba(245,158,11,0.03) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* ── Card container ── */
+  .unified-card {
+    width: 100%; max-width: 440px;
+    position: relative;
+    margin: 12px 0;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── Double-border Party Invite frame ── */
+  .card-frame {
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .card-inner {
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+  }
+
+  /* ══════════════════════════════════════════
+     TOP STRIP
+     ══════════════════════════════════════════ */
+  .card-strip {
+    padding: 12px 16px;
+    background: rgba(245,158,11,0.06);
+    border-bottom: 1px solid rgba(245,158,11,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-strip-left {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--amber);
+  }
+  .card-strip-left i { width: 13px; height: 13px; }
+  .card-strip-right { display: flex; gap: 5px; }
+  .strip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* ══════════════════════════════════════════
+     LOBBY SECTION
+     ══════════════════════════════════════════ */
+  .lobby-section {
+    padding: 22px 20px 16px;
+    text-align: center;
+  }
+  .lobby-pre {
+    font-family: var(--font-display); font-size: 0.55rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .lobby-room-code {
+    font-family: var(--font-display); font-weight: 900; font-size: 1.75rem;
+    color: var(--amber); letter-spacing: 0.06em; line-height: 1;
+  }
+
+  /* Player avatars + status row */
+  .lobby-players {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    margin-top: 16px;
+  }
+  .avatar-stack {
+    display: flex; align-items: center;
+  }
+  .avatar-circle {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 0.55rem; font-weight: 700;
+    color: var(--bg);
+    margin-left: -8px;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    cursor: default;
+  }
+  .avatar-circle:first-child { margin-left: 0; }
+  .avatar-circle:hover { transform: scale(1.18) translateY(-2px); z-index: 2; }
+  .connected-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 8px;
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.15);
+    border-radius: 20px;
+    font-size: 0.68rem; font-weight: 600; color: var(--sage);
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--sage);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  .lobby-desc {
+    margin-top: 12px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.5;
+  }
+
+  /* ══════════════════════════════════════════
+     ORNAMENT DIVIDER
+     ══════════════════════════════════════════ */
+  .ornament {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 20px;
+  }
+  .ornament-line { flex: 1; height: 1px; background: rgba(245,158,11,0.12); }
+  .ornament-diamond {
+    width: 7px; height: 7px; background: var(--amber);
+    transform: rotate(45deg); border-radius: 1px;
+  }
+
+  /* ══════════════════════════════════════════
+     SEGMENTED CONTROL
+     ══════════════════════════════════════════ */
+  .segmented-control {
+    margin: 10px 20px 6px;
+    position: relative;
+    background: rgba(30,30,30,0.8);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    padding: 4px;
+    height: 40px;
+  }
+  .seg-indicator {
+    position: absolute; top: 4px; left: 4px;
+    width: calc(50% - 6px);
+    height: calc(100% - 8px);
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 9px;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 1;
+  }
+  .seg-indicator.advanced {
+    transform: translateX(calc(100% + 4px));
+  }
+  .seg-btn {
+    flex: 1; position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 0;
+    border: none; background: none; outline: none;
+    font-family: var(--font-display); font-size: 0.8rem; font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer; transition: color 0.25s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .seg-btn i { width: 14px; height: 14px; }
+  .seg-btn.active { color: var(--amber); }
+
+  /* ══════════════════════════════════════════
+     VIEW CONTAINER
+     ══════════════════════════════════════════ */
+  .view-container {
+    position: relative;
+    overflow: hidden;
+  }
+  .view-panel {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .view-panel.hidden {
+    display: none;
+  }
+  .view-panel.entering {
+    animation: viewEnter 0.35s ease forwards;
+  }
+  @keyframes viewEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ══════════════════════════════════════════
+     QUICK VIEW
+     ══════════════════════════════════════════ */
+  .quick-view {
+    padding: 16px 20px 10px;
+  }
+
+  /* ── Quick setting row ── */
+  .q-row {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .q-row:last-child { border-bottom: none; }
+  .q-row:first-child { padding-top: 4px; }
+
+  .q-row-header {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 12px;
+  }
+  .q-row-header i { width: 14px; height: 14px; color: var(--amber); }
+  .q-row-label {
+    font-family: var(--font-display); font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim);
+  }
+
+  /* Inline header (label + control on same line) */
+  .q-row-inline {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .q-row-inline:last-child { border-bottom: none; }
+  .q-row-inline-left {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .q-row-inline-left i { width: 14px; height: 14px; color: var(--amber); }
+  .q-row-inline-left .q-row-label { margin-bottom: 0; }
+
+  /* ── Model pills (full-width, evenly distributed) ── */
+  .q-model-pills {
+    display: flex; gap: 8px;
+  }
+  .q-model-pill {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font-display); font-weight: 600; font-size: 0.78rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-model-pill:hover { border-color: rgba(245,158,11,0.25); color: var(--text-bright); }
+  .q-model-pill:active { transform: scale(0.96); }
+  .q-model-pill.active {
+    background: rgba(245,158,11,0.12);
+    border-color: rgba(245,158,11,0.4);
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  /* ── Compact stepper ── */
+  .q-stepper {
+    display: flex; align-items: center; gap: 0;
+  }
+  .q-stepper-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); background: rgba(20,20,20,0.5);
+    border-radius: 10px;
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; outline: none;
+  }
+  .q-stepper-btn i { width: 16px; height: 16px; }
+  .q-stepper-btn:hover { color: var(--amber); border-color: rgba(245,158,11,0.3); }
+  .q-stepper-btn:active { transform: scale(0.9); }
+  .q-stepper-num {
+    min-width: 48px; text-align: center;
+    font-family: var(--font-display); font-weight: 900; font-size: 1.5rem;
+    color: var(--amber); line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .q-stepper-num.bump { transform: scale(1.2); }
+
+  /* ── Pace pills with sub-description ── */
+  .q-pace-pills {
+    display: flex; gap: 8px;
+  }
+  .q-pace-pill {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 6px 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-pace-pill:hover { transform: translateY(-1px); }
+  .q-pace-pill:active { transform: scale(0.96); }
+  .q-pace-name {
+    font-family: var(--font-display); font-weight: 600; font-size: 0.78rem;
+    transition: color 0.2s;
+  }
+  .q-pace-time {
+    font-size: 0.6rem; color: var(--text-dim); font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  /* Relaxed — sage */
+  .q-pace-pill[data-pace="relaxed"] { color: var(--text-dim); }
+  .q-pace-pill[data-pace="relaxed"].active {
+    background: rgba(74,222,128,0.08);
+    border-color: rgba(74,222,128,0.35);
+  }
+  .q-pace-pill[data-pace="relaxed"].active .q-pace-name { color: var(--sage); }
+  /* Standard — amber */
+  .q-pace-pill[data-pace="standard"] { color: var(--text-dim); }
+  .q-pace-pill[data-pace="standard"].active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.4);
+  }
+  .q-pace-pill[data-pace="standard"].active .q-pace-name { color: var(--amber); }
+  /* Fast — rose */
+  .q-pace-pill[data-pace="fast"] { color: var(--text-dim); }
+  .q-pace-pill[data-pace="fast"].active {
+    background: rgba(251,113,133,0.08);
+    border-color: rgba(251,113,133,0.35);
+  }
+  .q-pace-pill[data-pace="fast"].active .q-pace-name { color: var(--rose); }
+
+  /* ── Toggle switch ── */
+  .q-toggle-switch {
+    width: 46px; height: 26px; border-radius: 13px;
+    background: rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+    cursor: pointer;
+    transition: background 0.3s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .q-toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+  }
+  .q-toggle-switch.active {
+    background: rgba(245,158,11,0.3);
+  }
+  .q-toggle-switch.active::after {
+    transform: translateX(20px);
+    background: var(--amber);
+  }
+
+  /* ══════════════════════════════════════════
+     ADVANCED VIEW — Accordion
+     ══════════════════════════════════════════ */
+  .advanced-view {
+    padding: 10px 20px 10px;
+  }
+
+  .adv-accordion {
+    margin-bottom: 6px;
+  }
+  .adv-accordion:last-child { margin-bottom: 0; }
+
+  .adv-accordion summary {
+    display: flex; align-items: center; gap: 10px;
+    height: 48px;
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: opacity 0.15s;
+  }
+  .adv-accordion summary::-webkit-details-marker { display: none; }
+  .adv-accordion summary::marker { display: none; content: ''; }
+  .adv-accordion summary:hover { opacity: 0.85; }
+
+  .adv-icon-circle {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .adv-icon-circle i { width: 14px; height: 14px; color: #fff; }
+  .adv-icon-circle.amber-bg { background: rgba(245,158,11,0.2); }
+  .adv-icon-circle.amber-bg i { color: var(--amber); }
+  .adv-icon-circle.sage-bg { background: rgba(74,222,128,0.2); }
+  .adv-icon-circle.sage-bg i { color: var(--sage); }
+  .adv-icon-circle.sky-bg { background: rgba(56,189,248,0.2); }
+  .adv-icon-circle.sky-bg i { color: var(--sky); }
+  .adv-icon-circle.rose-bg { background: rgba(251,113,133,0.2); }
+  .adv-icon-circle.rose-bg i { color: var(--rose); }
+
+  .adv-summary-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    color: var(--text-bright);
+    flex: 1;
+  }
+  .adv-summary-preview {
+    font-size: 0.65rem; font-weight: 500; color: var(--text-dim);
+    text-align: right; white-space: nowrap;
+    margin-right: 4px;
+  }
+  .adv-chevron {
+    width: 16px; height: 16px; color: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    flex-shrink: 0;
+  }
+  .adv-accordion[open] .adv-chevron {
+    transform: rotate(180deg);
+  }
+
+  .adv-content {
+    padding: 0 0 12px 0;
+    animation: accordionIn 0.3s ease forwards;
+  }
+  @keyframes accordionIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Divider between accordions ── */
+  .adv-accordion + .adv-accordion {
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Field styles inside accordion ── */
+  .adv-field { margin-bottom: 12px; }
+  .adv-field:last-child { margin-bottom: 0; }
+
+  .adv-field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.04em; margin-bottom: 6px;
+  }
+  .adv-field-label i { width: 12px; height: 12px; color: var(--amber); }
+  .adv-field-label .adv-hint {
+    margin-left: auto; font-weight: 500; font-size: 0.62rem;
+    color: var(--amber);
+  }
+
+  /* ── Select ── */
+  .adv-select-wrap {
+    position: relative;
+  }
+  .adv-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .adv-select {
+    width: 100%; padding: 10px 36px 10px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.82rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .adv-select:focus { border-color: rgba(245,158,11,0.4); }
+  .adv-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* ── Range slider ── */
+  .adv-range-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .adv-range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(
+      to right,
+      var(--amber) 0%,
+      var(--amber) var(--fill, 50%),
+      rgba(255,255,255,0.08) var(--fill, 50%),
+      rgba(255,255,255,0.08) 100%
+    );
+    outline: none; cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .adv-range-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .adv-range-slider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+  .adv-range-slider::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+  .adv-range-value {
+    min-width: 32px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.78rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 3px 7px;
+  }
+
+  /* ── Pill groups ── */
+  .adv-pill-group {
+    display: flex; gap: 6px;
+  }
+  .adv-pill {
+    flex: 1; min-width: 0;
+    padding: 8px 6px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font-body); font-size: 0.72rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .adv-pill:hover { border-color: rgba(245,158,11,0.2); color: var(--text-bright); }
+  .adv-pill.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber); font-weight: 600;
+  }
+
+  /* ── Toggle rows ── */
+  .adv-toggles {
+    display: flex; gap: 8px;
+  }
+  .adv-toggle-item {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 12px 8px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .adv-toggle-item:hover { border-color: rgba(255,255,255,0.1); }
+  .adv-toggle-item.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .adv-toggle-item i {
+    width: 16px; height: 16px; color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .adv-toggle-item.active i { color: var(--amber); }
+  .adv-toggle-label {
+    font-size: 0.62rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .adv-toggle-item.active .adv-toggle-label { color: var(--text-bright); }
+  .adv-toggle-mini-switch {
+    width: 32px; height: 18px; border-radius: 9px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    transition: background 0.25s;
+  }
+  .adv-toggle-mini-switch::after {
+    content: '';
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.25s;
+  }
+  .adv-toggle-item.active .adv-toggle-mini-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .adv-toggle-item.active .adv-toggle-mini-switch::after {
+    transform: translateX(14px);
+    background: var(--amber);
+  }
+
+  /* ══════════════════════════════════════════
+     ACTION SECTION
+     ══════════════════════════════════════════ */
+  .action-section {
+    padding: 14px 20px 20px;
+  }
+  .start-btn {
+    width: 100%; padding: 15px;
+    background: var(--amber); color: var(--bg); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s, transform 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .start-btn:hover { filter: brightness(1.08); }
+  .start-btn:active { transform: scale(0.97); filter: brightness(0.95); }
+  .start-btn i { width: 18px; height: 18px; }
+
+  .blocker-row {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.68rem; color: var(--text-dim);
+  }
+
+  /* ── Bottom strip ── */
+  .card-bottom {
+    padding: 11px 20px;
+    background: rgba(245,158,11,0.04);
+    border-top: 1px solid rgba(245,158,11,0.1);
+    text-align: center;
+    font-size: 0.68rem; color: var(--text-dim);
+  }
+
+  /* ══════════════════════════════════════════
+     CONDITIONAL FIELD SHOW/HIDE
+     ══════════════════════════════════════════ */
+  .conditional-field {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.35s ease;
+    margin-bottom: 0;
+  }
+  .conditional-field.visible {
+    max-height: 200px;
+    opacity: 1;
+    margin-bottom: 12px;
+  }
+
+  /* ══════════════════════════════════════════
+     RESPONSIVE
+     ══════════════════════════════════════════ */
+  @media (max-width: 380px) {
+    .page { padding: 12px; }
+    .lobby-section { padding: 18px 16px 14px; }
+    .lobby-room-code { font-size: 1.5rem; }
+    .quick-view { padding: 14px 16px 8px; }
+    .advanced-view { padding: 8px 16px 8px; }
+    .ornament { padding: 4px 16px; }
+    .segmented-control { margin: 8px 16px 4px; }
+    .action-section { padding: 12px 16px 18px; }
+    .card-bottom { padding: 10px 16px; }
+    .q-model-pill { padding: 8px 4px; font-size: 0.72rem; }
+    .q-pace-pill { padding: 8px 4px 6px; }
+  }
+
+  @media (min-height: 750px) {
+    .lobby-section { padding: 26px 20px 18px; }
+    .lobby-room-code { font-size: 1.9rem; }
+    .q-row { padding: 16px 0; }
+    .q-row-inline { padding: 16px 0; }
+    .action-section { padding: 18px 24px 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">M5 — Unified Card</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+  <div class="unified-card">
+    <div class="card-frame">
+      <div class="card-inner">
+
+        <!-- ══ Top Strip ══ -->
+        <div class="card-strip">
+          <div class="card-strip-left">
+            <i data-lucide="sparkles"></i>
+            VIP Controls
+          </div>
+          <div class="card-strip-right">
+            <div class="strip-dot" style="background: var(--amber);"></div>
+            <div class="strip-dot" style="background: var(--sage);"></div>
+            <div class="strip-dot" style="background: var(--rose);"></div>
+          </div>
+        </div>
+
+        <!-- ══ Lobby Section ══ -->
+        <div class="lobby-section">
+          <div class="lobby-pre">You're the VIP</div>
+          <div class="lobby-room-code">#X7KQ9W</div>
+
+          <div class="lobby-players">
+            <div class="avatar-stack">
+              <div class="avatar-circle" style="background: var(--amber);">A</div>
+              <div class="avatar-circle" style="background: var(--sage);">K</div>
+              <div class="avatar-circle" style="background: var(--rose);">M</div>
+              <div class="avatar-circle" style="background: var(--sky);">J</div>
+            </div>
+            <div class="connected-pill">
+              <div class="pulse-dot"></div>
+              4 connected
+            </div>
+          </div>
+
+          <p class="lobby-desc">Configure your match and hit start when ready.</p>
+        </div>
+
+        <!-- ══ Ornament ══ -->
+        <div class="ornament">
+          <div class="ornament-line"></div>
+          <div class="ornament-diamond"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <!-- ══ Segmented Control ══ -->
+        <div class="segmented-control">
+          <div class="seg-indicator" id="seg-indicator"></div>
+          <button class="seg-btn active" data-view="quick" id="seg-quick">
+            <i data-lucide="zap"></i>
+            Quick
+          </button>
+          <button class="seg-btn" data-view="advanced" id="seg-advanced">
+            <i data-lucide="sliders-horizontal"></i>
+            Advanced
+          </button>
+        </div>
+
+        <!-- ══ View Container ══ -->
+        <div class="view-container">
+
+          <!-- ── QUICK VIEW ── -->
+          <div class="view-panel quick-view" id="quick-view">
+
+            <!-- Model -->
+            <div class="q-row">
+              <div class="q-row-header">
+                <i data-lucide="brain"></i>
+                <span class="q-row-label">AI Model</span>
+              </div>
+              <div class="q-model-pills" id="model-pills">
+                <button class="q-model-pill active" data-model="gpt4o">GPT-4o</button>
+                <button class="q-model-pill" data-model="claude">Claude</button>
+                <button class="q-model-pill" data-model="gemini">Gemini</button>
+              </div>
+            </div>
+
+            <!-- Rounds -->
+            <div class="q-row-inline">
+              <div class="q-row-inline-left">
+                <i data-lucide="repeat"></i>
+                <span class="q-row-label">Rounds</span>
+              </div>
+              <div class="q-stepper">
+                <button class="q-stepper-btn" id="rounds-minus"><i data-lucide="minus"></i></button>
+                <div class="q-stepper-num" id="rounds-num">5</div>
+                <button class="q-stepper-btn" id="rounds-plus"><i data-lucide="plus"></i></button>
+              </div>
+            </div>
+
+            <!-- Pace -->
+            <div class="q-row">
+              <div class="q-row-header">
+                <i data-lucide="gauge"></i>
+                <span class="q-row-label">Pace</span>
+              </div>
+              <div class="q-pace-pills" id="pace-pills">
+                <button class="q-pace-pill" data-pace="relaxed" data-seconds="90">
+                  <span class="q-pace-name">Relaxed</span>
+                  <span class="q-pace-time">90s</span>
+                </button>
+                <button class="q-pace-pill active" data-pace="standard" data-seconds="45">
+                  <span class="q-pace-name">Standard</span>
+                  <span class="q-pace-time">45s</span>
+                </button>
+                <button class="q-pace-pill" data-pace="fast" data-seconds="20">
+                  <span class="q-pace-name">Fast</span>
+                  <span class="q-pace-time">20s</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Audio -->
+            <div class="q-row-inline">
+              <div class="q-row-inline-left">
+                <i data-lucide="volume-2" id="q-audio-icon"></i>
+                <span class="q-row-label">Audio</span>
+              </div>
+              <div class="q-toggle-switch active" id="q-audio-toggle"></div>
+            </div>
+
+          </div><!-- /quick-view -->
+
+          <!-- ── ADVANCED VIEW ── -->
+          <div class="view-panel advanced-view hidden" id="advanced-view">
+
+            <!-- 1. AI & Content -->
+            <details class="adv-accordion" open>
+              <summary>
+                <div class="adv-icon-circle amber-bg"><i data-lucide="sparkles"></i></div>
+                <span class="adv-summary-title">AI & Content</span>
+                <span class="adv-summary-preview" id="preview-ai">GPT-4o · Off</span>
+                <i data-lucide="chevron-down" class="adv-chevron"></i>
+              </summary>
+              <div class="adv-content">
+                <div class="adv-field">
+                  <div class="adv-field-label"><i data-lucide="brain"></i> Model Preset</div>
+                  <div class="adv-select-wrap">
+                    <select class="adv-select" id="adv-model">
+                      <option value="gpt4o" selected>GPT-4o (OpenAI)</option>
+                      <option value="claude">Claude (Anthropic)</option>
+                      <option value="gemini">Gemini (Google)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="adv-field">
+                  <div class="adv-field-label"><i data-lucide="shield-check"></i> Moderation</div>
+                  <div class="adv-select-wrap">
+                    <select class="adv-select" id="adv-moderation">
+                      <option value="off" selected>Off</option>
+                      <option value="auto">Auto</option>
+                      <option value="strict">Strict</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="adv-field">
+                  <div class="adv-field-label">
+                    <i data-lucide="book-open"></i> Topic Pool
+                    <span class="adv-hint" id="adv-topics-hint">6</span>
+                  </div>
+                  <div class="adv-range-row">
+                    <input type="range" class="adv-range-slider" min="3" max="12" value="6" id="adv-topics-slider">
+                    <div class="adv-range-value" id="adv-topics-val">6</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- 2. Game Rules -->
+            <details class="adv-accordion">
+              <summary>
+                <div class="adv-icon-circle sage-bg"><i data-lucide="gamepad-2"></i></div>
+                <span class="adv-summary-title">Game Rules</span>
+                <span class="adv-summary-preview" id="preview-rules">5 rounds · Progressive</span>
+                <i data-lucide="chevron-down" class="adv-chevron"></i>
+              </summary>
+              <div class="adv-content">
+                <div class="adv-field">
+                  <div class="adv-field-label">
+                    <i data-lucide="repeat"></i> Rounds
+                    <span class="adv-hint" id="adv-rounds-hint">5</span>
+                  </div>
+                  <div class="adv-range-row">
+                    <input type="range" class="adv-range-slider" min="2" max="10" value="5" id="adv-rounds-slider">
+                    <div class="adv-range-value" id="adv-rounds-val">5</div>
+                  </div>
+                </div>
+                <div class="adv-field">
+                  <div class="adv-field-label"><i data-lucide="eye"></i> Reveal Mode</div>
+                  <div class="adv-pill-group" data-pill-group="reveal-mode">
+                    <div class="adv-pill active" data-value="progressive">Progressive</div>
+                    <div class="adv-pill" data-value="after-each">After Each</div>
+                    <div class="adv-pill" data-value="end-of-round">End of Round</div>
+                  </div>
+                </div>
+                <div class="adv-field">
+                  <div class="adv-field-label"><i data-lucide="flag"></i> End Mode</div>
+                  <div class="adv-pill-group" data-pill-group="end-mode">
+                    <div class="adv-pill active" data-value="rounds">By Rounds</div>
+                    <div class="adv-pill" data-value="timer">By Timer</div>
+                  </div>
+                </div>
+                <div class="adv-field conditional-field" id="adv-timer-minutes">
+                  <div class="adv-field-label">
+                    <i data-lucide="clock"></i> Timer Minutes
+                    <span class="adv-hint" id="adv-timer-hint">10</span>
+                  </div>
+                  <div class="adv-range-row">
+                    <input type="range" class="adv-range-slider" min="5" max="60" value="10" step="5" id="adv-timer-slider">
+                    <div class="adv-range-value" id="adv-timer-val">10</div>
+                  </div>
+                </div>
+                <div class="adv-field conditional-field" id="adv-timer-expiry">
+                  <div class="adv-field-label"><i data-lucide="alert-triangle"></i> Timer Expiry</div>
+                  <div class="adv-pill-group" data-pill-group="timer-expiry">
+                    <div class="adv-pill active" data-value="finish-round">Finish Round</div>
+                    <div class="adv-pill" data-value="immediate">Immediate</div>
+                    <div class="adv-pill" data-value="sudden-death">Sudden Death</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- 3. Timing -->
+            <details class="adv-accordion">
+              <summary>
+                <div class="adv-icon-circle sky-bg"><i data-lucide="timer"></i></div>
+                <span class="adv-summary-title">Timing</span>
+                <span class="adv-summary-preview" id="preview-timing">45s · 3s · 20s</span>
+                <i data-lucide="chevron-down" class="adv-chevron"></i>
+              </summary>
+              <div class="adv-content">
+                <div class="adv-field">
+                  <div class="adv-field-label">
+                    <i data-lucide="hourglass"></i> Answer Time
+                    <span class="adv-hint" id="adv-answer-hint">45s</span>
+                  </div>
+                  <div class="adv-range-row">
+                    <input type="range" class="adv-range-slider" min="15" max="120" value="45" step="5" id="adv-answer-slider" data-suffix="s">
+                    <div class="adv-range-value" id="adv-answer-val">45s</div>
+                  </div>
+                </div>
+                <div class="adv-field">
+                  <div class="adv-field-label">
+                    <i data-lucide="shield-off"></i> No-Buzz Window
+                    <span class="adv-hint" id="adv-nobuzz-hint">3s</span>
+                  </div>
+                  <div class="adv-range-row">
+                    <input type="range" class="adv-range-slider" min="0" max="10" value="3" id="adv-nobuzz-slider" data-suffix="s">
+                    <div class="adv-range-value" id="adv-nobuzz-val">3s</div>
+                  </div>
+                </div>
+                <div class="adv-field">
+                  <div class="adv-field-label">
+                    <i data-lucide="trophy"></i> Bonus Time
+                    <span class="adv-hint" id="adv-bonus-hint">20s</span>
+                  </div>
+                  <div class="adv-range-row">
+                    <input type="range" class="adv-range-slider" min="10" max="60" value="20" step="5" id="adv-bonus-slider" data-suffix="s">
+                    <div class="adv-range-value" id="adv-bonus-val">20s</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <!-- 4. Audio -->
+            <details class="adv-accordion">
+              <summary>
+                <div class="adv-icon-circle rose-bg"><i data-lucide="volume-2"></i></div>
+                <span class="adv-summary-title">Audio</span>
+                <span class="adv-summary-preview" id="preview-audio">All on</span>
+                <i data-lucide="chevron-down" class="adv-chevron"></i>
+              </summary>
+              <div class="adv-content">
+                <div class="adv-field">
+                  <div class="adv-toggles" id="adv-audio-toggles">
+                    <div class="adv-toggle-item active" data-toggle="narration">
+                      <i data-lucide="mic"></i>
+                      <div class="adv-toggle-label">Narrate</div>
+                      <div class="adv-toggle-mini-switch"></div>
+                    </div>
+                    <div class="adv-toggle-item active" data-toggle="sfx">
+                      <i data-lucide="bell-ring"></i>
+                      <div class="adv-toggle-label">SFX</div>
+                      <div class="adv-toggle-mini-switch"></div>
+                    </div>
+                    <div class="adv-toggle-item active" data-toggle="music">
+                      <i data-lucide="music"></i>
+                      <div class="adv-toggle-label">Music</div>
+                      <div class="adv-toggle-mini-switch"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+          </div><!-- /advanced-view -->
+
+        </div><!-- /view-container -->
+
+        <!-- ══ Ornament ══ -->
+        <div class="ornament" style="margin-top: 4px;">
+          <div class="ornament-line"></div>
+          <div class="ornament-diamond"></div>
+          <div class="ornament-line"></div>
+        </div>
+
+        <!-- ══ Action Section ══ -->
+        <div class="action-section">
+          <button class="start-btn" id="start-btn">
+            <i data-lucide="play"></i>
+            Start Match
+          </button>
+        </div>
+
+        <!-- ══ Bottom Strip ══ -->
+        <div class="card-bottom">
+          First player becomes VIP and controls the game
+        </div>
+
+      </div><!-- /card-inner -->
+    </div><!-- /card-frame -->
+  </div><!-- /unified-card -->
+</div><!-- /page -->
+
+<script>
+  // ── Initialize Lucide icons ──
+  lucide.createIcons();
+
+  // ══════════════════════════════════════════
+  // Segmented Control: Quick / Advanced
+  // ══════════════════════════════════════════
+  const segQuick = document.getElementById('seg-quick');
+  const segAdvanced = document.getElementById('seg-advanced');
+  const segIndicator = document.getElementById('seg-indicator');
+  const quickView = document.getElementById('quick-view');
+  const advancedView = document.getElementById('advanced-view');
+
+  let currentView = 'quick';
+
+  function switchView(target) {
+    if (target === currentView) return;
+    currentView = target;
+
+    segQuick.classList.toggle('active', target === 'quick');
+    segAdvanced.classList.toggle('active', target === 'advanced');
+    segIndicator.classList.toggle('advanced', target === 'advanced');
+
+    const outgoing = target === 'quick' ? advancedView : quickView;
+    const incoming = target === 'quick' ? quickView : advancedView;
+
+    outgoing.style.opacity = '0';
+    outgoing.style.transform = 'translateY(6px)';
+    outgoing.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+
+    setTimeout(() => {
+      outgoing.classList.add('hidden');
+      outgoing.style.opacity = '';
+      outgoing.style.transform = '';
+      outgoing.style.transition = '';
+
+      incoming.classList.remove('hidden');
+      incoming.classList.add('entering');
+
+      if (target === 'advanced') syncQuickToAdvanced();
+
+      setTimeout(() => incoming.classList.remove('entering'), 400);
+    }, 220);
+  }
+
+  segQuick.addEventListener('click', () => switchView('quick'));
+  segAdvanced.addEventListener('click', () => switchView('advanced'));
+
+  // ══════════════════════════════════════════
+  // Quick View: Model pills
+  // ══════════════════════════════════════════
+  const modelPills = document.querySelectorAll('#model-pills .q-model-pill');
+  modelPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      modelPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════
+  // Quick View: Rounds stepper
+  // ══════════════════════════════════════════
+  let roundsValue = 5;
+  const roundsNum = document.getElementById('rounds-num');
+  const roundsMinus = document.getElementById('rounds-minus');
+  const roundsPlus = document.getElementById('rounds-plus');
+
+  function updateRounds(val) {
+    roundsValue = Math.max(1, Math.min(20, val));
+    roundsNum.textContent = roundsValue;
+    roundsNum.classList.add('bump');
+    setTimeout(() => roundsNum.classList.remove('bump'), 200);
+  }
+
+  roundsMinus.addEventListener('click', () => updateRounds(roundsValue - 1));
+  roundsPlus.addEventListener('click', () => updateRounds(roundsValue + 1));
+
+  // ══════════════════════════════════════════
+  // Quick View: Pace pills
+  // ══════════════════════════════════════════
+  const pacePills = document.querySelectorAll('#pace-pills .q-pace-pill');
+  pacePills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pacePills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════
+  // Quick View: Audio toggle
+  // ══════════════════════════════════════════
+  const qAudioToggle = document.getElementById('q-audio-toggle');
+  const qAudioIcon = document.getElementById('q-audio-icon');
+
+  qAudioToggle.addEventListener('click', () => {
+    const isActive = qAudioToggle.classList.toggle('active');
+    qAudioIcon.setAttribute('data-lucide', isActive ? 'volume-2' : 'volume-x');
+    lucide.createIcons();
+  });
+
+  // ══════════════════════════════════════════
+  // Sync Quick → Advanced
+  // ══════════════════════════════════════════
+  function syncQuickToAdvanced() {
+    // Model
+    const activeModel = document.querySelector('#model-pills .q-model-pill.active');
+    if (activeModel) {
+      document.getElementById('adv-model').value = activeModel.dataset.model;
+    }
+
+    // Rounds
+    const advRoundsSlider = document.getElementById('adv-rounds-slider');
+    advRoundsSlider.value = Math.min(10, Math.max(2, roundsValue));
+    updateSliderDisplay(advRoundsSlider);
+
+    // Pace → timing
+    const activePace = document.querySelector('#pace-pills .q-pace-pill.active');
+    if (activePace) {
+      const seconds = parseInt(activePace.dataset.seconds);
+      const answerSlider = document.getElementById('adv-answer-slider');
+      answerSlider.value = seconds;
+      updateSliderDisplay(answerSlider);
+
+      // Map pace to no-buzz and bonus
+      const nobuzzMap = { 90: 5, 45: 3, 20: 1 };
+      const bonusMap = { 90: 40, 45: 20, 20: 10 };
+      const nobuzzSlider = document.getElementById('adv-nobuzz-slider');
+      const bonusSlider = document.getElementById('adv-bonus-slider');
+      nobuzzSlider.value = nobuzzMap[seconds] || 3;
+      bonusSlider.value = bonusMap[seconds] || 20;
+      updateSliderDisplay(nobuzzSlider);
+      updateSliderDisplay(bonusSlider);
+    }
+
+    // Audio
+    const isAudioOn = qAudioToggle.classList.contains('active');
+    document.querySelectorAll('#adv-audio-toggles .adv-toggle-item').forEach(t => {
+      t.classList.toggle('active', isAudioOn);
+    });
+
+    // Update previews
+    updatePreviews();
+  }
+
+  // ══════════════════════════════════════════
+  // Advanced: Range sliders
+  // ══════════════════════════════════════════
+  function updateSliderDisplay(slider) {
+    const suffix = slider.dataset.suffix || '';
+    const val = slider.value + suffix;
+    const hintId = slider.id.replace('-slider', '-hint');
+    const valId = slider.id.replace('-slider', '-val');
+    const hintEl = document.getElementById(hintId);
+    const valEl = document.getElementById(valId);
+    if (hintEl) hintEl.textContent = val;
+    if (valEl) valEl.textContent = val;
+
+    // Fill track
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    const pct = ((parseFloat(slider.value) - min) / (max - min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+  }
+
+  document.querySelectorAll('.adv-range-slider').forEach(slider => {
+    slider.addEventListener('input', () => {
+      updateSliderDisplay(slider);
+      updatePreviews();
+    });
+    updateSliderDisplay(slider);
+  });
+
+  // ══════════════════════════════════════════
+  // Advanced: Pill groups
+  // ══════════════════════════════════════════
+  document.querySelectorAll('.adv-pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.adv-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        // End mode → show/hide timer fields
+        if (group.dataset.pillGroup === 'end-mode') {
+          const isTimer = pill.dataset.value === 'timer';
+          const timerField = document.getElementById('adv-timer-minutes');
+          const expiryField = document.getElementById('adv-timer-expiry');
+          if (timerField) timerField.classList.toggle('visible', isTimer);
+          if (expiryField) expiryField.classList.toggle('visible', isTimer);
+        }
+
+        updatePreviews();
+      });
+    });
+  });
+
+  // ══════════════════════════════════════════
+  // Advanced: Audio toggles
+  // ══════════════════════════════════════════
+  document.querySelectorAll('#adv-audio-toggles .adv-toggle-item').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+      updatePreviews();
+    });
+  });
+
+  // ══════════════════════════════════════════
+  // Advanced: Select change → update previews
+  // ══════════════════════════════════════════
+  document.querySelectorAll('.adv-select').forEach(sel => {
+    sel.addEventListener('change', updatePreviews);
+  });
+
+  // ══════════════════════════════════════════
+  // Update preview strings
+  // ══════════════════════════════════════════
+  function updatePreviews() {
+    // AI & Content
+    const modelSelect = document.getElementById('adv-model');
+    const modelName = modelSelect.options[modelSelect.selectedIndex].text.split(' (')[0];
+    const modSelect = document.getElementById('adv-moderation');
+    const modName = modSelect.options[modSelect.selectedIndex].text;
+    document.getElementById('preview-ai').textContent = modelName + ' · ' + modName;
+
+    // Game Rules
+    const rounds = document.getElementById('adv-rounds-slider').value;
+    const revealPill = document.querySelector('[data-pill-group="reveal-mode"] .adv-pill.active');
+    const revealName = revealPill ? revealPill.textContent.trim() : 'Progressive';
+    document.getElementById('preview-rules').textContent = rounds + ' rounds · ' + revealName;
+
+    // Timing
+    const answer = document.getElementById('adv-answer-slider').value;
+    const nobuzz = document.getElementById('adv-nobuzz-slider').value;
+    const bonus = document.getElementById('adv-bonus-slider').value;
+    document.getElementById('preview-timing').textContent = answer + 's · ' + nobuzz + 's · ' + bonus + 's';
+
+    // Audio
+    const audioToggles = document.querySelectorAll('#adv-audio-toggles .adv-toggle-item');
+    const activeCount = Array.from(audioToggles).filter(t => t.classList.contains('active')).length;
+    const total = audioToggles.length;
+    let audioText;
+    if (activeCount === total) audioText = 'All on';
+    else if (activeCount === 0) audioText = 'All off';
+    else audioText = activeCount + '/' + total + ' on';
+    document.getElementById('preview-audio').textContent = audioText;
+  }
+
+  // Init previews
+  updatePreviews();
+
+  // ══════════════════════════════════════════
+  // Start button press
+  // ══════════════════════════════════════════
+  document.getElementById('start-btn').addEventListener('click', function() {
+    this.style.transform = 'scale(0.96)';
+    setTimeout(() => { this.style.transform = ''; }, 150);
+  });
+
+  // ══════════════════════════════════════════
+  // Three.js wireframe octahedrons
+  // ══════════════════════════════════════════
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

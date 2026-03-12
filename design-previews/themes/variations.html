@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuzzerMinds — Candy Pop Variations (Wireframe + Settings)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0f;
+    color: #e4e4e7;
+    min-height: 100vh;
+  }
+  .header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    border-bottom: 1px solid #27272a;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .header h1 .accent { color: #ff6b9d; }
+  .header p {
+    margin-top: 8px;
+    color: #71717a;
+    font-size: 1rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+  .header .changes {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .header .tag {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tag-wireframe { background: #7c3aed; color: #fff; }
+  .tag-pattern { background: #14b8a6; color: #fff; }
+  .tag-bigger { background: #f59e0b; color: #0a0a0f; }
+  .tag-settings { background: #ec4899; color: #fff; }
+  .tag-fonts { background: #60a5fa; color: #0a0a0f; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+    gap: 24px;
+    padding: 32px 40px 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .card {
+    border: 1px solid #27272a;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    background: #18181b;
+  }
+  .card:hover {
+    border-color: #3f3f46;
+    transform: translateY(-4px);
+  }
+  .card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .card-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border: none;
+    pointer-events: none;
+    display: block;
+    background: #0f0f14;
+  }
+  .card-info {
+    padding: 16px 20px;
+    border-top: 1px solid #27272a;
+  }
+  .card-info h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .card-info .letter {
+    color: #ff6b9d;
+    font-weight: 800;
+    margin-right: 6px;
+  }
+  .card-info p {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #71717a;
+    line-height: 1.5;
+  }
+  .card-info .meta {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: #27272a;
+    color: #a1a1aa;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Candy Pop <span class="accent">Variations</span></h1>
+  <p>5 variations based on Candy Pop. All use wireframe 3D shapes, patterned backgrounds, bigger elements, and creative settings displays. Click to view full-screen.</p>
+  <div class="changes">
+    <span class="tag tag-wireframe">Wireframe Shapes</span>
+    <span class="tag tag-pattern">Patterned BG</span>
+    <span class="tag tag-bigger">Bigger Elements</span>
+    <span class="tag tag-settings">New Settings Display</span>
+    <span class="tag tag-fonts">New Fonts</span>
+  </div>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <a href="02a-wireframe-grid.html" target="_blank">
+      <iframe class="card-preview" src="02a-wireframe-grid.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="letter">A</span> Wireframe Grid</h2>
+        <p>Settings as a 2x2 icon grid with large icons, values, and labels. Wireframe dodecahedrons + dot grid pattern. Indigo/coral palette.</p>
+        <div class="meta">
+          <span class="meta-tag">Nunito + Fredoka</span>
+          <span class="meta-tag">2x2 Settings Grid</span>
+          <span class="meta-tag">Dot Grid BG</span>
+          <span class="meta-tag">Dodecahedrons</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="02b-wireframe-banner.html" target="_blank">
+      <iframe class="card-preview" src="02b-wireframe-banner.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="letter">B</span> Wireframe Banner</h2>
+        <p>Settings as a full-width TV broadcast bar at the bottom. Room code as big floating text (no boxes). Charcoal/amber palette.</p>
+        <div class="meta">
+          <span class="meta-tag">DM Sans + Outfit</span>
+          <span class="meta-tag">Bottom Banner</span>
+          <span class="meta-tag">Diagonal Lines BG</span>
+          <span class="meta-tag">Octahedrons</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="02c-wireframe-stack.html" target="_blank">
+      <iframe class="card-preview" src="02c-wireframe-stack.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="letter">C</span> Wireframe Stack</h2>
+        <p>Settings as vertical bar cards with colored left borders (like a mini dashboard). Slide-in-from-left animation. Navy/cyan/magenta palette.</p>
+        <div class="meta">
+          <span class="meta-tag">Poppins + Rubik</span>
+          <span class="meta-tag">Vertical Stack</span>
+          <span class="meta-tag">Crosshatch BG</span>
+          <span class="meta-tag">Icosahedrons</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="02d-wireframe-orbital.html" target="_blank">
+      <iframe class="card-preview" src="02d-wireframe-orbital.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="letter">D</span> Wireframe Orbital</h2>
+        <p>Settings as orbital tags around the QR code with dashed connector lines and marching ants animation. Teal-gray/lime/pink palette.</p>
+        <div class="meta">
+          <span class="meta-tag">Quicksand + Lilita One</span>
+          <span class="meta-tag">Orbital Settings</span>
+          <span class="meta-tag">Grid BG</span>
+          <span class="meta-tag">Torus Knots</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="02e-wireframe-center.html" target="_blank">
+      <iframe class="card-preview" src="02e-wireframe-center.html" loading="lazy" sandbox="allow-scripts"></iframe>
+      <div class="card-info">
+        <h2><span class="letter">E</span> Wireframe Center</h2>
+        <p>Settings as a center spine column between the two towers with timeline connectors. Three-column layout. Plum/violet/teal palette.</p>
+        <div class="meta">
+          <span class="meta-tag">Inter + Archivo</span>
+          <span class="meta-tag">Center Column</span>
+          <span class="meta-tag">Triangle BG</span>
+          <span class="meta-tag">Mixed Wireframes</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+</body>
+</html>

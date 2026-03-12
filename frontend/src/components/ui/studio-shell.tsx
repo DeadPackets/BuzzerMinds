@@ -1,12 +1,15 @@
+"use client";
+
 import { ReactNode } from "react";
 
+import { WireframeBackground } from "@/components/ui/wireframe-background";
 import { cn } from "@/lib/utils";
 
 export function GameShell({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <main className={cn("bm-shell bm-grid-pattern relative z-10", className)}>
-      <div className="bm-particles" aria-hidden="true" />
-      <div className="mx-auto max-w-7xl">{children}</div>
+    <main className={cn("bm-shell relative z-10", className)}>
+      <WireframeBackground />
+      <div className="relative z-10 mx-auto max-w-7xl">{children}</div>
     </main>
   );
 }
@@ -37,7 +40,7 @@ export function GameHeader({
           </span>
         ) : null}
         <h1 className={cn(
-          "bm-title mt-4 leading-[0.95] text-[var(--bm-text-bright)]",
+          "bm-title mt-4 leading-[0.95] text-[var(--text-bright)]",
           compact ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl lg:text-6xl",
         )}>
           {title}

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player Join — 02 Step Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text-bright); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; display: flex; flex-direction: column;
+    padding: 0 20px;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 0; flex-shrink: 0;
+  }
+  .top-bar-logo { font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; }
+  .top-bar-logo .a { color: var(--amber); }
+  .top-bar-logo .s { color: var(--sage); }
+  .room-code-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px; background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2); border-radius: 20px;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.8rem;
+    color: var(--amber); letter-spacing: 0.06em;
+  }
+  .room-code-pill i { width: 14px; height: 14px; }
+
+  /* ── Progress dots ── */
+  .progress {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; padding: 20px 0 28px;
+  }
+  .progress-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .progress-dot.active { background: var(--amber); transform: scale(1.3); }
+  .progress-dot.done { background: var(--sage); }
+  .progress-line {
+    width: 32px; height: 2px; background: rgba(255,255,255,0.06);
+  }
+  .progress-line.done { background: var(--sage); }
+
+  /* ── Step content ── */
+  .steps-container {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+  }
+
+  .step {
+    display: none; animation: fadeSlide 0.4s ease forwards;
+  }
+  .step.active { display: block; }
+
+  .step-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .step-icon i { width: 28px; height: 28px; }
+  .step-icon.amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .step-icon.sage { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .step-icon.sky { background: rgba(56,189,248,0.12); color: var(--sky); }
+
+  .step-number {
+    font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .step h2 {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.8rem;
+    letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 8px;
+  }
+  .step p {
+    font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 28px;
+  }
+
+  .field-input {
+    width: 100%; padding: 16px 18px;
+    background: rgba(20,20,20,0.6); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-bright);
+    font-size: 1.1rem; font-weight: 500; outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-input:focus { border-color: var(--sage); }
+  .field-input::placeholder { color: var(--text-dim); font-weight: 400; font-size: 0.95rem; }
+  textarea.field-input { resize: none; min-height: 100px; line-height: 1.5; font-size: 1rem; }
+
+  /* ── Color grid ── */
+  .color-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .color-option {
+    aspect-ratio: 1; border-radius: 14px; border: 2px solid transparent;
+    cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+    position: relative;
+  }
+  .color-option:hover { transform: scale(1.05); }
+  .color-option.active { border-color: var(--text-bright); }
+  .color-option.active::after {
+    content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--text-bright);
+  }
+
+  .char-count {
+    text-align: right; font-size: 0.7rem; color: var(--text-dim); margin-top: 8px;
+  }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    display: flex; gap: 12px; padding: 20px 0 max(20px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+  }
+  .btn-back {
+    padding: 16px 20px; border-radius: 12px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-bright); font-family: var(--font-display);
+    font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: border-color 0.15s;
+  }
+  .btn-back:hover { border-color: var(--amber); }
+  .btn-back i { width: 16px; height: 16px; }
+  .btn-back:disabled { opacity: 0.3; cursor: default; }
+
+  .btn-next {
+    flex: 1; padding: 16px; border-radius: 12px;
+    background: var(--amber); color: var(--bg); border: none;
+    font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+    cursor: pointer; transition: filter 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-next:hover { filter: brightness(1.08); }
+  .btn-next i { width: 18px; height: 18px; }
+  .btn-next.sage { background: var(--sage); }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">02 — Step Wizard</div>
+<div class="bg-pattern"></div>
+
+<div class="page">
+  <div class="top-bar">
+    <div class="top-bar-logo"><span class="a">Buzzer</span><span class="s">Minds</span></div>
+    <div class="room-code-pill"><i data-lucide="hash"></i> X7KQ9W</div>
+  </div>
+
+  <div class="progress">
+    <div class="progress-dot active" id="dot1"></div>
+    <div class="progress-line" id="line1"></div>
+    <div class="progress-dot" id="dot2"></div>
+    <div class="progress-line" id="line2"></div>
+    <div class="progress-dot" id="dot3"></div>
+  </div>
+
+  <div class="steps-container">
+    <!-- Step 1: Name -->
+    <div class="step active" id="step1">
+      <div class="step-icon amber"><i data-lucide="user"></i></div>
+      <div class="step-number">Step 1 of 3</div>
+      <h2>What's your name?</h2>
+      <p>This is how everyone will see you in the game.</p>
+      <input type="text" class="field-input" placeholder="Enter your display name" maxlength="40">
+    </div>
+
+    <!-- Step 2: Color -->
+    <div class="step" id="step2">
+      <div class="step-icon sage"><i data-lucide="palette"></i></div>
+      <div class="step-number">Step 2 of 3</div>
+      <h2>Pick your color</h2>
+      <p>Your color appears next to your name on the big screen.</p>
+      <div class="color-grid">
+        <div class="color-option active" style="background:#22d3ee;"></div>
+        <div class="color-option" style="background:#f59e0b;"></div>
+        <div class="color-option" style="background:#4ade80;"></div>
+        <div class="color-option" style="background:#fb7185;"></div>
+        <div class="color-option" style="background:#a78bfa;"></div>
+        <div class="color-option" style="background:#f472b6;"></div>
+        <div class="color-option" style="background:#fbbf24;"></div>
+        <div class="color-option" style="background:#34d399;"></div>
+        <div class="color-option" style="background:#818cf8;"></div>
+        <div class="color-option" style="background:#f97316;"></div>
+        <div class="color-option" style="background:#2dd4bf;"></div>
+        <div class="color-option" style="background:#e879f9;"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Expertise -->
+    <div class="step" id="step3">
+      <div class="step-icon sky"><i data-lucide="brain"></i></div>
+      <div class="step-number">Step 3 of 3</div>
+      <h2>What do you know?</h2>
+      <p>Topics you're good at. The AI uses this to tailor questions.</p>
+      <textarea class="field-input" placeholder="Movies, history, science, sports..." maxlength="250"></textarea>
+      <div class="char-count">0 / 250</div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="btn-back" id="backBtn" disabled><i data-lucide="arrow-left"></i></button>
+    <button class="btn-next" id="nextBtn"><span>Continue</span> <i data-lucide="arrow-right"></i></button>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  let current = 0;
+  const steps = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+  const dots = [document.getElementById('dot1'), document.getElementById('dot2'), document.getElementById('dot3')];
+  const lines = [document.getElementById('line1'), document.getElementById('line2')];
+  const backBtn = document.getElementById('backBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  function updateUI() {
+    steps.forEach((s, i) => { s.classList.toggle('active', i === current); });
+    dots.forEach((d, i) => {
+      d.classList.remove('active', 'done');
+      if (i < current) d.classList.add('done');
+      else if (i === current) d.classList.add('active');
+    });
+    lines.forEach((l, i) => { l.classList.toggle('done', i < current); });
+    backBtn.disabled = current === 0;
+    if (current === 2) {
+      nextBtn.innerHTML = '<span>Enter Room</span> <i data-lucide="zap"></i>';
+      nextBtn.classList.add('sage');
+    } else {
+      nextBtn.innerHTML = '<span>Continue</span> <i data-lucide="arrow-right"></i>';
+      nextBtn.classList.remove('sage');
+    }
+    lucide.createIcons();
+  }
+
+  nextBtn.addEventListener('click', () => { if (current < 2) { current++; updateUI(); } });
+  backBtn.addEventListener('click', () => { if (current > 0) { current--; updateUI(); } });
+
+  document.querySelectorAll('.color-option').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('.color-option').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Settings — M1 Lobby Header + Quick/Accordion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #141414; --surface: rgba(30,30,30,0.65);
+    --amber: #f59e0b; --sage: #4ade80; --rose: #fb7185;
+    --sky: #38bdf8; --cream: #fef3c7;
+    --text-bright: #f5f5f5; --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif; --font-display: 'Outfit', sans-serif;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+
+  /* ── Theme label ── */
+  .theme-label {
+    position: fixed; top: 12px; right: 12px; z-index: 100;
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+    background: rgba(30,30,30,0.7); backdrop-filter: blur(8px);
+    padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.12);
+  }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(45deg, rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px, transparent 1px, transparent 30px);
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 10;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  /* ══════════════════════════════════════════════════
+     1. LOBBY HEADER BAR
+     ══════════════════════════════════════════════════ */
+  .lobby-header {
+    width: 100%;
+    margin-bottom: 14px;
+    animation: fadeDown 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .lobby-top-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .lobby-logo {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-display); font-weight: 800; font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .lobby-logo i { width: 18px; height: 18px; color: var(--amber); }
+  .lobby-logo .logo-a { color: var(--amber); }
+  .lobby-logo .logo-s { color: var(--sage); }
+
+  .lobby-right {
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .room-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 16px;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.72rem;
+    color: var(--amber); letter-spacing: 0.06em;
+  }
+
+  .connection-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--sage);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  /* ── Players strip ── */
+  .players-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+  }
+
+  .player-avatars {
+    display: flex; align-items: center;
+  }
+
+  .player-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.55rem;
+    color: var(--bg); letter-spacing: 0.02em;
+    border: 2px solid var(--bg);
+    margin-left: -6px;
+    opacity: 0; transform: scale(0.5);
+    animation: avatarIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  .player-avatar:first-child { margin-left: 0; }
+  .player-avatar:nth-child(1) { animation-delay: 0.1s; }
+  .player-avatar:nth-child(2) { animation-delay: 0.2s; }
+  .player-avatar:nth-child(3) { animation-delay: 0.3s; }
+  .player-avatar:nth-child(4) { animation-delay: 0.4s; }
+
+  @keyframes avatarIn {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .player-overflow {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.55rem;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.06);
+    border: 2px solid var(--bg);
+    margin-left: -6px;
+    opacity: 0; transform: scale(0.5);
+    animation: avatarIn 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.5s forwards;
+  }
+
+  .player-count-pill {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .player-count-pill .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--sage);
+    animation: blink-dot 1.5s ease-in-out infinite;
+  }
+  @keyframes blink-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .player-count-pill .count-num {
+    color: var(--sage); font-weight: 700;
+  }
+
+  /* ══════════════════════════════════════════════════
+     2. SETTINGS CARD
+     ══════════════════════════════════════════════════ */
+  .settings-card {
+    width: 100%;
+    position: relative;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.15s forwards;
+    opacity: 0;
+  }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+    70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card-frame {
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .card-inner {
+    background: var(--surface); backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    overflow: hidden;
+  }
+
+  /* ── Segmented Control ── */
+  .segmented-control {
+    margin: 16px 16px 4px;
+    position: relative;
+    background: rgba(30,30,30,0.8);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    padding: 4px;
+    gap: 4px;
+  }
+  .seg-indicator {
+    position: absolute; top: 4px; left: 4px;
+    width: calc(50% - 6px);
+    height: calc(100% - 8px);
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 9px;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 1;
+  }
+  .seg-indicator.advanced {
+    transform: translateX(calc(100% + 4px));
+  }
+  .seg-btn {
+    flex: 1; position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 0;
+    border: none; background: none; outline: none;
+    font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer; transition: color 0.25s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .seg-btn i { width: 15px; height: 15px; }
+  .seg-btn.active { color: var(--amber); }
+
+  /* ══════════════════════════════════════════════════
+     VIEW CONTAINER — cross-fade
+     ══════════════════════════════════════════════════ */
+  .view-container {
+    position: relative;
+    overflow: hidden;
+  }
+  .view-panel {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .view-panel.hidden {
+    display: none;
+  }
+  .view-panel.entering {
+    animation: viewEnter 0.35s ease forwards;
+  }
+  @keyframes viewEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ══════════════════════════════════════════════════
+     QUICK VIEW
+     ══════════════════════════════════════════════════ */
+  .quick-view {
+    padding: 14px 16px 10px;
+  }
+
+  .q-section-label {
+    font-family: var(--font-display); font-size: 0.6rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .q-section-label i { width: 13px; height: 13px; color: var(--amber); }
+
+  /* ── AI Model pill cards ── */
+  .q-model-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 20px;
+  }
+  .q-model-pill {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 14px 6px 12px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+  }
+  .q-model-pill:hover { transform: translateY(-2px); }
+  .q-model-pill:active { transform: scale(0.96); }
+  .q-model-pill .model-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.78rem;
+    transition: color 0.25s;
+  }
+  .q-model-pill .model-sub {
+    font-size: 0.58rem; color: var(--text-dim); font-weight: 500;
+  }
+
+  /* GPT-4o — amber */
+  .q-model-pill[data-model="gpt4o"].active {
+    border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);
+  }
+  .q-model-pill[data-model="gpt4o"].active .model-name { color: var(--amber); }
+
+  /* Claude — sage */
+  .q-model-pill[data-model="claude"].active {
+    border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.08);
+  }
+  .q-model-pill[data-model="claude"].active .model-name { color: var(--sage); }
+
+  /* Gemini — sky */
+  .q-model-pill[data-model="gemini"].active {
+    border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.08);
+  }
+  .q-model-pill[data-model="gemini"].active .model-name { color: var(--sky); }
+
+  /* ── Rounds stepper ── */
+  .q-rounds { margin-bottom: 20px; }
+  .q-stepper {
+    display: flex; align-items: center;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .q-stepper-btn {
+    width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none; outline: none;
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-stepper-btn i { width: 20px; height: 20px; }
+  .q-stepper-btn:hover { color: var(--amber); background: rgba(245,158,11,0.06); }
+  .q-stepper-btn:active { transform: scale(0.9); }
+  .q-stepper-sep { width: 1px; height: 24px; background: var(--border); }
+  .q-stepper-display {
+    flex: 1; text-align: center;
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 6px 0;
+  }
+  .q-stepper-num {
+    font-family: var(--font-display); font-weight: 900; font-size: 2.5rem;
+    color: var(--amber); line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .q-stepper-num.bump { transform: scale(1.15); }
+  .q-stepper-unit {
+    font-size: 0.58rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  /* ── Difficulty pills ── */
+  .q-difficulty { margin-bottom: 20px; }
+  .q-diff-pills {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .q-diff-pill {
+    padding: 12px 8px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-diff-pill:hover { transform: translateY(-1px); }
+  .q-diff-pill:active { transform: scale(0.96); }
+  .q-diff-pill .diff-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    transition: color 0.25s;
+  }
+  .q-diff-pill .diff-time {
+    font-size: 0.55rem; color: var(--text-dim); font-weight: 500;
+    text-align: center;
+  }
+
+  /* Casual — sage */
+  .q-diff-pill[data-diff="casual"].active {
+    border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.06);
+  }
+  .q-diff-pill[data-diff="casual"].active .diff-name { color: var(--sage); }
+
+  /* Normal — amber */
+  .q-diff-pill[data-diff="normal"].active {
+    border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06);
+  }
+  .q-diff-pill[data-diff="normal"].active .diff-name { color: var(--amber); }
+
+  /* Intense — rose */
+  .q-diff-pill[data-diff="intense"].active {
+    border-color: rgba(251,113,133,0.3); background: rgba(251,113,133,0.06);
+  }
+  .q-diff-pill[data-diff="intense"].active .diff-name { color: var(--rose); }
+
+  /* ── Audio toggle row ── */
+  .q-audio { margin-bottom: 6px; }
+  .q-audio-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .q-audio-row:hover { border-color: rgba(255,255,255,0.1); }
+  .q-audio-row.active {
+    border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.04);
+  }
+  .q-audio-left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .q-audio-left i {
+    width: 18px; height: 18px; color: var(--text-dim);
+    transition: color 0.25s;
+  }
+  .q-audio-row.active .q-audio-left i { color: var(--amber); }
+  .q-audio-label {
+    font-family: var(--font-display); font-weight: 600; font-size: 0.85rem;
+    transition: color 0.25s;
+  }
+  .q-audio-row:not(.active) .q-audio-label { color: var(--text-dim); }
+
+  /* Toggle switch */
+  .toggle-switch {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    position: relative; flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+  }
+  .q-audio-row.active .toggle-switch {
+    background: rgba(245,158,11,0.3);
+  }
+  .q-audio-row.active .toggle-switch::after {
+    transform: translateX(20px);
+    background: var(--amber);
+  }
+
+  /* ══════════════════════════════════════════════════
+     ADVANCED VIEW — Accordion Sections
+     ══════════════════════════════════════════════════ */
+  .advanced-view {
+    padding: 8px 16px 10px;
+  }
+
+  .accordion {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  details.acc-section {
+    background: rgba(20,20,20,0.4);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  details.acc-section[open] {
+    border-color: rgba(245,158,11,0.12);
+  }
+
+  summary.acc-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  summary.acc-header::-webkit-details-marker { display: none; }
+  summary.acc-header::marker { display: none; content: ''; }
+  summary.acc-header:active { background: rgba(255,255,255,0.02); }
+
+  .acc-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .acc-icon i { width: 14px; height: 14px; }
+  .acc-icon.amber { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .acc-icon.sage { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .acc-icon.sky { background: rgba(56,189,248,0.12); color: var(--sky); }
+  .acc-icon.rose { background: rgba(251,113,133,0.12); color: var(--rose); }
+
+  .acc-info { flex: 1; min-width: 0; }
+  .acc-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    color: var(--text-bright); line-height: 1.2;
+  }
+  .acc-preview {
+    font-size: 0.62rem; color: var(--text-dim); margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .acc-chevron {
+    width: 16px; height: 16px; flex-shrink: 0;
+    color: var(--text-dim);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), color 0.2s;
+  }
+  details.acc-section[open] .acc-chevron {
+    transform: rotate(180deg);
+    color: var(--amber);
+  }
+
+  .acc-body {
+    padding: 0 14px 14px;
+    animation: accFadeIn 0.25s ease forwards;
+  }
+  @keyframes accFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .acc-divider {
+    height: 1px; background: var(--border); margin-bottom: 12px;
+  }
+
+  /* ── Shared form controls ── */
+  .ctrl-group { margin-bottom: 14px; }
+  .ctrl-group:last-child { margin-bottom: 0; }
+
+  .ctrl-label {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .ctrl-label-text {
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ctrl-label-text i { width: 11px; height: 11px; color: var(--amber); opacity: 0.6; }
+  .ctrl-value {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.75rem;
+    color: var(--amber);
+  }
+
+  /* ── Select dropdown ── */
+  .styled-select-wrap {
+    position: relative;
+  }
+  .styled-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .styled-select {
+    width: 100%; padding: 10px 34px 10px 12px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.82rem; font-weight: 500;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    outline: none; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .styled-select:focus { border-color: rgba(245,158,11,0.35); }
+  .styled-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* ── Range slider ── */
+  .range-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  input[type="range"].styled-range {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(to right, var(--amber) 0%, var(--amber) var(--fill, 50%), rgba(255,255,255,0.08) var(--fill, 50%), rgba(255,255,255,0.08) 100%);
+    outline: none; cursor: pointer;
+  }
+  input[type="range"].styled-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  input[type="range"].styled-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"].styled-range::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer;
+  }
+  input[type="range"].styled-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+  input[type="range"].styled-range::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+
+  .range-value {
+    min-width: 34px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.78rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 7px; padding: 3px 7px;
+  }
+
+  /* ── Toggle rows in accordion ── */
+  .acc-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0;
+  }
+  .acc-toggle-row + .acc-toggle-row {
+    border-top: 1px solid var(--border);
+  }
+  .acc-toggle-info {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; min-width: 0;
+  }
+  .acc-toggle-info i { width: 14px; height: 14px; color: var(--text-dim); flex-shrink: 0; }
+  .acc-toggle-text {
+    font-size: 0.8rem; font-weight: 500; color: var(--text-bright);
+  }
+  .acc-toggle-switch {
+    position: relative; width: 40px; height: 22px; flex-shrink: 0;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .acc-toggle-switch input {
+    opacity: 0; width: 0; height: 0; position: absolute;
+  }
+  .acc-toggle-track {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 11px;
+    transition: background 0.2s;
+  }
+  .acc-toggle-switch input:checked + .acc-toggle-track {
+    background: var(--amber);
+  }
+  .acc-toggle-knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  .acc-toggle-switch input:checked ~ .acc-toggle-knob {
+    transform: translateX(18px);
+  }
+
+  /* ── Conditional fields ── */
+  .conditional-field {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease, margin 0.3s ease;
+    margin-top: 0;
+  }
+  .conditional-field.visible {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 14px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     3. START MATCH BUTTON + BLOCKER
+     ══════════════════════════════════════════════════ */
+  .start-area {
+    width: 100%;
+    margin-top: 14px;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;
+    opacity: 0;
+  }
+
+  .start-btn {
+    width: 100%; padding: 16px 0;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--amber);
+    border: none; border-radius: 14px;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    letter-spacing: 0.02em; color: #141414;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .start-btn i { width: 20px; height: 20px; }
+  .start-btn:hover { opacity: 0.92; }
+  .start-btn:active { transform: scale(0.97); }
+
+  .blocker-pill {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 0.65rem; color: var(--text-dim);
+    opacity: 0.7;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .blocker-pill i { width: 12px; height: 12px; color: var(--amber); opacity: 0.6; }
+
+  /* ── Non-VIP note ── */
+  .non-vip-note {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 0.62rem; color: var(--text-dim);
+    opacity: 0.5;
+  }
+
+  /* ── Stagger children animation ── */
+  .stagger-in > * {
+    animation: staggerFade 0.4s ease forwards;
+    opacity: 0;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.04s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.16s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.20s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.24s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.28s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.32s; }
+
+  @keyframes staggerFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Small-screen tightening ── */
+  @media (max-width: 380px) {
+    .page { padding: 12px; }
+    .lobby-logo { font-size: 0.95rem; }
+    .room-pill { padding: 4px 10px; font-size: 0.65rem; }
+    .player-avatar, .player-overflow { width: 26px; height: 26px; font-size: 0.5rem; }
+    .segmented-control { margin: 12px 12px 4px; }
+    .quick-view { padding: 12px 12px 8px; }
+    .advanced-view { padding: 6px 12px 8px; }
+    .q-stepper-num { font-size: 2rem; }
+    summary.acc-header { padding: 10px 12px; gap: 8px; }
+    .acc-body { padding: 0 12px 12px; }
+    .start-btn { padding: 14px 0; font-size: 0.95rem; }
+  }
+
+  /* ── Tall-screen breathing room ── */
+  @media (min-height: 750px) {
+    .lobby-header { margin-bottom: 18px; }
+    .q-model-row { gap: 10px; margin-bottom: 24px; }
+    .q-rounds { margin-bottom: 24px; }
+    .q-difficulty { margin-bottom: 24px; }
+    .accordion { gap: 10px; }
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="theme-label">M1 — Lobby Header + Quick/Accordion</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<div class="page">
+
+  <!-- ══════════════════════════════════════════════════
+       1. LOBBY HEADER BAR
+       ══════════════════════════════════════════════════ -->
+  <div class="lobby-header">
+    <div class="lobby-top-row">
+      <div class="lobby-logo">
+        <i data-lucide="sparkles"></i>
+        <span><span class="logo-a">Buzzer</span><span class="logo-s">Minds</span></span>
+      </div>
+      <div class="lobby-right">
+        <div class="room-pill">#X7KQ9W</div>
+        <div class="connection-dot"></div>
+      </div>
+    </div>
+
+    <div class="players-strip">
+      <div class="player-avatars">
+        <div class="player-avatar" style="background: #22d3ee;">DK</div>
+        <div class="player-avatar" style="background: var(--amber);">ML</div>
+        <div class="player-avatar" style="background: var(--sage);">JR</div>
+        <div class="player-avatar" style="background: var(--rose);">AS</div>
+      </div>
+      <div class="player-overflow">+2</div>
+      <div class="player-count-pill">
+        <div class="live-dot"></div>
+        <span><span class="count-num">4</span> players connected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       2. SETTINGS CARD
+       ══════════════════════════════════════════════════ -->
+  <div class="settings-card">
+    <div class="card-frame">
+      <div class="card-inner">
+
+        <!-- ── Segmented Control ── -->
+        <div class="segmented-control" id="seg-control">
+          <div class="seg-indicator" id="seg-indicator"></div>
+          <button class="seg-btn active" data-view="quick" id="seg-quick">
+            <i data-lucide="zap"></i>
+            Quick
+          </button>
+          <button class="seg-btn" data-view="advanced" id="seg-advanced">
+            <i data-lucide="sliders-horizontal"></i>
+            Advanced
+          </button>
+        </div>
+
+        <!-- ══ View Container ══ -->
+        <div class="view-container">
+
+          <!-- ── QUICK VIEW ── -->
+          <div class="view-panel quick-view stagger-in" id="quick-view">
+
+            <!-- AI Model -->
+            <div class="q-section-label"><i data-lucide="sparkles"></i> AI Model</div>
+            <div class="q-model-row" id="model-group">
+              <div class="q-model-pill active" data-model="gpt4o">
+                <div class="model-name">GPT-4o</div>
+                <div class="model-sub">OpenAI</div>
+              </div>
+              <div class="q-model-pill" data-model="claude">
+                <div class="model-name">Claude</div>
+                <div class="model-sub">Anthropic</div>
+              </div>
+              <div class="q-model-pill" data-model="gemini">
+                <div class="model-name">Gemini</div>
+                <div class="model-sub">Google</div>
+              </div>
+            </div>
+
+            <!-- Rounds -->
+            <div class="q-rounds">
+              <div class="q-section-label"><i data-lucide="repeat"></i> Rounds</div>
+              <div class="q-stepper">
+                <button class="q-stepper-btn" id="rounds-minus"><i data-lucide="minus"></i></button>
+                <div class="q-stepper-sep"></div>
+                <div class="q-stepper-display">
+                  <div class="q-stepper-num" id="rounds-num">5</div>
+                  <div class="q-stepper-unit">Rounds</div>
+                </div>
+                <div class="q-stepper-sep"></div>
+                <button class="q-stepper-btn" id="rounds-plus"><i data-lucide="plus"></i></button>
+              </div>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="q-difficulty">
+              <div class="q-section-label"><i data-lucide="gauge"></i> Difficulty</div>
+              <div class="q-diff-pills" id="diff-group">
+                <div class="q-diff-pill" data-diff="casual" data-answer="90" data-nobuzz="5" data-bonus="40">
+                  <div class="diff-name">Casual</div>
+                  <div class="diff-time">90s answers</div>
+                </div>
+                <div class="q-diff-pill active" data-diff="normal" data-answer="45" data-nobuzz="3" data-bonus="20">
+                  <div class="diff-name">Normal</div>
+                  <div class="diff-time">45s answers</div>
+                </div>
+                <div class="q-diff-pill" data-diff="intense" data-answer="20" data-nobuzz="1" data-bonus="15">
+                  <div class="diff-name">Intense</div>
+                  <div class="diff-time">20s answers</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Audio -->
+            <div class="q-audio">
+              <div class="q-section-label"><i data-lucide="volume-2"></i> Audio</div>
+              <div class="q-audio-row active" id="audio-master">
+                <div class="q-audio-left">
+                  <i data-lucide="volume-2" id="audio-icon"></i>
+                  <span class="q-audio-label" id="audio-label">Game Audio</span>
+                </div>
+                <div class="toggle-switch"></div>
+              </div>
+            </div>
+
+          </div><!-- /quick-view -->
+
+          <!-- ── ADVANCED VIEW (Accordion) ── -->
+          <div class="view-panel advanced-view hidden" id="advanced-view">
+            <div class="accordion">
+
+              <!-- 1. AI & Content -->
+              <details class="acc-section" open>
+                <summary class="acc-header">
+                  <div class="acc-icon amber"><i data-lucide="brain"></i></div>
+                  <div class="acc-info">
+                    <div class="acc-title">AI & Content</div>
+                    <div class="acc-preview" id="preview-ai">GPT-4o · Light</div>
+                  </div>
+                  <i data-lucide="chevron-down" class="acc-chevron"></i>
+                </summary>
+                <div class="acc-body">
+                  <div class="acc-divider"></div>
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="cpu"></i> Model Preset</span>
+                    </div>
+                    <div class="styled-select-wrap">
+                      <select class="styled-select" id="adv-model">
+                        <option value="gpt4o" selected>GPT-4o (OpenAI)</option>
+                        <option value="claude">Claude (Anthropic)</option>
+                        <option value="gemini">Gemini (Google)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="shield"></i> Moderation Mode</span>
+                    </div>
+                    <div class="styled-select-wrap">
+                      <select class="styled-select" id="adv-moderation">
+                        <option value="off">Off</option>
+                        <option value="light" selected>Light</option>
+                        <option value="family">Family Safe</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- 2. Game Rules -->
+              <details class="acc-section">
+                <summary class="acc-header">
+                  <div class="acc-icon sage"><i data-lucide="trophy"></i></div>
+                  <div class="acc-info">
+                    <div class="acc-title">Game Rules</div>
+                    <div class="acc-preview" id="preview-rules">6 topics · 5 rounds · Progressive</div>
+                  </div>
+                  <i data-lucide="chevron-down" class="acc-chevron"></i>
+                </summary>
+                <div class="acc-body">
+                  <div class="acc-divider"></div>
+
+                  <!-- Topic pool size -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="layers"></i> Topic Pool Size</span>
+                      <span class="ctrl-value" id="val-topics">6</span>
+                    </div>
+                    <div class="range-row">
+                      <input type="range" class="styled-range" min="3" max="12" value="6" id="range-topics">
+                      <div class="range-value" id="rv-topics">6</div>
+                    </div>
+                  </div>
+
+                  <!-- Rounds -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="repeat"></i> Rounds</span>
+                      <span class="ctrl-value" id="val-adv-rounds">5</span>
+                    </div>
+                    <div class="range-row">
+                      <input type="range" class="styled-range" min="2" max="10" value="5" id="range-adv-rounds">
+                      <div class="range-value" id="rv-adv-rounds">5</div>
+                    </div>
+                  </div>
+
+                  <!-- Reveal mode -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="eye"></i> Reveal Mode</span>
+                    </div>
+                    <div class="styled-select-wrap">
+                      <select class="styled-select" id="adv-reveal">
+                        <option value="progressive" selected>Progressive</option>
+                        <option value="full">Full</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- End mode -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="flag"></i> End Mode</span>
+                    </div>
+                    <div class="styled-select-wrap">
+                      <select class="styled-select" id="adv-end-mode">
+                        <option value="rounds" selected>Rounds</option>
+                        <option value="timer">Timer</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Timer minutes (conditional) -->
+                  <div class="conditional-field" id="timer-minutes-group">
+                    <div class="ctrl-group">
+                      <div class="ctrl-label">
+                        <span class="ctrl-label-text"><i data-lucide="clock"></i> Timer Minutes</span>
+                        <span class="ctrl-value" id="val-timer-min">20</span>
+                      </div>
+                      <div class="range-row">
+                        <input type="range" class="styled-range" min="5" max="60" value="20" id="range-timer-min">
+                        <div class="range-value" id="rv-timer-min">20</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Timer expiry (conditional) -->
+                  <div class="conditional-field" id="timer-expiry-group">
+                    <div class="ctrl-group">
+                      <div class="ctrl-label">
+                        <span class="ctrl-label-text"><i data-lucide="timer-off"></i> Timer Expiry</span>
+                      </div>
+                      <div class="styled-select-wrap">
+                        <select class="styled-select" id="adv-timer-expiry">
+                          <option value="finish-round" selected>Finish Round</option>
+                          <option value="main-only">Main Only</option>
+                          <option value="stop-immediately">Stop Immediately</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </details>
+
+              <!-- 3. Timing -->
+              <details class="acc-section">
+                <summary class="acc-header">
+                  <div class="acc-icon sky"><i data-lucide="clock"></i></div>
+                  <div class="acc-info">
+                    <div class="acc-title">Timing</div>
+                    <div class="acc-preview" id="preview-timing">45s answer · 3s no-buzz · 20s bonus</div>
+                  </div>
+                  <i data-lucide="chevron-down" class="acc-chevron"></i>
+                </summary>
+                <div class="acc-body">
+                  <div class="acc-divider"></div>
+
+                  <!-- Answer time -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="hourglass"></i> Answer Time</span>
+                      <span class="ctrl-value" id="val-answer">45s</span>
+                    </div>
+                    <div class="range-row">
+                      <input type="range" class="styled-range" min="15" max="120" value="45" step="5" id="range-answer" data-suffix="s">
+                      <div class="range-value" id="rv-answer">45s</div>
+                    </div>
+                  </div>
+
+                  <!-- No-buzz window -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="bell-off"></i> No-Buzz Window</span>
+                      <span class="ctrl-value" id="val-nobuzz">3s</span>
+                    </div>
+                    <div class="range-row">
+                      <input type="range" class="styled-range" min="0" max="10" value="3" id="range-nobuzz" data-suffix="s">
+                      <div class="range-value" id="rv-nobuzz">3s</div>
+                    </div>
+                  </div>
+
+                  <!-- Bonus time -->
+                  <div class="ctrl-group">
+                    <div class="ctrl-label">
+                      <span class="ctrl-label-text"><i data-lucide="zap"></i> Bonus Time</span>
+                      <span class="ctrl-value" id="val-bonus">20s</span>
+                    </div>
+                    <div class="range-row">
+                      <input type="range" class="styled-range" min="10" max="60" value="20" step="5" id="range-bonus" data-suffix="s">
+                      <div class="range-value" id="rv-bonus">20s</div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- 4. Audio -->
+              <details class="acc-section">
+                <summary class="acc-header">
+                  <div class="acc-icon rose"><i data-lucide="volume-2"></i></div>
+                  <div class="acc-info">
+                    <div class="acc-title">Audio</div>
+                    <div class="acc-preview" id="preview-audio">Narration · SFX · Music</div>
+                  </div>
+                  <i data-lucide="chevron-down" class="acc-chevron"></i>
+                </summary>
+                <div class="acc-body">
+                  <div class="acc-divider"></div>
+
+                  <div class="acc-toggle-row">
+                    <div class="acc-toggle-info">
+                      <i data-lucide="mic"></i>
+                      <span class="acc-toggle-text">Narration</span>
+                    </div>
+                    <label class="acc-toggle-switch">
+                      <input type="checkbox" checked data-audio="narration">
+                      <div class="acc-toggle-track"></div>
+                      <div class="acc-toggle-knob"></div>
+                    </label>
+                  </div>
+
+                  <div class="acc-toggle-row">
+                    <div class="acc-toggle-info">
+                      <i data-lucide="bell-ring"></i>
+                      <span class="acc-toggle-text">Sound Effects</span>
+                    </div>
+                    <label class="acc-toggle-switch">
+                      <input type="checkbox" checked data-audio="sfx">
+                      <div class="acc-toggle-track"></div>
+                      <div class="acc-toggle-knob"></div>
+                    </label>
+                  </div>
+
+                  <div class="acc-toggle-row">
+                    <div class="acc-toggle-info">
+                      <i data-lucide="music"></i>
+                      <span class="acc-toggle-text">Music</span>
+                    </div>
+                    <label class="acc-toggle-switch">
+                      <input type="checkbox" checked data-audio="music">
+                      <div class="acc-toggle-track"></div>
+                      <div class="acc-toggle-knob"></div>
+                    </label>
+                  </div>
+
+                </div>
+              </details>
+
+            </div><!-- /accordion -->
+          </div><!-- /advanced-view -->
+
+        </div><!-- /view-container -->
+
+      </div><!-- /card-inner -->
+    </div><!-- /card-frame -->
+  </div><!-- /settings-card -->
+
+  <!-- ══════════════════════════════════════════════════
+       3. START MATCH BUTTON
+       ══════════════════════════════════════════════════ -->
+  <div class="start-area">
+    <button class="start-btn" id="start-btn">
+      <i data-lucide="play"></i>
+      Start Match
+    </button>
+    <div class="blocker-pill" id="blocker-pill">
+      <i data-lucide="info"></i>
+      Need at least 2 players
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       4. NON-VIP NOTE
+       ══════════════════════════════════════════════════ -->
+  <div class="non-vip-note">Only VIP can change settings</div>
+
+</div><!-- /page -->
+
+<script>
+  // ── Lucide icons ──
+  lucide.createIcons();
+
+  // ══════════════════════════════════════════════════
+  // Segmented Control: Quick / Advanced
+  // ══════════════════════════════════════════════════
+  const segQuick = document.getElementById('seg-quick');
+  const segAdvanced = document.getElementById('seg-advanced');
+  const segIndicator = document.getElementById('seg-indicator');
+  const quickView = document.getElementById('quick-view');
+  const advancedView = document.getElementById('advanced-view');
+
+  let currentView = 'quick';
+
+  function switchView(target) {
+    if (target === currentView) return;
+    currentView = target;
+
+    segQuick.classList.toggle('active', target === 'quick');
+    segAdvanced.classList.toggle('active', target === 'advanced');
+    segIndicator.classList.toggle('advanced', target === 'advanced');
+
+    const outgoing = target === 'quick' ? advancedView : quickView;
+    const incoming = target === 'quick' ? quickView : advancedView;
+
+    outgoing.style.opacity = '0';
+    outgoing.style.transform = 'translateY(6px)';
+    outgoing.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+
+    setTimeout(() => {
+      outgoing.classList.add('hidden');
+      outgoing.style.opacity = '';
+      outgoing.style.transform = '';
+      outgoing.style.transition = '';
+
+      incoming.classList.remove('hidden');
+      incoming.classList.add('entering');
+
+      if (target === 'quick') {
+        incoming.classList.remove('stagger-in');
+        void incoming.offsetWidth;
+        incoming.classList.add('stagger-in');
+      }
+
+      if (target === 'advanced') {
+        syncQuickToAdvanced();
+      }
+
+      setTimeout(() => {
+        incoming.classList.remove('entering');
+      }, 400);
+    }, 220);
+  }
+
+  segQuick.addEventListener('click', () => switchView('quick'));
+  segAdvanced.addEventListener('click', () => switchView('advanced'));
+
+  // ══════════════════════════════════════════════════
+  // Quick View: AI Model pills
+  // ══════════════════════════════════════════════════
+  const modelGroup = document.getElementById('model-group');
+  const modelPills = modelGroup.querySelectorAll('.q-model-pill');
+  modelPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      modelPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Rounds stepper
+  // ══════════════════════════════════════════════════
+  let roundsValue = 5;
+  const roundsNum = document.getElementById('rounds-num');
+  const roundsMinus = document.getElementById('rounds-minus');
+  const roundsPlus = document.getElementById('rounds-plus');
+
+  function updateRounds(val) {
+    roundsValue = Math.max(2, Math.min(10, val));
+    roundsNum.textContent = roundsValue;
+    roundsNum.classList.add('bump');
+    setTimeout(() => roundsNum.classList.remove('bump'), 200);
+  }
+
+  roundsMinus.addEventListener('click', () => updateRounds(roundsValue - 1));
+  roundsPlus.addEventListener('click', () => updateRounds(roundsValue + 1));
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Difficulty pills
+  // ══════════════════════════════════════════════════
+  const diffGroup = document.getElementById('diff-group');
+  const diffPills = diffGroup.querySelectorAll('.q-diff-pill');
+  diffPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      diffPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Quick View: Audio master toggle
+  // ══════════════════════════════════════════════════
+  const audioMaster = document.getElementById('audio-master');
+  const audioLabel = document.getElementById('audio-label');
+  const audioIconEl = document.getElementById('audio-icon');
+
+  audioMaster.addEventListener('click', () => {
+    const isActive = audioMaster.classList.toggle('active');
+    audioLabel.textContent = isActive ? 'Game Audio' : 'Audio Off';
+    audioIconEl.setAttribute('data-lucide', isActive ? 'volume-2' : 'volume-x');
+    lucide.createIcons();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Sync Quick → Advanced
+  // ══════════════════════════════════════════════════
+  function syncQuickToAdvanced() {
+    // Model
+    const activeModel = modelGroup.querySelector('.q-model-pill.active');
+    if (activeModel) {
+      document.getElementById('adv-model').value = activeModel.dataset.model;
+    }
+
+    // Rounds
+    const advRoundsSlider = document.getElementById('range-adv-rounds');
+    advRoundsSlider.value = roundsValue;
+    updateSlider(advRoundsSlider);
+
+    // Difficulty → timing presets
+    const activeDiff = diffGroup.querySelector('.q-diff-pill.active');
+    if (activeDiff) {
+      const answerSlider = document.getElementById('range-answer');
+      const nobuzzSlider = document.getElementById('range-nobuzz');
+      const bonusSlider = document.getElementById('range-bonus');
+
+      answerSlider.value = activeDiff.dataset.answer;
+      nobuzzSlider.value = activeDiff.dataset.nobuzz;
+      bonusSlider.value = activeDiff.dataset.bonus;
+
+      updateSlider(answerSlider);
+      updateSlider(nobuzzSlider);
+      updateSlider(bonusSlider);
+    }
+
+    // Audio
+    const isAudioOn = audioMaster.classList.contains('active');
+    document.querySelectorAll('.acc-toggle-switch input[type="checkbox"]').forEach(cb => {
+      cb.checked = isAudioOn;
+    });
+
+    // Update previews
+    updateAllPreviews();
+  }
+
+  // ══════════════════════════════════════════════════
+  // Range sliders
+  // ══════════════════════════════════════════════════
+  function updateSlider(slider) {
+    const suffix = slider.dataset.suffix || '';
+    const val = slider.value + suffix;
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    const pct = ((parseFloat(slider.value) - min) / (max - min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+
+    // Update the range-value badge next to slider
+    const rvId = 'rv-' + slider.id.replace('range-', '');
+    const rvEl = document.getElementById(rvId);
+    if (rvEl) rvEl.textContent = val;
+
+    // Update the ctrl-value in label
+    const valId = 'val-' + slider.id.replace('range-', '');
+    const valEl = document.getElementById(valId);
+    if (valEl) valEl.textContent = val;
+  }
+
+  document.querySelectorAll('input[type="range"].styled-range').forEach(slider => {
+    slider.addEventListener('input', () => {
+      updateSlider(slider);
+      updateAllPreviews();
+    });
+    updateSlider(slider); // init
+  });
+
+  // ══════════════════════════════════════════════════
+  // End mode conditional fields
+  // ══════════════════════════════════════════════════
+  const endModeSelect = document.getElementById('adv-end-mode');
+  const timerMinGroup = document.getElementById('timer-minutes-group');
+  const timerExpGroup = document.getElementById('timer-expiry-group');
+
+  function updateTimerFields() {
+    const isTimer = endModeSelect.value === 'timer';
+    timerMinGroup.classList.toggle('visible', isTimer);
+    timerExpGroup.classList.toggle('visible', isTimer);
+  }
+  endModeSelect.addEventListener('change', () => {
+    updateTimerFields();
+    updateAllPreviews();
+  });
+  updateTimerFields();
+
+  // ══════════════════════════════════════════════════
+  // Preview text updates
+  // ══════════════════════════════════════════════════
+  function updateAllPreviews() {
+    // AI & Content
+    const modelEl = document.getElementById('adv-model');
+    const modEl = document.getElementById('adv-moderation');
+    const modelText = modelEl.options[modelEl.selectedIndex].text.split(' (')[0];
+    const modText = modEl.options[modEl.selectedIndex].text;
+    document.getElementById('preview-ai').textContent = modelText + ' · ' + modText;
+
+    // Game Rules
+    const topics = document.getElementById('range-topics').value;
+    const rounds = document.getElementById('range-adv-rounds').value;
+    const revealEl = document.getElementById('adv-reveal');
+    const revealText = revealEl.options[revealEl.selectedIndex].text;
+    document.getElementById('preview-rules').textContent = topics + ' topics · ' + rounds + ' rounds · ' + revealText;
+
+    // Timing
+    const answer = document.getElementById('range-answer').value;
+    const nobuzz = document.getElementById('range-nobuzz').value;
+    const bonus = document.getElementById('range-bonus').value;
+    document.getElementById('preview-timing').textContent = answer + 's answer · ' + nobuzz + 's no-buzz · ' + bonus + 's bonus';
+
+    // Audio
+    const checks = document.querySelectorAll('.acc-toggle-switch input[type="checkbox"]');
+    const labels = [];
+    checks.forEach(cb => {
+      if (cb.checked) {
+        const map = { narration: 'Narration', sfx: 'SFX', music: 'Music' };
+        labels.push(map[cb.dataset.audio] || '');
+      }
+    });
+    document.getElementById('preview-audio').textContent = labels.length ? labels.join(' · ') : 'All off';
+  }
+
+  // Listen for select changes
+  document.querySelectorAll('.styled-select').forEach(sel => {
+    sel.addEventListener('change', updateAllPreviews);
+  });
+
+  // Listen for audio toggle changes
+  document.querySelectorAll('.acc-toggle-switch input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', updateAllPreviews);
+  });
+
+  // Init previews
+  updateAllPreviews();
+
+  // ══════════════════════════════════════════════════
+  // Start button
+  // ══════════════════════════════════════════════════
+  const startBtn = document.getElementById('start-btn');
+  startBtn.addEventListener('click', () => {
+    startBtn.style.transform = 'scale(0.96)';
+    setTimeout(() => { startBtn.style.transform = ''; }, 150);
+  });
+
+  // ══════════════════════════════════════════════════
+  // Three.js wireframe octahedrons
+  // ══════════════════════════════════════════════════
+  (function initThree() {
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+
+    const colors = [
+      new THREE.Color('#f59e0b'),
+      new THREE.Color('#4ade80'),
+      new THREE.Color('#fb7185'),
+    ];
+
+    const shapes = [];
+    const count = window.innerWidth < 500 ? 6 : 10;
+
+    for (let i = 0; i < count; i++) {
+      const size = 0.6 + Math.random() * 1.8;
+      const geometry = new THREE.OctahedronGeometry(size, 0);
+      const wireframe = new THREE.WireframeGeometry(geometry);
+      const color = colors[i % 3];
+      const opacity = 0.10 + Math.random() * 0.06;
+      const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      const mesh = new THREE.LineSegments(wireframe, material);
+
+      mesh.position.set(
+        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 12
+      );
+
+      const rotSpeed = {
+        x: (Math.random() - 0.5) * 0.004,
+        y: (Math.random() - 0.5) * 0.006,
+        z: (Math.random() - 0.5) * 0.003,
+      };
+      const driftSpeed = {
+        x: (Math.random() - 0.5) * 0.003,
+        y: (Math.random() - 0.5) * 0.002,
+      };
+
+      shapes.push({ mesh, rotSpeed, driftSpeed });
+      scene.add(mesh);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => {
+        s.mesh.rotation.x += s.rotSpeed.x;
+        s.mesh.rotation.y += s.rotSpeed.y;
+        s.mesh.rotation.z += s.rotSpeed.z;
+        s.mesh.position.x += s.driftSpeed.x;
+        s.mesh.position.y += s.driftSpeed.y;
+        if (s.mesh.position.x > 18) s.mesh.position.x = -18;
+        if (s.mesh.position.x < -18) s.mesh.position.x = 18;
+        if (s.mesh.position.y > 12) s.mesh.position.y = -12;
+        if (s.mesh.position.y < -12) s.mesh.position.y = 12;
+      });
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

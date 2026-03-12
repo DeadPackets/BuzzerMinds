@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BuzzerMinds — Wireframe Grid</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#12102a;
+  --surface:rgba(18,16,42,0.65);
+  --coral:#ff6b6b;
+  --blue:#60a5fa;
+  --cream:#fef3c7;
+  --sage:#86efac;
+  --violet:#c4b5fd;
+  --text:#f0ecff;
+  --dim:#7b74a0;
+}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
+
+/* Dot grid background */
+.dot-grid{position:fixed;inset:0;z-index:0;background:radial-gradient(circle,rgba(192,180,253,0.06) 1.5px,transparent 1.5px);background-size:40px 40px;pointer-events:none}
+
+/* Three.js canvas */
+#wireframe-bg{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* Theme label */
+.theme-label{position:fixed;top:16px;right:20px;font-size:.7rem;font-weight:700;color:var(--dim);background:var(--surface);backdrop-filter:blur(10px);border:1px solid rgba(192,180,253,0.12);border-radius:8px;padding:5px 14px;z-index:100;letter-spacing:.5px;font-family:'Nunito',sans-serif;text-transform:uppercase}
+
+/* Layout */
+.lobby{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:80px;
+  padding:40px 64px;
+  min-height:100vh;
+  align-items:center;
+  position:relative;
+  z-index:2;
+}
+
+/* Towers */
+.left-tower{display:flex;flex-direction:column;align-items:flex-start;gap:36px}
+.right-tower{display:flex;flex-direction:column;align-items:flex-end;gap:36px}
+
+/* Pop-in animation */
+@keyframes popIn{
+  0%{opacity:0;transform:translateY(24px) scale(0.92)}
+  60%{opacity:1;transform:translateY(-6px) scale(1.02)}
+  80%{transform:translateY(2px) scale(0.99)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+.pop{opacity:0;animation:popIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.pop-d1{animation-delay:.05s}
+.pop-d2{animation-delay:.12s}
+.pop-d3{animation-delay:.2s}
+.pop-d4{animation-delay:.28s}
+.pop-d5{animation-delay:.36s}
+.pop-d6{animation-delay:.44s}
+
+/* Logo */
+.logo{font-family:'Fredoka',sans-serif;font-size:4rem;font-weight:700;line-height:1.1;letter-spacing:-1px}
+.logo .cor{color:var(--coral)}
+.logo .blu{color:var(--blue)}
+
+/* Room code block */
+.code-block{width:100%}
+.code-label{font-size:.85rem;color:var(--dim);font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:1.5px}
+.code-label i{width:16px;height:16px}
+
+.code-row{display:flex;gap:12px;margin-bottom:18px}
+
+@keyframes charWave{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+.code-ch{
+  font-family:'Fredoka',sans-serif;
+  font-size:7.5rem;
+  font-weight:700;
+  color:#fff;
+  background:rgba(18,16,42,0.5);
+  backdrop-filter:blur(8px);
+  border:2px solid rgba(96,165,250,0.2);
+  border-radius:16px;
+  width:110px;
+  height:124px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  animation:charWave 2.8s ease-in-out infinite;
+}
+.code-ch:nth-child(1){animation-delay:0s}
+.code-ch:nth-child(2){animation-delay:.15s}
+.code-ch:nth-child(3){animation-delay:.3s}
+.code-ch:nth-child(4){animation-delay:.45s}
+.code-ch:nth-child(5){animation-delay:.6s}
+.code-ch:nth-child(6){animation-delay:.75s}
+
+.join-url{font-size:1.1rem;color:var(--dim);font-weight:600}
+.join-url b{color:var(--blue);font-weight:800}
+
+/* Settings 2x2 grid */
+.settings-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  width:100%;
+}
+.s-card{
+  background:rgba(18,16,42,0.5);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(192,180,253,0.12);
+  border-radius:14px;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+  cursor:default;
+  min-width:120px;
+}
+.s-card:hover{transform:translateY(-3px)}
+
+.s-card i{width:32px;height:32px;margin-bottom:4px}
+.s-card.accent-coral i{color:var(--coral)}
+.s-card.accent-blue i{color:var(--blue)}
+.s-card.accent-sage i{color:var(--sage)}
+.s-card.accent-violet i{color:var(--violet)}
+
+.s-value{font-family:'Fredoka',sans-serif;font-size:1.4rem;font-weight:700;color:var(--text);line-height:1.2}
+.s-label{font-size:.7rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+
+/* QR block */
+.qr-block{
+  background:var(--surface);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(134,239,172,0.25);
+  border-radius:18px;
+  padding:28px;
+  text-align:center;
+  width:100%;
+}
+.scan-text{font-size:.9rem;color:var(--dim);font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;justify-content:center}
+.scan-text i{width:18px;height:18px}
+.qr{
+  width:220px;height:220px;
+  background:#fff;
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fredoka',sans-serif;font-weight:700;
+  color:var(--bg);font-size:1rem;
+  margin:0 auto;
+}
+
+/* Players block */
+.players-block{
+  background:var(--surface);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(192,180,253,0.12);
+  border-radius:18px;
+  padding:26px;
+  width:100%;
+}
+.players-label{
+  font-size:.85rem;color:var(--dim);font-weight:700;
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;
+  text-transform:uppercase;letter-spacing:1.2px;
+}
+.players-label i{width:18px;height:18px}
+
+.player-list{display:flex;flex-direction:column;gap:5px}
+
+.player{
+  padding:12px 20px;
+  border-radius:40px;
+  font-size:1.15rem;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  transition:background .2s;
+}
+.player:nth-child(odd){background:rgba(18,16,42,0.45)}
+.player:hover{background:rgba(192,180,253,0.08)}
+
+.dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.player:nth-child(1) .dot{background:var(--coral)}
+.player:nth-child(2) .dot{background:var(--blue)}
+.player:nth-child(3) .dot{background:var(--sage)}
+.player:nth-child(4) .dot{background:var(--violet)}
+.player:nth-child(5) .dot{background:var(--cream)}
+
+.vip{
+  font-size:.7rem;font-weight:800;
+  color:var(--cream);
+  background:rgba(254,243,199,0.12);
+  padding:3px 10px;border-radius:8px;
+  margin-left:auto;
+  display:flex;align-items:center;gap:5px;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.vip i{width:13px;height:13px;color:var(--cream)}
+
+/* Status */
+.status{
+  font-size:.95rem;color:var(--dim);font-weight:600;
+  text-align:right;
+  padding:14px 24px;
+  background:var(--surface);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(192,180,253,0.1);
+  border-radius:14px;
+  width:100%;
+}
+</style>
+</head>
+<body>
+
+<div class="dot-grid"></div>
+<canvas id="wireframe-bg"></canvas>
+<div class="theme-label">Wireframe Grid</div>
+
+<div class="lobby">
+  <div class="left-tower">
+    <div class="logo pop pop-d1"><span class="cor">Buzzer</span><span class="blu">Minds</span></div>
+
+    <div class="code-block pop pop-d2">
+      <div class="code-label"><i data-lucide="hash"></i> Room Code</div>
+      <div class="code-row">
+        <span class="code-ch">X</span><span class="code-ch">K</span><span class="code-ch">7</span>
+        <span class="code-ch">Q</span><span class="code-ch">M</span><span class="code-ch">2</span>
+      </div>
+      <div class="join-url">Enter at <b>quiz.deadpackets.pw</b></div>
+    </div>
+
+    <div class="settings-grid pop pop-d3">
+      <div class="s-card accent-coral">
+        <i data-lucide="book-open"></i>
+        <div class="s-value">Science</div>
+        <div class="s-label">Topic</div>
+      </div>
+      <div class="s-card accent-blue">
+        <i data-lucide="gauge"></i>
+        <div class="s-value">Medium</div>
+        <div class="s-label">Difficulty</div>
+      </div>
+      <div class="s-card accent-sage">
+        <i data-lucide="list-ordered"></i>
+        <div class="s-value">10</div>
+        <div class="s-label">Questions</div>
+      </div>
+      <div class="s-card accent-violet">
+        <i data-lucide="timer"></i>
+        <div class="s-value">30s</div>
+        <div class="s-label">Time Limit</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-tower">
+    <div class="qr-block pop pop-d4">
+      <div class="scan-text"><i data-lucide="scan-line"></i> Scan to join</div>
+      <div class="qr">QR CODE</div>
+    </div>
+
+    <div class="players-block pop pop-d5">
+      <div class="players-label"><i data-lucide="users"></i> Players (5 joined)</div>
+      <div class="player-list">
+        <div class="player"><span class="dot"></span> SpeedDemon <span class="vip"><i data-lucide="crown"></i> VIP</span></div>
+        <div class="player"><span class="dot"></span> BrainiacBee</div>
+        <div class="player"><span class="dot"></span> QuizWhiz42</div>
+        <div class="player"><span class="dot"></span> TriviaKing</div>
+        <div class="player"><span class="dot"></span> NerdHerd99</div>
+      </div>
+    </div>
+
+    <div class="status pop pop-d6">Waiting for VIP to start...</div>
+  </div>
+</div>
+
+<script>
+lucide.createIcons();
+
+// Three.js wireframe background
+(function(){
+  const canvas = document.getElementById('wireframe-bg');
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.z = 14;
+
+  const colors = [0xff6b6b, 0x60a5fa, 0xc4b5fd, 0x86efac, 0xfef3c7];
+  const shapes = [];
+  const count = 12;
+
+  for(let i=0;i<count;i++){
+    const size = 0.8 + Math.random()*1.2;
+    const geo = new THREE.DodecahedronGeometry(size, 0);
+    const wireGeo = new THREE.WireframeGeometry(geo);
+    const opacity = 0.12 + Math.random()*0.08;
+    const mat = new THREE.LineBasicMaterial({
+      color: colors[i % colors.length],
+      transparent: true,
+      opacity: opacity
+    });
+    const mesh = new THREE.LineSegments(wireGeo, mat);
+    mesh.position.x = (Math.random()-0.5)*22;
+    mesh.position.y = (Math.random()-0.5)*14;
+    mesh.position.z = (Math.random()-0.5)*8 - 2;
+    mesh.rotation.x = Math.random()*Math.PI;
+    mesh.rotation.y = Math.random()*Math.PI;
+    mesh.userData = {
+      rotSpeedX: (Math.random()-0.5)*0.003,
+      rotSpeedY: (Math.random()-0.5)*0.004,
+      rotSpeedZ: (Math.random()-0.5)*0.002,
+      driftX: (Math.random()-0.5)*0.004,
+      driftY: (Math.random()-0.5)*0.003,
+      origX: mesh.position.x,
+      origY: mesh.position.y,
+      driftPhase: Math.random()*Math.PI*2
+    };
+    scene.add(mesh);
+    shapes.push(mesh);
+  }
+
+  let time = 0;
+  function animate(){
+    requestAnimationFrame(animate);
+    time += 0.008;
+    shapes.forEach(s=>{
+      s.rotation.x += s.userData.rotSpeedX;
+      s.rotation.y += s.userData.rotSpeedY;
+      s.rotation.z += s.userData.rotSpeedZ;
+      s.position.x = s.userData.origX + Math.sin(time + s.userData.driftPhase)*2;
+      s.position.y = s.userData.origY + Math.cos(time*0.7 + s.userData.driftPhase)*1.5;
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+</body>
+</html>
