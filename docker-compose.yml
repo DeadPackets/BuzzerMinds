@@ -18,6 +18,8 @@ services:
   backend:
     build:
       context: ./backend
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-buzzerminds}:${POSTGRES_PASSWORD:-buzzerminds}@postgres:5432/${POSTGRES_DB:-buzzerminds}
       BUZZERMINDS_CONFIG_PATH: /app/config.yml

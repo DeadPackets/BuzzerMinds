@@ -26,7 +26,7 @@ export function SettingSlider({
         <FieldContent>
           <div className="flex items-center justify-between gap-3">
             <FieldLabel>{label}</FieldLabel>
-            <span className="text-sm font-semibold text-[var(--studio-ink)]">{value}</span>
+            <span className="text-sm font-semibold text-[var(--text-bright)]">{value}</span>
           </div>
           <FieldDescription>{description}</FieldDescription>
           <Slider

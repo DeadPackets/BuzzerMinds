@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>VIP Configure + Lobby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #141414;
+    --surface: rgba(30,30,30,0.65);
+    --panel-bg: rgba(26,26,26,0.97);
+    --amber: #f59e0b;
+    --sage: #4ade80;
+    --rose: #fb7185;
+    --sky: #38bdf8;
+    --cream: #fef3c7;
+    --text-bright: #f5f5f5;
+    --text-dim: #737373;
+    --border: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Outfit', sans-serif;
+  }
+
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text-bright);
+    font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale; overscroll-behavior: none;
+    overflow: hidden;
+  }
+
+  /* ── View switcher (mockup only) ── */
+  .view-switcher {
+    position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 500;
+    display: flex; gap: 4px;
+    background: rgba(20,20,20,0.9); backdrop-filter: blur(12px);
+    border: 1px solid rgba(245,158,11,0.15); border-radius: 10px;
+    padding: 4px; font-family: var(--font-display);
+  }
+  .view-switcher button {
+    padding: 6px 12px; border: none; border-radius: 7px;
+    font-family: var(--font-display); font-size: 0.65rem; font-weight: 600;
+    color: var(--text-dim); background: none; cursor: pointer;
+    transition: all 0.2s; white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .view-switcher button.active {
+    background: rgba(245,158,11,0.15); color: var(--amber);
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+  .view-switcher button:not(.active):hover { color: var(--text-bright); }
+
+  /* ── Background layers ── */
+  .bg-pattern {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(245,158,11,0.03) 0px, rgba(245,158,11,0.03) 1px,
+      transparent 1px, transparent 30px
+    );
+  }
+  #three-canvas {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #three-canvas.dimmed { opacity: 0.3; }
+
+  /* ── Mobile frame ── */
+  .mobile-frame {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 440px;
+    height: 100vh; height: 100dvh;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    padding-top: max(14px, env(safe-area-inset-top));
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 50;
+  }
+  .top-bar-left { display: flex; align-items: center; gap: 7px; }
+  .top-bar-left i { width: 16px; height: 16px; color: var(--amber); }
+  .top-bar-logo {
+    font-family: var(--font-display); font-size: 1.05rem; font-weight: 800;
+  }
+  .room-code {
+    font-family: var(--font-display); font-weight: 800; font-size: 0.78rem;
+    color: var(--amber); letter-spacing: 0.06em;
+    background: rgba(245,158,11,0.08);
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid rgba(245,158,11,0.15);
+  }
+
+  /* ════════════════════════════════════════════════════
+     VIEW: VIP CONFIGURE
+     ════════════════════════════════════════════════════ */
+  .configure-screen {
+    flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    padding: 20px 20px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .configure-screen::-webkit-scrollbar { width: 4px; }
+  .configure-screen::-webkit-scrollbar-track { background: transparent; }
+  .configure-screen::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  .cfg-title {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.4rem;
+    margin-bottom: 2px;
+  }
+  .cfg-subtitle {
+    font-size: 0.82rem; color: var(--text-dim); margin-bottom: 24px;
+    line-height: 1.4;
+  }
+
+  /* Section label */
+  .cfg-label {
+    font-family: var(--font-display); font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cfg-label i { width: 13px; height: 13px; color: var(--amber); }
+
+  /* ── Game Mode: 2 cards side by side ── */
+  .cfg-mode-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 24px;
+  }
+  .cfg-mode-card {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 20px 12px 16px;
+    background: rgba(20,20,20,0.5);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent; user-select: none;
+    position: relative;
+  }
+  .cfg-mode-card:hover { transform: translateY(-2px); }
+  .cfg-mode-card:active { transform: scale(0.96); }
+  .cfg-mode-card .mode-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04);
+    transition: all 0.25s;
+  }
+  .cfg-mode-card .mode-icon i { width: 20px; height: 20px; color: var(--text-dim); transition: color 0.25s; }
+  .cfg-mode-card .mode-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.95rem;
+    transition: color 0.25s;
+  }
+  .cfg-mode-card .mode-desc {
+    font-size: 0.65rem; color: var(--text-dim); text-align: center;
+    line-height: 1.35;
+  }
+  .cfg-mode-card .check-dot {
+    position: absolute; top: 10px; right: 10px;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .cfg-mode-card .check-dot i { width: 11px; height: 11px; opacity: 0; transition: opacity 0.2s; }
+  .cfg-mode-card.active .check-dot {
+    background: var(--amber); border-color: var(--amber);
+  }
+  .cfg-mode-card.active .check-dot i { opacity: 1; color: #141414; }
+  .cfg-mode-card.active {
+    border-color: rgba(245,158,11,0.35);
+    background: rgba(245,158,11,0.06);
+  }
+  .cfg-mode-card.active .mode-icon {
+    background: rgba(245,158,11,0.12);
+  }
+  .cfg-mode-card.active .mode-icon i { color: var(--amber); }
+  .cfg-mode-card.active .mode-name { color: var(--amber); }
+
+  /* ── AI Quality: 3 cards ── */
+  .cfg-ai-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 24px;
+  }
+  .cfg-ai-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 18px 6px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent; user-select: none;
+    position: relative;
+  }
+  .cfg-ai-card:hover { transform: translateY(-2px); }
+  .cfg-ai-card:active { transform: scale(0.96); }
+  .cfg-ai-card .ai-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  .cfg-ai-card .ai-icon i { width: 18px; height: 18px; transition: color 0.25s; }
+  .cfg-ai-card .ai-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    transition: color 0.25s;
+  }
+  .cfg-ai-card .ai-desc {
+    font-size: 0.58rem; color: var(--text-dim); text-align: center;
+    line-height: 1.35;
+  }
+  .cfg-ai-card .check-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .cfg-ai-card .check-dot i { width: 10px; height: 10px; opacity: 0; transition: opacity 0.2s; }
+
+  /* Speed — sage */
+  .cfg-ai-card[data-ai="speed"] .ai-icon { background: rgba(74,222,128,0.12); color: var(--sage); }
+  .cfg-ai-card[data-ai="speed"] .ai-icon i { color: var(--sage); }
+  .cfg-ai-card[data-ai="speed"].active {
+    border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.06);
+  }
+  .cfg-ai-card[data-ai="speed"].active .ai-name { color: var(--sage); }
+  .cfg-ai-card[data-ai="speed"].active .check-dot { background: var(--sage); border-color: var(--sage); }
+  .cfg-ai-card[data-ai="speed"].active .check-dot i { opacity: 1; color: #141414; }
+
+  /* Balanced — amber */
+  .cfg-ai-card[data-ai="balanced"] .ai-icon { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .cfg-ai-card[data-ai="balanced"] .ai-icon i { color: var(--amber); }
+  .cfg-ai-card[data-ai="balanced"].active {
+    border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06);
+  }
+  .cfg-ai-card[data-ai="balanced"].active .ai-name { color: var(--amber); }
+  .cfg-ai-card[data-ai="balanced"].active .check-dot { background: var(--amber); border-color: var(--amber); }
+  .cfg-ai-card[data-ai="balanced"].active .check-dot i { opacity: 1; color: #141414; }
+
+  /* Pro — sky */
+  .cfg-ai-card[data-ai="pro"] .ai-icon { background: rgba(56,189,248,0.12); color: var(--sky); }
+  .cfg-ai-card[data-ai="pro"] .ai-icon i { color: var(--sky); }
+  .cfg-ai-card[data-ai="pro"].active {
+    border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.06);
+  }
+  .cfg-ai-card[data-ai="pro"].active .ai-name { color: var(--sky); }
+  .cfg-ai-card[data-ai="pro"].active .check-dot { background: var(--sky); border-color: var(--sky); }
+  .cfg-ai-card[data-ai="pro"].active .check-dot i { opacity: 1; color: #141414; }
+
+  /* ── Rounds / Timer stepper ── */
+  .cfg-stepper-section { margin-bottom: 24px; }
+  .cfg-stepper {
+    display: flex; align-items: center;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .cfg-stepper-btn {
+    width: 60px; height: 60px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none; outline: none;
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .cfg-stepper-btn i { width: 22px; height: 22px; }
+  .cfg-stepper-btn:hover { color: var(--amber); background: rgba(245,158,11,0.06); }
+  .cfg-stepper-btn:active { transform: scale(0.9); }
+  .cfg-stepper-sep { width: 1px; height: 28px; background: var(--border); }
+  .cfg-stepper-display {
+    flex: 1; text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 0;
+  }
+  .cfg-stepper-num {
+    font-family: var(--font-display); font-weight: 900; font-size: 2rem;
+    color: var(--amber); line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .cfg-stepper-num.bump { transform: scale(1.15); }
+  .cfg-stepper-unit {
+    font-size: 0.62rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  /* ── Buzzer Speed: 3 cards ── */
+  .cfg-buzzer-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 24px;
+  }
+  .cfg-buzzer-card {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px 6px 14px;
+    background: rgba(20,20,20,0.5);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    -webkit-tap-highlight-color: transparent; user-select: none;
+    position: relative;
+  }
+  .cfg-buzzer-card:hover { transform: translateY(-2px); }
+  .cfg-buzzer-card:active { transform: scale(0.96); }
+  .cfg-buzzer-card .bz-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  .cfg-buzzer-card .bz-icon i { width: 16px; height: 16px; transition: color 0.25s; }
+  .cfg-buzzer-card .bz-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.78rem;
+    transition: color 0.25s;
+  }
+  .cfg-buzzer-card .bz-desc {
+    font-size: 0.56rem; color: var(--text-dim); text-align: center;
+    line-height: 1.3;
+  }
+  .cfg-buzzer-card .check-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .cfg-buzzer-card .check-dot i { width: 10px; height: 10px; opacity: 0; transition: opacity 0.2s; }
+
+  /* Lightning — rose */
+  .cfg-buzzer-card[data-bz="lightning"] .bz-icon { background: rgba(251,113,133,0.12); }
+  .cfg-buzzer-card[data-bz="lightning"] .bz-icon i { color: var(--rose); }
+  .cfg-buzzer-card[data-bz="lightning"].active {
+    border-color: rgba(251,113,133,0.35); background: rgba(251,113,133,0.06);
+  }
+  .cfg-buzzer-card[data-bz="lightning"].active .bz-name { color: var(--rose); }
+  .cfg-buzzer-card[data-bz="lightning"].active .check-dot { background: var(--rose); border-color: var(--rose); }
+  .cfg-buzzer-card[data-bz="lightning"].active .check-dot i { opacity: 1; color: #141414; }
+
+  /* Standard — amber */
+  .cfg-buzzer-card[data-bz="standard"] .bz-icon { background: rgba(245,158,11,0.12); }
+  .cfg-buzzer-card[data-bz="standard"] .bz-icon i { color: var(--amber); }
+  .cfg-buzzer-card[data-bz="standard"].active {
+    border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06);
+  }
+  .cfg-buzzer-card[data-bz="standard"].active .bz-name { color: var(--amber); }
+  .cfg-buzzer-card[data-bz="standard"].active .check-dot { background: var(--amber); border-color: var(--amber); }
+  .cfg-buzzer-card[data-bz="standard"].active .check-dot i { opacity: 1; color: #141414; }
+
+  /* Relaxed — sage */
+  .cfg-buzzer-card[data-bz="relaxed"] .bz-icon { background: rgba(74,222,128,0.12); }
+  .cfg-buzzer-card[data-bz="relaxed"] .bz-icon i { color: var(--sage); }
+  .cfg-buzzer-card[data-bz="relaxed"].active {
+    border-color: rgba(74,222,128,0.35); background: rgba(74,222,128,0.06);
+  }
+  .cfg-buzzer-card[data-bz="relaxed"].active .bz-name { color: var(--sage); }
+  .cfg-buzzer-card[data-bz="relaxed"].active .check-dot { background: var(--sage); border-color: var(--sage); }
+  .cfg-buzzer-card[data-bz="relaxed"].active .check-dot i { opacity: 1; color: #141414; }
+
+  /* ── Moderation: 3 pills ── */
+  .cfg-mod-section { margin-bottom: 24px; }
+  .cfg-pill-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cfg-pill {
+    padding: 12px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    background: rgba(20,20,20,0.5);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .cfg-pill:hover { border-color: rgba(255,255,255,0.1); }
+  .cfg-pill:active { transform: scale(0.96); }
+  .cfg-pill .pill-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04);
+    transition: all 0.25s;
+  }
+  .cfg-pill .pill-icon i { width: 15px; height: 15px; color: var(--text-dim); transition: color 0.25s; }
+  .cfg-pill .pill-name {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.72rem;
+    color: var(--text-dim); transition: color 0.25s;
+    text-align: center;
+  }
+  .cfg-pill.active {
+    border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.06);
+  }
+  .cfg-pill.active .pill-icon { background: rgba(245,158,11,0.12); }
+  .cfg-pill.active .pill-icon i { color: var(--amber); }
+  .cfg-pill.active .pill-name { color: var(--amber); }
+
+  /* ── Audio toggles: 3 inline pills ── */
+  .cfg-audio-section { margin-bottom: 24px; }
+  .cfg-audio-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cfg-audio-pill {
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 14px 8px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .cfg-audio-pill:hover { border-color: rgba(255,255,255,0.1); }
+  .cfg-audio-pill:active { transform: scale(0.96); }
+  .cfg-audio-pill i {
+    width: 18px; height: 18px; color: var(--text-dim); transition: color 0.2s;
+  }
+  .cfg-audio-pill .audio-label {
+    font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em; transition: color 0.2s;
+  }
+  .cfg-audio-pill .audio-switch {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: rgba(255,255,255,0.1);
+    position: relative; transition: background 0.25s;
+  }
+  .cfg-audio-pill .audio-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background 0.25s;
+  }
+  .cfg-audio-pill.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .cfg-audio-pill.active i { color: var(--amber); }
+  .cfg-audio-pill.active .audio-label { color: var(--text-bright); }
+  .cfg-audio-pill.active .audio-switch { background: rgba(245,158,11,0.3); }
+  .cfg-audio-pill.active .audio-switch::after {
+    transform: translateX(16px); background: var(--amber);
+  }
+
+  /* ── Let's Go button (configure footer) ── */
+  .cfg-footer {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  .btn-letsgo {
+    width: 100%; padding: 16px 0;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--amber); border: none; border-radius: 14px;
+    font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+    color: #141414; cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-letsgo i { width: 20px; height: 20px; }
+  .btn-letsgo:hover { filter: brightness(1.08); }
+  .btn-letsgo:active { transform: scale(0.97); }
+
+  /* ── Ornament divider ── */
+  .cfg-ornament {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; margin-top: -4px;
+  }
+  .cfg-ornament-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(to right, transparent, rgba(245,158,11,0.15), transparent);
+  }
+  .cfg-ornament-diamond {
+    width: 6px; height: 6px;
+    background: rgba(245,158,11,0.3);
+    transform: rotate(45deg);
+    border-radius: 1px;
+  }
+
+  /* ════════════════════════════════════════════════════
+     VIEW: LOBBY WAITING (VIP + Non-VIP)
+     ════════════════════════════════════════════════════ */
+  .lobby {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px;
+    gap: 20px;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .lobby-waiting {
+    font-family: var(--font-display); font-weight: 600; font-size: 1.4rem;
+    opacity: 0; animation: fadeInUp 0.6s ease 0.1s forwards;
+  }
+  .pulse-area {
+    position: relative;
+    width: 120px; height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; animation: fadeInUp 0.6s ease 0.25s forwards;
+  }
+  .pulse-ring {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(245,158,11,0.2);
+    border-radius: 50%;
+    animation: pulseExpand 2.4s ease-out infinite;
+  }
+  .pulse-ring:nth-child(2) { animation-delay: 1.2s; }
+  @keyframes pulseExpand {
+    0% { transform: scale(0.6); opacity: 0.6; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .pulse-count {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .pulse-count-num {
+    font-family: var(--font-display); font-weight: 900; font-size: 3rem;
+    color: var(--amber); line-height: 1;
+  }
+  .pulse-count-label {
+    font-size: 0.72rem; font-weight: 500; color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+
+  /* Player cards in lobby */
+  .player-list {
+    display: flex; flex-direction: column; gap: 6px;
+    width: 100%; max-width: 320px;
+  }
+  .player-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    opacity: 0;
+    animation: playerEnter 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  .player-card:nth-child(1) { animation-delay: 0.4s; }
+  .player-card:nth-child(2) { animation-delay: 0.55s; }
+  .player-card:nth-child(3) { animation-delay: 0.7s; }
+  .player-card:nth-child(4) { animation-delay: 0.85s; }
+  @keyframes playerEnter {
+    from { opacity: 0; transform: translateX(-16px) scale(0.95); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  .player-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .player-name {
+    flex: 1; font-weight: 600; font-size: 0.88rem;
+  }
+  .player-badge {
+    font-family: var(--font-display); font-size: 0.58rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .player-badge.vip {
+    background: rgba(245,158,11,0.12); color: var(--amber);
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+  .player-badge.ready {
+    background: rgba(74,222,128,0.12); color: var(--sage);
+    border: 1px solid rgba(74,222,128,0.2);
+  }
+  .player-badge.waiting {
+    background: rgba(255,255,255,0.04); color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Bottom bar (shared between VIP lobby / non-VIP lobby) ── */
+  .bottom-bar {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  .bottom-btns {
+    display: flex; gap: 10px; margin-bottom: 6px;
+  }
+  .btn-configure {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 14px 0;
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    color: var(--text-bright); font-family: var(--font-display);
+    font-weight: 700; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-configure i { width: 16px; height: 16px; }
+  .btn-configure:hover { border-color: rgba(245,158,11,0.3); color: var(--amber); }
+  .btn-configure:active { transform: scale(0.97); }
+
+  .btn-start {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 14px 0;
+    background: var(--amber); border: none; border-radius: 12px;
+    color: #141414; font-family: var(--font-display);
+    font-weight: 800; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-start i { width: 17px; height: 17px; }
+  .btn-start:hover { filter: brightness(1.08); }
+  .btn-start:active { transform: scale(0.97); }
+  .btn-start:disabled {
+    opacity: 0.4; cursor: not-allowed; filter: none;
+  }
+
+  .btn-ready {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 0;
+    background: var(--sage); border: none; border-radius: 12px;
+    color: #141414; font-family: var(--font-display);
+    font-weight: 800; font-size: 0.95rem;
+    cursor: pointer; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-ready i { width: 18px; height: 18px; }
+  .btn-ready:hover { filter: brightness(1.08); }
+  .btn-ready:active { transform: scale(0.97); }
+  .btn-ready.is-ready {
+    background: transparent;
+    border: 1.5px solid rgba(74,222,128,0.3);
+    color: var(--sage);
+  }
+
+  .blocker-text {
+    text-align: center; font-size: 0.65rem; color: var(--text-dim);
+    line-height: 1.4; padding-top: 2px;
+  }
+
+  /* ════════════════════════════════════════════════════
+     SCRIM + SLIDE-UP SETTINGS PANEL
+     ════════════════════════════════════════════════════ */
+  .scrim {
+    position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .scrim.active { opacity: 1; pointer-events: auto; }
+
+  .settings-panel {
+    position: fixed;
+    bottom: 0; left: 50%;
+    width: 100%; max-width: 440px;
+    max-height: 85vh; max-height: 85dvh;
+    transform: translateX(-50%) translateY(100%);
+    z-index: 100;
+    transition: transform 0.45s cubic-bezier(0.32,0.72,0,1);
+    will-change: transform;
+    display: flex; flex-direction: column;
+  }
+  .settings-panel.open { transform: translateX(-50%) translateY(0); }
+
+  .panel-surface {
+    background: var(--panel-bg);
+    backdrop-filter: blur(24px);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column;
+    max-height: 85vh; max-height: 85dvh;
+    overflow: hidden;
+  }
+  .panel-handle {
+    flex-shrink: 0; padding: 10px 0 4px;
+    display: flex; justify-content: center;
+  }
+  .drag-bar {
+    width: 40px; height: 4px;
+    background: rgba(255,255,255,0.18); border-radius: 2px;
+  }
+  .panel-header {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 20px 12px;
+  }
+  .panel-title {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.15rem;
+  }
+  .panel-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text-dim); cursor: pointer; transition: all 0.15s;
+  }
+  .panel-close i { width: 16px; height: 16px; }
+  .panel-close:hover { color: var(--text-bright); background: rgba(255,255,255,0.1); }
+
+  /* Segmented control */
+  .seg-control {
+    margin: 0 20px 6px; position: relative;
+    background: rgba(30,30,30,0.8);
+    border-radius: 12px; border: 1px solid var(--border);
+    display: flex; padding: 4px; gap: 4px;
+  }
+  .seg-indicator {
+    position: absolute; top: 4px; left: 4px;
+    width: calc(50% - 6px); height: calc(100% - 8px);
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 9px;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 1;
+  }
+  .seg-indicator.advanced { transform: translateX(calc(100% + 4px)); }
+  .seg-btn {
+    flex: 1; position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 0;
+    border: none; background: none; outline: none;
+    font-family: var(--font-display); font-size: 0.82rem; font-weight: 600;
+    color: var(--text-dim); cursor: pointer; transition: color 0.25s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .seg-btn i { width: 15px; height: 15px; }
+  .seg-btn.active { color: var(--amber); }
+
+  /* Panel scrollable body */
+  .panel-body {
+    flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    padding: 0 20px 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  /* Panel footer */
+  .panel-footer {
+    flex-shrink: 0; padding: 12px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+  }
+  .btn-apply {
+    width: 100%; padding: 14px 0;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--amber); border: none; border-radius: 12px;
+    font-family: var(--font-display); font-weight: 800; font-size: 0.95rem;
+    color: #141414; cursor: pointer; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-apply i { width: 18px; height: 18px; }
+  .btn-apply:hover { filter: brightness(1.08); }
+  .btn-apply:active { transform: scale(0.97); }
+
+  /* ── Quick view inside panel ── */
+  .view-panel { transition: opacity 0.3s ease, transform 0.3s ease; }
+  .view-panel.hidden { display: none; }
+  .quick-view { padding: 14px 0 10px; }
+
+  /* ── Advanced view inside panel ── */
+  .advanced-view { padding: 8px 0 10px; }
+
+  .accordion {
+    border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; margin-bottom: 10px;
+    background: rgba(20,20,20,0.4);
+  }
+  .accordion-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    cursor: pointer; user-select: none;
+    -webkit-tap-highlight-color: transparent; transition: background 0.15s;
+  }
+  .accordion-header:hover { background: rgba(255,255,255,0.02); }
+  .accordion-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .accordion-icon i { width: 16px; height: 16px; }
+  .accordion-icon.amber { background: rgba(245,158,11,0.1); color: var(--amber); }
+  .accordion-icon.sage { background: rgba(74,222,128,0.1); color: var(--sage); }
+  .accordion-icon.sky { background: rgba(56,189,248,0.1); color: var(--sky); }
+  .accordion-icon.rose { background: rgba(251,113,133,0.1); color: var(--rose); }
+  .accordion-title {
+    flex: 1;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.88rem;
+  }
+  .accordion-count {
+    font-size: 0.6rem; font-weight: 600; color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 7px; border-radius: 6px;
+  }
+  .accordion-chevron {
+    color: var(--text-dim);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .accordion-chevron i { width: 16px; height: 16px; }
+  .accordion.open .accordion-chevron { transform: rotate(180deg); }
+  .accordion-body {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .accordion.open .accordion-body { max-height: 600px; }
+  .accordion-content {
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Advanced field rows */
+  .adv-field { margin-bottom: 14px; }
+  .adv-field:last-child { margin-bottom: 4px; }
+  .adv-field-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.04em; margin-bottom: 7px; margin-top: 14px;
+  }
+  .adv-field-label i { width: 12px; height: 12px; color: var(--amber); }
+  .adv-field-label .adv-hint {
+    margin-left: auto; font-weight: 400; font-size: 0.62rem;
+    color: rgba(115,115,115,0.7);
+  }
+
+  /* Select */
+  .adv-select-wrap { position: relative; }
+  .adv-select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--text-dim);
+    pointer-events: none;
+  }
+  .adv-select {
+    width: 100%; padding: 11px 36px 11px 14px;
+    background: rgba(20,20,20,0.5); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text-bright);
+    font-family: var(--font-body); font-size: 0.85rem; font-weight: 500;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  .adv-select:focus { border-color: rgba(245,158,11,0.4); }
+  .adv-select option { background: #1e1e1e; color: var(--text-bright); }
+
+  /* Range slider */
+  .adv-range-row { display: flex; align-items: center; gap: 12px; }
+  .adv-range-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(to right,
+      var(--amber) 0%, var(--amber) var(--fill, 50%),
+      rgba(255,255,255,0.08) var(--fill, 50%), rgba(255,255,255,0.08) 100%
+    );
+    outline: none; cursor: pointer;
+  }
+  .adv-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--amber); border: 3px solid #1e1e1e;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .adv-range-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .adv-range-value {
+    min-width: 36px; text-align: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
+    color: var(--amber);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 4px 8px;
+  }
+
+  /* Pill groups */
+  .adv-pill-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .adv-pill {
+    flex: 1; min-width: 0;
+    padding: 9px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: var(--font-body); font-size: 0.76rem; font-weight: 500;
+    color: var(--text-dim); text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .adv-pill:hover { border-color: rgba(245,158,11,0.2); color: var(--text-bright); }
+  .adv-pill.active {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--amber); font-weight: 600;
+  }
+
+  /* Toggle rows */
+  .adv-toggles { display: flex; gap: 10px; flex-wrap: wrap; }
+  .adv-toggle-item {
+    flex: 1; min-width: 85px;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 13px 10px;
+    background: rgba(20,20,20,0.5);
+    border: 1px solid var(--border); border-radius: 12px;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .adv-toggle-item:hover { border-color: rgba(255,255,255,0.1); }
+  .adv-toggle-item.active {
+    background: rgba(245,158,11,0.06);
+    border-color: rgba(245,158,11,0.2);
+  }
+  .adv-toggle-item i { width: 18px; height: 18px; color: var(--text-dim); transition: color 0.2s; }
+  .adv-toggle-item.active i { color: var(--amber); }
+  .adv-toggle-label {
+    font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em; transition: color 0.2s;
+  }
+  .adv-toggle-item.active .adv-toggle-label { color: var(--text-bright); }
+  .adv-toggle-switch {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: rgba(255,255,255,0.1);
+    position: relative; transition: background 0.25s;
+  }
+  .adv-toggle-switch::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-dim);
+    transition: transform 0.25s, background 0.25s;
+  }
+  .adv-toggle-item.active .adv-toggle-switch { background: rgba(245,158,11,0.3); }
+  .adv-toggle-item.active .adv-toggle-switch::after {
+    transform: translateX(16px); background: var(--amber);
+  }
+
+  /* Conditional fields */
+  .conditional-field {
+    display: none; opacity: 0; transition: opacity 0.25s ease;
+  }
+  .conditional-field.visible { display: block; opacity: 1; }
+
+  /* ── Fade helpers ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Stagger ── */
+  .stagger-in > * {
+    animation: staggerFade 0.4s ease forwards; opacity: 0;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.04s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.16s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.20s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.24s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.28s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.32s; }
+  .stagger-in > *:nth-child(9) { animation-delay: 0.36s; }
+  .stagger-in > *:nth-child(10) { animation-delay: 0.40s; }
+  @keyframes staggerFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Hide views ── */
+  .view-hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- View switcher (mockup only) -->
+<div class="view-switcher">
+  <button class="active" data-show="vip-configure">VIP: Configure</button>
+  <button data-show="vip-lobby">VIP: Lobby</button>
+  <button data-show="nonvip-lobby">Player: Lobby</button>
+</div>
+
+<div class="bg-pattern"></div>
+<canvas id="three-canvas"></canvas>
+
+<!-- ════════════════════════════════════════════════════
+     VIEW 1: VIP CONFIGURE SCREEN
+     ════════════════════════════════════════════════════ -->
+<div class="mobile-frame" id="view-vip-configure">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <i data-lucide="sparkles"></i>
+      <div class="top-bar-logo">BuzzerMinds</div>
+    </div>
+    <div class="room-code">#X7KQ9W</div>
+  </div>
+
+  <div class="configure-screen stagger-in">
+    <div class="cfg-title">Set up your game</div>
+    <div class="cfg-subtitle">Choose how you want to play. You can fine-tune later.</div>
+
+    <!-- Game Mode -->
+    <div class="cfg-label"><i data-lucide="gamepad-2"></i> Game Mode</div>
+    <div class="cfg-mode-row" data-select-group="mode">
+      <div class="cfg-mode-card active" data-value="rounds">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="mode-icon"><i data-lucide="repeat"></i></div>
+        <div class="mode-name">Rounds</div>
+        <div class="mode-desc">Play a set number<br>of rounds</div>
+      </div>
+      <div class="cfg-mode-card" data-value="timer">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="mode-icon"><i data-lucide="clock"></i></div>
+        <div class="mode-name">Timed</div>
+        <div class="mode-desc">Play until the<br>clock runs out</div>
+      </div>
+    </div>
+
+    <!-- AI Quality -->
+    <div class="cfg-label"><i data-lucide="brain"></i> AI Quality</div>
+    <div class="cfg-ai-row" data-select-group="ai">
+      <div class="cfg-ai-card" data-ai="speed" data-value="speed">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="ai-icon"><i data-lucide="zap"></i></div>
+        <div class="ai-name">Speed</div>
+        <div class="ai-desc">Fast & fun,<br>may slip up</div>
+      </div>
+      <div class="cfg-ai-card active" data-ai="balanced" data-value="balanced">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="ai-icon"><i data-lucide="scale"></i></div>
+        <div class="ai-name">Balanced</div>
+        <div class="ai-desc">Smart questions,<br>quick judging</div>
+      </div>
+      <div class="cfg-ai-card" data-ai="pro" data-value="pro">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="ai-icon"><i data-lucide="crown"></i></div>
+        <div class="ai-name">Pro</div>
+        <div class="ai-desc">Best quality,<br>slower pace</div>
+      </div>
+    </div>
+
+    <!-- Rounds Stepper -->
+    <div class="cfg-stepper-section" id="cfg-rounds-section">
+      <div class="cfg-label"><i data-lucide="hash"></i> Rounds</div>
+      <div class="cfg-stepper">
+        <button class="cfg-stepper-btn" data-step="rounds" data-dir="-1"><i data-lucide="minus"></i></button>
+        <div class="cfg-stepper-sep"></div>
+        <div class="cfg-stepper-display">
+          <div class="cfg-stepper-num" id="cfg-rounds-num">10</div>
+          <div class="cfg-stepper-unit">rounds</div>
+        </div>
+        <div class="cfg-stepper-sep"></div>
+        <button class="cfg-stepper-btn" data-step="rounds" data-dir="1"><i data-lucide="plus"></i></button>
+      </div>
+    </div>
+
+    <!-- Timer Minutes Stepper (shown when Timed mode) -->
+    <div class="cfg-stepper-section view-hidden" id="cfg-timer-section">
+      <div class="cfg-label"><i data-lucide="timer"></i> Timer</div>
+      <div class="cfg-stepper">
+        <button class="cfg-stepper-btn" data-step="timer" data-dir="-1"><i data-lucide="minus"></i></button>
+        <div class="cfg-stepper-sep"></div>
+        <div class="cfg-stepper-display">
+          <div class="cfg-stepper-num" id="cfg-timer-num">15</div>
+          <div class="cfg-stepper-unit">minutes</div>
+        </div>
+        <div class="cfg-stepper-sep"></div>
+        <button class="cfg-stepper-btn" data-step="timer" data-dir="1"><i data-lucide="plus"></i></button>
+      </div>
+    </div>
+
+    <div class="cfg-ornament">
+      <div class="cfg-ornament-line"></div>
+      <div class="cfg-ornament-diamond"></div>
+      <div class="cfg-ornament-line"></div>
+    </div>
+
+    <!-- Buzzer Speed -->
+    <div class="cfg-label"><i data-lucide="alarm-clock"></i> Buzzer Speed</div>
+    <div class="cfg-buzzer-row" data-select-group="buzzer">
+      <div class="cfg-buzzer-card" data-bz="lightning" data-value="lightning">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="bz-icon"><i data-lucide="zap"></i></div>
+        <div class="bz-name">Lightning</div>
+        <div class="bz-desc">10s answer<br>Intense pace</div>
+      </div>
+      <div class="cfg-buzzer-card active" data-bz="standard" data-value="standard">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="bz-icon"><i data-lucide="target"></i></div>
+        <div class="bz-name">Standard</div>
+        <div class="bz-desc">15s answer<br>Balanced</div>
+      </div>
+      <div class="cfg-buzzer-card" data-bz="relaxed" data-value="relaxed">
+        <div class="check-dot"><i data-lucide="check"></i></div>
+        <div class="bz-icon"><i data-lucide="coffee"></i></div>
+        <div class="bz-name">Relaxed</div>
+        <div class="bz-desc">25s answer<br>Take your time</div>
+      </div>
+    </div>
+
+    <!-- Moderation -->
+    <div class="cfg-mod-section">
+      <div class="cfg-label"><i data-lucide="shield"></i> Moderation</div>
+      <div class="cfg-pill-row" data-select-group="moderation">
+        <div class="cfg-pill" data-value="off">
+          <div class="pill-icon"><i data-lucide="shield-off"></i></div>
+          <div class="pill-name">Off</div>
+        </div>
+        <div class="cfg-pill active" data-value="light">
+          <div class="pill-icon"><i data-lucide="shield"></i></div>
+          <div class="pill-name">Light</div>
+        </div>
+        <div class="cfg-pill" data-value="family_safe">
+          <div class="pill-icon"><i data-lucide="shield-check"></i></div>
+          <div class="pill-name">Family Safe</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio -->
+    <div class="cfg-audio-section">
+      <div class="cfg-label"><i data-lucide="volume-2"></i> Audio</div>
+      <div class="cfg-audio-row">
+        <div class="cfg-audio-pill active" data-toggle="narration">
+          <i data-lucide="mic"></i>
+          <div class="audio-label">Narration</div>
+          <div class="audio-switch"></div>
+        </div>
+        <div class="cfg-audio-pill active" data-toggle="sfx">
+          <i data-lucide="bell-ring"></i>
+          <div class="audio-label">SFX</div>
+          <div class="audio-switch"></div>
+        </div>
+        <div class="cfg-audio-pill" data-toggle="music">
+          <i data-lucide="music"></i>
+          <div class="audio-label">Music</div>
+          <div class="audio-switch"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- spacer for scroll -->
+    <div style="height: 16px;"></div>
+  </div>
+
+  <!-- Let's Go -->
+  <div class="cfg-footer">
+    <button class="btn-letsgo" id="btn-letsgo">
+      <i data-lucide="arrow-right"></i>
+      Let's Go
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     VIEW 2: VIP LOBBY (after configuring)
+     ════════════════════════════════════════════════════ -->
+<div class="mobile-frame view-hidden" id="view-vip-lobby">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <i data-lucide="sparkles"></i>
+      <div class="top-bar-logo">BuzzerMinds</div>
+    </div>
+    <div class="room-code">#X7KQ9W</div>
+  </div>
+
+  <div class="lobby">
+    <div class="lobby-waiting">Waiting for players</div>
+    <div class="pulse-area">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-count">
+        <div class="pulse-count-num">4</div>
+        <div class="pulse-count-label">players joined</div>
+      </div>
+    </div>
+    <div class="player-list">
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--sky);"></div>
+        <div class="player-name">Daniel K.</div>
+        <div class="player-badge vip">VIP</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--amber);"></div>
+        <div class="player-name">Maria L.</div>
+        <div class="player-badge ready">Ready</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--sage);"></div>
+        <div class="player-name">Jake R.</div>
+        <div class="player-badge waiting">Waiting</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--cream);"></div>
+        <div class="player-name">Sam T.</div>
+        <div class="player-badge ready">Ready</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="bottom-btns">
+      <button class="btn-configure" id="btn-reconfigure">
+        <i data-lucide="sliders-horizontal"></i>
+        Configure
+      </button>
+      <button class="btn-start" disabled>
+        <i data-lucide="play"></i>
+        Start Match
+      </button>
+    </div>
+    <div class="blocker-text">All active players must be ready</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     VIEW 3: NON-VIP LOBBY
+     ════════════════════════════════════════════════════ -->
+<div class="mobile-frame view-hidden" id="view-nonvip-lobby">
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <i data-lucide="sparkles"></i>
+      <div class="top-bar-logo">BuzzerMinds</div>
+    </div>
+    <div class="room-code">#X7KQ9W</div>
+  </div>
+
+  <div class="lobby">
+    <div class="lobby-waiting">Waiting for players</div>
+    <div class="pulse-area">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-count">
+        <div class="pulse-count-num">4</div>
+        <div class="pulse-count-label">players joined</div>
+      </div>
+    </div>
+    <div class="player-list">
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--sky);"></div>
+        <div class="player-name">Daniel K.</div>
+        <div class="player-badge vip">VIP</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--amber);"></div>
+        <div class="player-name">Maria L.</div>
+        <div class="player-badge ready">Ready</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--sage);"></div>
+        <div class="player-name">Jake R.</div>
+        <div class="player-badge waiting">Waiting</div>
+      </div>
+      <div class="player-card">
+        <div class="player-dot" style="background: var(--cream);"></div>
+        <div class="player-name">Sam T.</div>
+        <div class="player-badge ready">Ready</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn-ready" id="btn-ready">
+      <i data-lucide="check-circle"></i>
+      Mark Ready
+    </button>
+    <div class="blocker-text" style="margin-top: 8px;">Waiting for VIP to start the game</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SCRIM
+     ════════════════════════════════════════════════════ -->
+<div class="scrim" id="scrim"></div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE-UP SETTINGS PANEL (VIP reconfigure)
+     ════════════════════════════════════════════════════ -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="panel-surface">
+    <div class="panel-handle"><div class="drag-bar"></div></div>
+
+    <div class="panel-header">
+      <div class="panel-title">Game Settings</div>
+      <button class="panel-close" id="panelClose"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="seg-control">
+      <div class="seg-indicator" id="segIndicator"></div>
+      <button class="seg-btn active" data-view="quick" id="segQuick">
+        <i data-lucide="zap"></i> Quick
+      </button>
+      <button class="seg-btn" data-view="advanced" id="segAdvanced">
+        <i data-lucide="sliders-horizontal"></i> Advanced
+      </button>
+    </div>
+
+    <div class="panel-body">
+
+      <!-- QUICK VIEW (same presets as configure screen) -->
+      <div class="view-panel quick-view stagger-in" id="quickView">
+        <div class="cfg-label"><i data-lucide="brain"></i> AI Quality</div>
+        <div class="cfg-ai-row" data-select-group="ai-panel">
+          <div class="cfg-ai-card" data-ai="speed" data-value="speed">
+            <div class="check-dot"><i data-lucide="check"></i></div>
+            <div class="ai-icon"><i data-lucide="zap"></i></div>
+            <div class="ai-name">Speed</div>
+            <div class="ai-desc">Fast & fun</div>
+          </div>
+          <div class="cfg-ai-card active" data-ai="balanced" data-value="balanced">
+            <div class="check-dot"><i data-lucide="check"></i></div>
+            <div class="ai-icon"><i data-lucide="scale"></i></div>
+            <div class="ai-name">Balanced</div>
+            <div class="ai-desc">Best value</div>
+          </div>
+          <div class="cfg-ai-card" data-ai="pro" data-value="pro">
+            <div class="check-dot"><i data-lucide="check"></i></div>
+            <div class="ai-icon"><i data-lucide="crown"></i></div>
+            <div class="ai-name">Pro</div>
+            <div class="ai-desc">Premium</div>
+          </div>
+        </div>
+
+        <div class="cfg-label"><i data-lucide="hash"></i> Rounds</div>
+        <div class="cfg-stepper" style="margin-bottom: 20px;">
+          <button class="cfg-stepper-btn" data-step="panel-rounds" data-dir="-1"><i data-lucide="minus"></i></button>
+          <div class="cfg-stepper-sep"></div>
+          <div class="cfg-stepper-display">
+            <div class="cfg-stepper-num" id="panel-rounds-num">10</div>
+            <div class="cfg-stepper-unit">rounds</div>
+          </div>
+          <div class="cfg-stepper-sep"></div>
+          <button class="cfg-stepper-btn" data-step="panel-rounds" data-dir="1"><i data-lucide="plus"></i></button>
+        </div>
+
+        <div class="cfg-label"><i data-lucide="alarm-clock"></i> Buzzer Speed</div>
+        <div class="cfg-buzzer-row" data-select-group="buzzer-panel">
+          <div class="cfg-buzzer-card" data-bz="lightning" data-value="lightning">
+            <div class="check-dot"><i data-lucide="check"></i></div>
+            <div class="bz-icon"><i data-lucide="zap"></i></div>
+            <div class="bz-name">Lightning</div>
+            <div class="bz-desc">10s</div>
+          </div>
+          <div class="cfg-buzzer-card active" data-bz="standard" data-value="standard">
+            <div class="check-dot"><i data-lucide="check"></i></div>
+            <div class="bz-icon"><i data-lucide="target"></i></div>
+            <div class="bz-name">Standard</div>
+            <div class="bz-desc">15s</div>
+          </div>
+          <div class="cfg-buzzer-card" data-bz="relaxed" data-value="relaxed">
+            <div class="check-dot"><i data-lucide="check"></i></div>
+            <div class="bz-icon"><i data-lucide="coffee"></i></div>
+            <div class="bz-name">Relaxed</div>
+            <div class="bz-desc">25s</div>
+          </div>
+        </div>
+
+        <div class="cfg-label"><i data-lucide="shield"></i> Moderation</div>
+        <div class="cfg-pill-row" data-select-group="mod-panel" style="margin-bottom: 20px;">
+          <div class="cfg-pill" data-value="off">
+            <div class="pill-icon"><i data-lucide="shield-off"></i></div>
+            <div class="pill-name">Off</div>
+          </div>
+          <div class="cfg-pill active" data-value="light">
+            <div class="pill-icon"><i data-lucide="shield"></i></div>
+            <div class="pill-name">Light</div>
+          </div>
+          <div class="cfg-pill" data-value="family_safe">
+            <div class="pill-icon"><i data-lucide="shield-check"></i></div>
+            <div class="pill-name">Family</div>
+          </div>
+        </div>
+
+        <div class="cfg-label"><i data-lucide="volume-2"></i> Audio</div>
+        <div class="cfg-audio-row" style="margin-bottom: 10px;">
+          <div class="cfg-audio-pill active" data-toggle="panel-narration">
+            <i data-lucide="mic"></i>
+            <div class="audio-label">Narration</div>
+            <div class="audio-switch"></div>
+          </div>
+          <div class="cfg-audio-pill active" data-toggle="panel-sfx">
+            <i data-lucide="bell-ring"></i>
+            <div class="audio-label">SFX</div>
+            <div class="audio-switch"></div>
+          </div>
+          <div class="cfg-audio-pill" data-toggle="panel-music">
+            <i data-lucide="music"></i>
+            <div class="audio-label">Music</div>
+            <div class="audio-switch"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADVANCED VIEW -->
+      <div class="view-panel advanced-view hidden" id="advancedView">
+
+        <!-- Game Rules -->
+        <div class="accordion open" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon sage"><i data-lucide="gamepad-2"></i></div>
+            <div class="accordion-title">Game Rules</div>
+            <div class="accordion-count">4 settings</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="layers"></i> Topic Pool Size <span class="adv-hint">3</span></div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="1" max="10" value="3" style="--fill: 22%;">
+                  <div class="adv-range-value">3</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="eye"></i> Reveal Mode</div>
+                <div class="adv-pill-group">
+                  <div class="adv-pill active">Progressive</div>
+                  <div class="adv-pill">Full</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="flag"></i> End Mode</div>
+                <div class="adv-pill-group">
+                  <div class="adv-pill active">Rounds</div>
+                  <div class="adv-pill">Timer</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="alert-triangle"></i> Timer Expiry</div>
+                <div class="adv-pill-group">
+                  <div class="adv-pill active">Finish Round</div>
+                  <div class="adv-pill">Main Only</div>
+                  <div class="adv-pill">Immediate</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timing -->
+        <div class="accordion" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon sky"><i data-lucide="timer"></i></div>
+            <div class="accordion-title">Timing</div>
+            <div class="accordion-count">3 settings</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="hourglass"></i> Answer Time <span class="adv-hint">15s</span></div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="10" max="30" value="15" style="--fill: 25%;">
+                  <div class="adv-range-value">15s</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="shield-off"></i> No-Buzz Window <span class="adv-hint">8s</span></div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="5" max="15" value="8" style="--fill: 30%;">
+                  <div class="adv-range-value">8s</div>
+                </div>
+              </div>
+              <div class="adv-field">
+                <div class="adv-field-label"><i data-lucide="trophy"></i> Bonus Time <span class="adv-hint">15s</span></div>
+                <div class="adv-range-row">
+                  <input type="range" class="adv-range-slider" min="10" max="30" value="15" style="--fill: 25%;">
+                  <div class="adv-range-value">15s</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio -->
+        <div class="accordion" data-accordion>
+          <div class="accordion-header">
+            <div class="accordion-icon rose"><i data-lucide="volume-2"></i></div>
+            <div class="accordion-title">Audio</div>
+            <div class="accordion-count">3 toggles</div>
+            <div class="accordion-chevron"><i data-lucide="chevron-down"></i></div>
+          </div>
+          <div class="accordion-body">
+            <div class="accordion-content">
+              <div class="adv-field" style="margin-top: 14px;">
+                <div class="adv-toggles">
+                  <div class="adv-toggle-item active">
+                    <i data-lucide="mic"></i>
+                    <div class="adv-toggle-label">Narration</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                  <div class="adv-toggle-item active">
+                    <i data-lucide="bell-ring"></i>
+                    <div class="adv-toggle-label">SFX</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                  <div class="adv-toggle-item">
+                    <i data-lucide="music"></i>
+                    <div class="adv-toggle-label">Music</div>
+                    <div class="adv-toggle-switch"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="panel-footer">
+      <button class="btn-apply" id="applyBtn">
+        <i data-lucide="check-circle"></i>
+        Done
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  lucide.createIcons();
+
+  // ══════════════════════════════════════════════════
+  // View switching (mockup only)
+  // ══════════════════════════════════════════════════
+  const views = {
+    'vip-configure': document.getElementById('view-vip-configure'),
+    'vip-lobby': document.getElementById('view-vip-lobby'),
+    'nonvip-lobby': document.getElementById('view-nonvip-lobby'),
+  };
+  const switcherBtns = document.querySelectorAll('.view-switcher button');
+
+  switcherBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.show;
+      switcherBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.entries(views).forEach(([key, el]) => {
+        el.classList.toggle('view-hidden', key !== target);
+      });
+      // Close panel if open when switching
+      closePanel();
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Select groups (single-select cards / pills)
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('[data-select-group]').forEach(group => {
+    const items = group.children;
+    Array.from(items).forEach(item => {
+      item.addEventListener('click', () => {
+        Array.from(items).forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        // Game mode switching: show/hide rounds vs timer
+        const groupName = group.dataset.selectGroup;
+        if (groupName === 'mode') {
+          const val = item.dataset.value;
+          const roundsSec = document.getElementById('cfg-rounds-section');
+          const timerSec = document.getElementById('cfg-timer-section');
+          if (val === 'rounds') {
+            roundsSec.classList.remove('view-hidden');
+            timerSec.classList.add('view-hidden');
+          } else {
+            roundsSec.classList.add('view-hidden');
+            timerSec.classList.remove('view-hidden');
+          }
+        }
+      });
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Audio toggles
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.cfg-audio-pill[data-toggle]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      pill.classList.toggle('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Adv toggle items
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-toggle-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('active');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Adv pill groups
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-pill-group').forEach(group => {
+    const pills = group.querySelectorAll('.adv-pill');
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+      });
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Steppers
+  // ══════════════════════════════════════════════════
+  const stepperState = { rounds: 10, timer: 15, 'panel-rounds': 10 };
+  const stepperLimits = {
+    rounds: { min: 1, max: 25 },
+    timer: { min: 5, max: 60 },
+    'panel-rounds': { min: 1, max: 25 },
+  };
+
+  document.querySelectorAll('.cfg-stepper-btn[data-step]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.step;
+      const dir = parseInt(btn.dataset.dir);
+      const limits = stepperLimits[key];
+      stepperState[key] = Math.max(limits.min, Math.min(limits.max, stepperState[key] + dir));
+      const numEl = document.getElementById(`cfg-${key}-num`) || document.getElementById(`${key}-num`);
+      if (numEl) {
+        numEl.textContent = stepperState[key];
+        numEl.classList.add('bump');
+        setTimeout(() => numEl.classList.remove('bump'), 200);
+      }
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // "Let's Go" → switch to VIP Lobby
+  // ══════════════════════════════════════════════════
+  document.getElementById('btn-letsgo').addEventListener('click', () => {
+    const lobbyBtn = document.querySelector('.view-switcher button[data-show="vip-lobby"]');
+    lobbyBtn.click();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Non-VIP "Mark Ready" toggle
+  // ══════════════════════════════════════════════════
+  const readyBtn = document.getElementById('btn-ready');
+  let isReady = false;
+  readyBtn.addEventListener('click', () => {
+    isReady = !isReady;
+    readyBtn.classList.toggle('is-ready', isReady);
+    readyBtn.innerHTML = isReady
+      ? '<i data-lucide="x-circle"></i> Unready'
+      : '<i data-lucide="check-circle"></i> Mark Ready';
+    lucide.createIcons();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Panel open / close (VIP lobby → Configure)
+  // ══════════════════════════════════════════════════
+  const settingsPanel = document.getElementById('settingsPanel');
+  const scrim = document.getElementById('scrim');
+  const threeCanvas = document.getElementById('three-canvas');
+
+  function openPanel() {
+    settingsPanel.classList.add('open');
+    scrim.classList.add('active');
+    threeCanvas.classList.add('dimmed');
+    document.body.style.overflow = 'hidden';
+  }
+  function closePanel() {
+    settingsPanel.classList.remove('open');
+    scrim.classList.remove('active');
+    threeCanvas.classList.remove('dimmed');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('btn-reconfigure').addEventListener('click', openPanel);
+  document.getElementById('panelClose').addEventListener('click', closePanel);
+  document.getElementById('applyBtn').addEventListener('click', closePanel);
+  scrim.addEventListener('click', closePanel);
+
+  // ══════════════════════════════════════════════════
+  // Segmented control: Quick / Advanced in panel
+  // ══════════════════════════════════════════════════
+  const segQuick = document.getElementById('segQuick');
+  const segAdvanced = document.getElementById('segAdvanced');
+  const segIndicator = document.getElementById('segIndicator');
+  const quickView = document.getElementById('quickView');
+  const advancedView = document.getElementById('advancedView');
+  let currentView = 'quick';
+
+  function switchPanelView(target) {
+    if (target === currentView) return;
+    currentView = target;
+    segQuick.classList.toggle('active', target === 'quick');
+    segAdvanced.classList.toggle('active', target === 'advanced');
+    segIndicator.classList.toggle('advanced', target === 'advanced');
+    if (target === 'quick') {
+      advancedView.classList.add('hidden');
+      quickView.classList.remove('hidden');
+    } else {
+      quickView.classList.add('hidden');
+      advancedView.classList.remove('hidden');
+    }
+  }
+  segQuick.addEventListener('click', () => switchPanelView('quick'));
+  segAdvanced.addEventListener('click', () => switchPanelView('advanced'));
+
+  // ══════════════════════════════════════════════════
+  // Accordions
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('[data-accordion]').forEach(acc => {
+    acc.querySelector('.accordion-header').addEventListener('click', () => {
+      acc.classList.toggle('open');
+    });
+  });
+
+  // ══════════════════════════════════════════════════
+  // Range sliders
+  // ══════════════════════════════════════════════════
+  document.querySelectorAll('.adv-range-slider').forEach(slider => {
+    function update() {
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+      const val = parseFloat(slider.value);
+      const pct = ((val - min) / (max - min)) * 100;
+      slider.style.setProperty('--fill', pct + '%');
+      const valEl = slider.parentElement.querySelector('.adv-range-value');
+      if (valEl) valEl.textContent = val + (slider.dataset.suffix || '');
+      const hintEl = slider.dataset.display ? document.getElementById(slider.dataset.display) : null;
+      if (hintEl) hintEl.textContent = val + (slider.dataset.suffix || '');
+    }
+    slider.addEventListener('input', update);
+    update();
+  });
+
+  // ══════════════════════════════════════════════════
+  // Three.js wireframe background
+  // ══════════════════════════════════════════════════
+  (function() {
+    const canvas = document.getElementById('three-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 18;
+    const mat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.06 });
+    const shapes = [];
+    for (let i = 0; i < 6; i++) {
+      const geo = new THREE.OctahedronGeometry(1.2 + Math.random() * 1.5, 0);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 6);
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      scene.add(mesh);
+      shapes.push({ mesh, rx: (Math.random() - 0.5) * 0.003, ry: (Math.random() - 0.5) * 0.003 });
+    }
+    function animate() {
+      requestAnimationFrame(animate);
+      shapes.forEach(s => { s.mesh.rotation.x += s.rx; s.mesh.rotation.y += s.ry; });
+      renderer.render(scene, camera);
+    }
+    animate();
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  })();
+</script>
+</body>
+</html>

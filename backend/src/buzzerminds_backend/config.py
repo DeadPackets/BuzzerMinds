@@ -251,11 +251,13 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def load_dotenv_file() -> None:
-    env_path = repo_root() / ".env"
-    if not env_path.exists():
-        return
+def _load_env_from(env_path: Path) -> bool:
+    """Load key=value pairs from *env_path* into ``os.environ`` (setdefault).
 
+    Returns ``True`` if the file was found and processed.
+    """
+    if not env_path.is_file():
+        return False
     for line in env_path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or "=" not in stripped:
@@ -264,6 +266,19 @@ def load_dotenv_file() -> None:
         key = key.strip()
         if key:
             os.environ.setdefault(key, value.strip())
+    return True
+
+
+def load_dotenv_file() -> None:
+    # 1. Repo root (works in local development)
+    if _load_env_from(repo_root() / ".env"):
+        return
+
+    # 2. Same directory as the config file (works in Docker where
+    #    config.yml and .env are both mounted under /app)
+    configured = os.getenv("BUZZERMINDS_CONFIG_PATH")
+    if configured:
+        _load_env_from(Path(configured).resolve().parent / ".env")
 
 
 def config_path() -> Path:
